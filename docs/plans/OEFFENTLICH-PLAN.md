@@ -135,15 +135,30 @@ hinaus.
 nach IP- und Mailadressen. Die Treffer waren Versionsnummern, OIDs, der
 Platzhalter `pbx.example.ch` und eine öffentliche Kontaktadresse.
 
-**Ö6 — Umschalten.** Die Release-Kette auf das neue Repo zeigen lassen, ein
-Release 0.9.6 dort veröffentlichen, an einem Arbeitsplatz die
-Aktualisierung prüfen. **Das Token fällt hier weg** — öffentliche
-Release-Assets brauchen keines mehr, und `update.token` kann aus der
-Provisionierung verschwinden.
+**Ö6 — Umschalten. ✔ erledigt am 14.09.2026.** Die Kette steht:
+
+| Repo | Releases | Bedeutung |
+|---|---|---|
+| `nipp` (alt, privat) | 0.9.2, **0.9.5** | 0.9.5 ist die Brücke — sie zeigt aufs neue Repo |
+| `nipp-softphone` (neu, öffentlich) | **0.9.6** | ab hier geht es weiter |
+
+**Am Arbeitsplatz noch zu prüfen:** dass eine installierte 0.9.2 die 0.9.5
+zieht und danach von selbst im neuen Repo landet. **Solange das nicht
+geprüft ist, bleibt der Weg eine Annahme** — funktioniert er nicht, hilft
+nur eine Neuinstallation aus dem neuen Repo.
+
+**Das Token kann jetzt weg:** öffentliche Release-Assets brauchen keines.
+`update.token` aus der Provisionierung zu nehmen ist der letzte Schritt —
+aber **erst**, wenn alle Arbeitsplätze auf 0.9.6 sind; bis dahin brauchen
+sie es noch für die Brücke im alten, privaten Repo.
 
 **Ö7 — Das alte Repo archivieren**, nicht löschen. Es ist die Geschichte des
 Projekts, und es enthält nichts, was gelöscht gehört — nur nichts, was
 öffentlich gehört.
+
+**Archiviert heisst schreibgeschützt, nicht weg:** die 181 Commits bleiben
+lesbar, und **die Releases bleiben abrufbar** — die Brücke 0.9.5 muss ja
+weiter funktionieren, solange ein Arbeitsplatz sie noch braucht.
 
 ## 5. Was dieser Plan nicht tut
 
@@ -173,4 +188,5 @@ Protokollzeile, die man zur Veranschaulichung zitiert.
 | 14.09.2026 | **Ö3** — SDK-Quelltext | **Kein Spiegel nötig**: Verweis auf Belledonne in `NOTICE`, beide Orte mit HTTP 200 geprüft |
 | 14.09.2026 | **Ö4** — Brücke vorbereitet | `RepositoryUrl` zeigt auf `nipp-softphone`; `Release-Nipp.ps1` trennt Upload-Ziel (`-UploadRepo`) vom Suchziel |
 | 14.09.2026 | **Ö5** — neues Repo | `bv2-GmbH/nipp-softphone`, öffentlich, ein Commit `c4da665`; vorher Wächter, Vorlagen, `.gitignore` und ein Adressen-Scan über alle 466 Dateien |
-| — | Ö1, Ö6, Ö7 | stehen aus |
+| 14.09.2026 | **Ö6** — Umschalten | 0.9.5 (Brücke) im alten Repo, **0.9.6 im neuen**; am Arbeitsplatz noch ungeprüft |
+| — | Ö1, Ö7 | Ö7 folgt sofort |
