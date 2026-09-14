@@ -143,9 +143,26 @@ Platzhalter `pbx.example.ch` und eine öffentliche Kontaktadresse.
 | `nipp-softphone` (neu, öffentlich) | **0.9.6** | ab hier geht es weiter |
 
 **Am Arbeitsplatz noch zu prüfen:** dass eine installierte 0.9.2 die 0.9.5
-zieht und danach von selbst im neuen Repo landet. **Solange das nicht
-geprüft ist, bleibt der Weg eine Annahme** — funktioniert er nicht, hilft
-nur eine Neuinstallation aus dem neuen Repo.
+zieht und danach von selbst im neuen Repo landet.
+
+**Was daran geprüft ist und was nicht** (14.09.2026):
+
+- ✔ In der ausgelieferten 0.9.5 steht die **neue** Adresse — die alte kommt
+  in der Binärdatei nicht mehr vor.
+- ✔ Das neue Release ist **ohne jede Anmeldung** abrufbar (HTTP 200). Ab
+  0.9.6 braucht es also keinen Token mehr, und damit fällt die ganze
+  Fehlerquelle weg.
+- ✔ Die Brücke im archivierten Repo ist abrufbar — **aber nur über die API
+  mit Asset-Kennung.** Die naheliegende `releases/download/`-Adresse
+  antwortet bei einem privaten Repo mit **404, auch mit gültigem Token**.
+- ✖ **Ungeprüft bleibt der Schritt selbst:** ob eine installierte Fassung mit
+  provisioniertem Token die Brücke wirklich zieht. Das war **seit dem ersten
+  Release am 09.09.2026 nie geprüft** — es ist kein neues Risiko, nur eines,
+  das jetzt sichtbar wird.
+
+**Und es ist begrenzt:** Wer die Brücke verpasst, installiert **einmal** neu
+aus dem öffentlichen Repo. Danach läuft alles ohne Token — einfacher als je
+zuvor.
 
 **Das Token kann jetzt weg:** öffentliche Release-Assets brauchen keines.
 `update.token` aus der Provisionierung zu nehmen ist der letzte Schritt —
@@ -189,4 +206,6 @@ Protokollzeile, die man zur Veranschaulichung zitiert.
 | 14.09.2026 | **Ö4** — Brücke vorbereitet | `RepositoryUrl` zeigt auf `nipp-softphone`; `Release-Nipp.ps1` trennt Upload-Ziel (`-UploadRepo`) vom Suchziel |
 | 14.09.2026 | **Ö5** — neues Repo | `bv2-GmbH/nipp-softphone`, öffentlich, ein Commit `c4da665`; vorher Wächter, Vorlagen, `.gitignore` und ein Adressen-Scan über alle 466 Dateien |
 | 14.09.2026 | **Ö6** — Umschalten | 0.9.5 (Brücke) im alten Repo, **0.9.6 im neuen**; am Arbeitsplatz noch ungeprüft |
-| — | Ö1, Ö7 | Ö7 folgt sofort |
+| 14.09.2026 | **Ö7** — altes Repo archiviert | schreibgeschützt, privat; die 181 Commits und die Releases bleiben |
+| 14.09.2026 | **Nachgeprüft** | In der ausgelieferten 0.9.5 steht die **neue** Adresse und keine Spur der alten. Das neue Release ist **ohne Anmeldung abrufbar** (HTTP 200). Die Brücke im archivierten Repo ist ebenfalls abrufbar — **aber nur über die API mit Asset-Kennung**, die einfache `releases/download/`-Adresse gibt bei einem privaten Repo 404, auch mit Token |
+| — | Ö1 | steht aus |
