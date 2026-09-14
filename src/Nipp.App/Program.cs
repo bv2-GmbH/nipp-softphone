@@ -52,6 +52,14 @@ public static class Program
             // kein Fenster, keine Dienste, kein Protokoll auf Platte.
             .OnBeforeUninstallFastCallback(_ => RaeumeAuf())
 
+            // <b>Der erste Start nach einer Installation</b> (14.09.2026).
+            //
+            // Hier wird nur ein Schalter gesetzt, nichts angezeigt: dieser
+            // Aufruf liegt VOR WinUI, und alles Wartende an dieser Stelle
+            // startet nipp nicht mehr (CLAUDE.md). Die Meldung kommt aus der
+            // laufenden Anwendung, sobald das Symbol im Infobereich steht.
+            .OnFirstRun(_ => FrischInstalliert = true)
+
             .Run();
 
         // Ab hier der Weg, den der XAML-Compiler sonst selbst genommen haette.
@@ -63,6 +71,17 @@ public static class Program
         // Implementierung davon ist ein Compilerfehler, kein Zusatz.
         XamlGeneratedProgram.XamlGeneratedMain();
     }
+
+    /// <summary>
+    /// Ob dieser Start der erste nach einer Installation oder einem Update ist.
+    ///
+    /// <para><b>Gesetzt von Velopack, gelesen von <c>App</c>.</b> Ein
+    /// statisches Feld und keine Einstellung: es gilt für genau diesen
+    /// Prozesslauf, und auf die Platte gehört es nicht — ein Schalter, der
+    /// einen Neustart überlebt, zeigt die Meldung irgendwann ein zweites
+    /// Mal.</para>
+    /// </summary>
+    public static bool FrischInstalliert { get; private set; }
 
     /// <summary>
     /// Was nipp beim Deinstallieren hinterlässt, und zwar nichts (W1.5, E4).
