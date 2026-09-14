@@ -120,10 +120,20 @@ Danach an einem Arbeitsplatz prüfen: Er zieht 0.9.5 aus dem alten Repo, und
 die **nächste** Prüfung landet beim neuen. Erst wenn das steht, geht es
 weiter.
 
-**Ö5 — Das neue Repo.** Öffentlich anlegen, den Arbeitsbaum als **einen**
-Commit hineinlegen (`git init`, kein Import der alten Historie). Die alten
-181 Commits bleiben im privaten Repo und damit erhalten — **nichts geht
-verloren, es wird nur nicht mitgenommen.**
+**Ö5 — Das neue Repo. ✔ erledigt am 14.09.2026.**
+`https://github.com/bv2-GmbH/nipp-softphone`, öffentlich, ein Commit
+(`c4da665`), 466 Dateien, 11,9 MB.
+
+**Der Weg dorthin ohne Kopiererei:** ein `--orphan`-Branch im bestehenden
+Repo, dort alles committen, und ihn als `main` ins neue Repo pushen. Das
+lokale Repo behält dabei seine ganze Historie; nur der eine Commit geht
+hinaus.
+
+**Was vorher geprüft wurde:** `PublicRepositoryTests` grün, unter
+`Catalog/templates/` nur `custom-rest.json`, `.gitignore` deckt SDK, `dist/`,
+`bin/` und `obj/`, Arbeitsbaum sauber — und ein Scan über alle 466 Dateien
+nach IP- und Mailadressen. Die Treffer waren Versionsnummern, OIDs, der
+Platzhalter `pbx.example.ch` und eine öffentliche Kontaktadresse.
 
 **Ö6 — Umschalten.** Die Release-Kette auf das neue Repo zeigen lassen, ein
 Release 0.9.6 dort veröffentlichen, an einem Arbeitsplatz die
@@ -162,4 +172,5 @@ Protokollzeile, die man zur Veranschaulichung zitiert.
 | 14.09.2026 | **Ö2** — README für Fremde | Kopf mit Lizenz, Zustand, Bauanleitung und SDK-Beschaffung vorangestellt |
 | 14.09.2026 | **Ö3** — SDK-Quelltext | **Kein Spiegel nötig**: Verweis auf Belledonne in `NOTICE`, beide Orte mit HTTP 200 geprüft |
 | 14.09.2026 | **Ö4** — Brücke vorbereitet | `RepositoryUrl` zeigt auf `nipp-softphone`; `Release-Nipp.ps1` trennt Upload-Ziel (`-UploadRepo`) vom Suchziel |
-| — | Ö1, Ö5 bis Ö7 | stehen aus |
+| 14.09.2026 | **Ö5** — neues Repo | `bv2-GmbH/nipp-softphone`, öffentlich, ein Commit `c4da665`; vorher Wächter, Vorlagen, `.gitignore` und ein Adressen-Scan über alle 466 Dateien |
+| — | Ö1, Ö6, Ö7 | stehen aus |

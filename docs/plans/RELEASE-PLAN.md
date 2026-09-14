@@ -173,12 +173,37 @@ Zwei Dinge, die gern mit der Lizenzfrage verwechselt werden:
   interagieren. Ein Softphone auf dem Arbeitsplatz ist das nicht; der Benutzer
   sitzt davor. Käme später eine Server- oder Mandantenkomponente dazu, wäre sie
   neu zu prüfen.
-- **Das Code-Signing-Zertifikat bleibt offen (AP9.2).** Ohne es zeigt Windows
+- **Das Code-Signing-Zertifikat bleibt offen (AP9.2)** — **und das ist seit
+  dem 14.09.2026 eine Entscheidung, kein Versäumnis.** Ohne es zeigt Windows
   beim Setup „Unbekannter Herausgeber", SmartScreen blockiert den ersten Start,
   und beim Kunden sieht das nach Schadsoftware aus. **Die Lizenz erlaubt die
-  Weitergabe, das Zertifikat ermöglicht sie.** Beschaffung dauert Wochen und
-  gehört sofort angestossen — sie ist damit der einzige echte Blocker vor einer
-  Abgabe ausser Haus.
+  Weitergabe, das Zertifikat ermöglicht sie.**
+
+  **Für die zehn internen Arbeitsplätze bleibt es unsigniert.** Dort ist die
+  Meldung einmal wegzuklicken, und der Aufwand steht in keinem Verhältnis. Vor
+  einer Abgabe ausser Haus ist es weiterhin der einzige echte Blocker.
+
+  **Die Wege, geprüft am 14.09.2026** — damit die Recherche nicht zweimal
+  gemacht wird:
+
+  | Weg | Kosten | Aufwand | SmartScreen |
+  |---|---|---|---|
+  | **SignPath Foundation** (für quelloffene Projekte) | kostenlos | Build muss über ein CI-System laufen, nicht lokal | wie OV: Reputation muss wachsen |
+  | **Azure Trusted Signing** | ~10 USD/Monat | gering, **kein Hardware-Token** | wie OV |
+  | **OV-Zertifikat** | 200–400 CHF/Jahr | Hardware-Token muss beim Bauen stecken | Reputation muss wachsen |
+  | **EV-Zertifikat** | 400–700 CHF/Jahr | Hardware-Token | **sofort vertraut** |
+
+  **Let's Encrypt geht nicht** und wird es nie: deren Zertifikate tragen
+  `serverAuth`, Authenticode verlangt `codeSigning` aus einem Root im
+  Microsoft-Programm für Code Signing. Dazu verlangt Code Signing eine
+  Organisations- statt einer Domainprüfung und seit Juni 2023 einen privaten
+  Schlüssel in zertifizierter Hardware — beides verträgt sich nicht mit einem
+  vollautomatischen, kostenlosen Dienst.
+
+  **Seit dem Repo-Wechsel ist SignPath neu möglich**: nipp ist quelloffen
+  (AGPLv3) und öffentlich. Der Preis wäre ein CI-Build — der T174 (frischer
+  Klon, Bauen nach eigener Anleitung) nebenbei bei jedem Commit beantworten
+  würde.
 
 Das hier ist keine Rechtsberatung. Der AGPL-Weg ist der von Belledonne
 ausdrücklich vorgesehene, und die Punkte oben sind die üblichen; vor der ersten
