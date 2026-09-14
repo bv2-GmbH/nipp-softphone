@@ -197,7 +197,19 @@ $vpkArgs = @(
     '--channel', $velopackChannel,
     '--outputDir', $releaseDirectory,
     '--icon', (Join-Path $repoRoot 'src\Nipp.App\Assets\AppIcon.ico'),
-    '--shortcuts', 'Desktop,StartMenuRoot'
+    '--shortcuts', 'Desktop,StartMenuRoot',
+
+    # <b>Ein Bild statt des Aufgabendialogs</b> (14.09.2026).
+    #
+    # Ohne diese Zeile zeigt Velopack waehrend der Installation einen
+    # Windows-Aufgabendialog — mit Fortschrittsbalken UND einem OK-Knopf, den
+    # so ein Dialog von Haus aus bekommt. Der Knopf sah aus wie eine
+    # Bestaetigung und war ein Abbruch: wer ihn drueckte, stand ohne
+    # Installation da. Ein Splash-Bild hat keine Knoepfe.
+    #
+    # Die Rueckmeldung kommt stattdessen ans Ende, aus der laufenden
+    # Anwendung (App.ZeigeInstallationshinweis).
+    '--splashImage', (Join-Path $repoRoot 'src\Nipp.App\Assets\SplashScreen.png')
 )
 
 if ($CertificateThumbprint) {

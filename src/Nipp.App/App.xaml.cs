@@ -690,6 +690,8 @@ public partial class App : Application, IDisposable
         _tray.ExitRequested += (_, _) => Eingereiht("Beenden", ExitApplication);
         _tray.Start();
 
+        ZeigeInstallationshinweis();
+
         _toasts = new ToastService(
             Services.GetRequiredService<ISipService>(),
             Services.GetRequiredService<SettingsService>(),
@@ -853,6 +855,49 @@ public partial class App : Application, IDisposable
         {
             // Ein Hinweis ist kein Grund, das Schliessen zu gefaehrden.
             AppLog.HandlerFailed(_logger, nameof(ZeigeInfobereichHinweisEinmal), ex.GetType().Name);
+        }
+    }
+
+    /// <summary>
+    /// Sagt nach einer Installation oder einem Update, dass nipp bereitsteht
+    /// (14.09.2026).
+    ///
+    /// <para><b>Der Anlass.</b> Das Setup zeigte bis dahin einen Fortschritt
+    /// mit einem <b>OK-Knopf</b> — dem Standard eines Windows-Aufgabendialogs.
+    /// Wer ihn drückte, brach die Installation ab, obwohl der Knopf wie eine
+    /// Bestätigung aussah. Der Dialog ist seither durch ein Bild ersetzt
+    /// (<c>--splashImage</c> in <c>Release-Nipp.ps1</c>), und die Rückmeldung
+    /// kommt dorthin, wo sie hingehört: <b>ans Ende</b>.</para>
+    ///
+    /// <para><b>Über den Infobereich und nicht über ein Fenster.</b> nipp
+    /// startet nach der Installation minimiert; ein Dialog stünde vor einem
+    /// Fenster, das niemand gerufen hat. Bleibt die Sprechblase aus — Windows
+    /// unterdrückt sie je nach Einstellung —, ist nichts verloren: die
+    /// Installation ist trotzdem fertig.</para>
+    /// </summary>
+    private void ZeigeInstallationshinweis()
+    {
+        if (!Program.FrischInstalliert)
+        {
+            return;
+        }
+
+        try
+        {
+            var version = typeof(App).Assembly.GetName().Version;
+
+            _tray?.ShowHint(
+                "nipp ist eingerichtet",
+                version is null
+                    ? "Die Installation ist abgeschlossen. nipp läuft im Infobereich."
+                    : $"Version {version.Major}.{version.Minor}.{version.Build} ist installiert. "
+                        + "nipp läuft im Infobereich.");
+        }
+        catch (Exception ex)
+        {
+            // Eine Meldung ueber eine gelungene Installation ist kein Grund,
+            // den Start zu gefaehrden.
+            AppLog.HandlerFailed(_logger, nameof(ZeigeInstallationshinweis), ex.GetType().Name);
         }
     }
 
