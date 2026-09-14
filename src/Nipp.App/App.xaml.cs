@@ -690,6 +690,17 @@ public partial class App : Application, IDisposable
         _tray.ExitRequested += (_, _) => Eingereiht("Beenden", ExitApplication);
         _tray.Start();
 
+        // <b>Ein Update endet mit demselben Beenden wie ein Klick auf
+        // «Beenden»</b> (14.09.2026). Velopack beendet den Prozess seit der
+        // Umstellung auf den stillen Weg nicht mehr selbst; es wartet auf uns.
+        // Ueber dieselbe Warteschlange wie der Infobereich, damit das
+        // Herunterfahren auf dem UI-Thread laeuft — die Lehre vom 12.09.2026
+        // (Application.Exit auf dem falschen Thread, docs/lehren.md).
+        Services.GetRequiredService<UpdateService>().RestartRequested
+            += (_, _) => Eingereiht("Update anwenden", ExitApplication);
+
+        ZeigeInstallationshinweis();
+
         ZeigeInstallationshinweis();
 
         _toasts = new ToastService(

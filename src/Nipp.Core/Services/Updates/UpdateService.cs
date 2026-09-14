@@ -182,6 +182,19 @@ public sealed class UpdateService(
     }
 
     /// <summary>
+    /// <summary>
+    /// Bittet die Anwendung, sich zu beenden, damit der Updater arbeiten kann
+    /// (14.09.2026).
+    ///
+    /// <para><b>Warum als Ereignis.</b> Wie nipp sich ordentlich beendet, weiss
+    /// nur <c>App</c> — Ereignisschleife anhalten, Konto abmelden, Symbol
+    /// abräumen. Der Kern kennt davon nichts und soll es nicht kennen; er sagt
+    /// nur, dass es jetzt soweit ist. Derselbe Weg wie beim «Beenden» aus dem
+    /// Infobereich.</para>
+    /// </summary>
+    public event EventHandler? RestartRequested;
+
+    /// <summary>
     /// Anwenden und neu starten. Kehrt im Erfolgsfall <b>nicht zurück</b>.
     ///
     /// <para>Prüft selbst noch einmal, ob ein Gespräch läuft. Zwischen dem
@@ -203,6 +216,15 @@ public sealed class UpdateService(
 
         UpdateLog.Applying(_logger, update.Version);
         _gateway.ApplyAndRestart(update);
+
+        // <b>Ab hier läuft der Updater und wartet auf unser Ende</b>
+        // (14.09.2026). Vorher war dieser Aufruf das Ende — Velopack beendete
+        // den Prozess selbst. Seit der Umstellung auf den stillen Weg kehrt er
+        // zurück, und das Beenden ist unsere Sache: nipp meldet sich dabei
+        // ordentlich ab, statt mitten in der Anmeldung zu verschwinden.
+        //
+        // <b>Es eilt:</b> der Updater gibt nach 60 Sekunden auf.
+        RestartRequested?.Invoke(this, EventArgs.Empty);
         return true;
     }
 

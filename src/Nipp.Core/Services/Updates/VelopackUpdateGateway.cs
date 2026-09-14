@@ -128,9 +128,22 @@ public sealed class VelopackUpdateGateway(
                 "Dieses Update stammt nicht von diesem Gateway.", nameof(update));
         }
 
-        // Kehrt nicht zurueck: der Prozess wird beendet und neu gestartet.
+        // <b>Der Updater wartet, statt uns abzuschiessen</b> (14.09.2026).
+        //
+        // <para>Vorher stand hier <c>ApplyUpdatesAndRestart</c>. Das beendet
+        // den Prozess sofort — mitten in einer Anmeldung, ohne Abmeldung beim
+        // Server — und zeigt dabei einen Fortschrittsdialog <b>mit
+        // OK-Knopf</b>. Der Knopf sah aus wie eine Bestätigung und brach das
+        // Update ab; gemeldet am 14.09.2026, mit Bild.</para>
+        //
+        // <para><c>WaitExitThenApplyUpdates</c> kennt dafür ein
+        // <c>silent</c>: kein Fenster, keine Dialoge. Es kehrt zurück, und
+        // <b>die Anwendung muss sich danach selbst beenden</b> — was hier der
+        // bessere Weg ist, weil nipp sich dabei ordentlich abmeldet. Der
+        // Updater wartet 60 Sekunden darauf; dauert das Herunterfahren
+        // länger, gibt er auf und das Update bleibt liegen.</para>
         ManagerFor(_managerChannel ?? UpdateChannel.Stable)
-            .ApplyUpdatesAndRestart(info.TargetFullRelease);
+            .WaitExitThenApplyUpdates(info.TargetFullRelease, silent: true, restart: true);
     }
 
     /// <summary>
