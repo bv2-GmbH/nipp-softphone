@@ -201,6 +201,26 @@ lesbar bleiben.
   `docs/plans/` meldete er 67 Stellen (ADR-059). Dasselbe gilt für
   `pbx.example.ch` — der Hostname der Anlage gehört nicht ins Repo.
 
+## Wo gearbeitet wird (seit 14.09.2026)
+
+Das Repo ist **öffentlich**: `github.com/bv2-GmbH/nipp-softphone`, Zweig
+`main`, lokal als `origin`. Das alte, private Repo ist **archiviert** und
+liegt lokal als `archiv` — dort steht die volle Historie der ersten 181
+Commits, und dort liegt die Brücke 0.9.5, die installierte Arbeitsplätze auf
+das neue Repo führt.
+
+**Der öffentliche Zweig hat eine eigene, frische Historie** (erster Commit
+`c4da665`): in 60 der alten Commits standen zwei firmeneigene Systemnamen und
+der Hostname der Anlage. Deshalb gibt es keine Verbindung zwischen den beiden
+Linien — `review-umsetzung` und `main-archiv-06-09` sind die alten, sie
+bleiben liegen.
+
+**Was das für jede Änderung heisst:** `PublicRepositoryTests` ist ab jetzt kein
+Formalismus mehr, sondern die letzte Kontrolle vor der Öffentlichkeit. Wer
+über die verbotenen Muster schreibt — in einem ADR, einem Plan, einer
+zitierten Protokollzeile — setzt sie zusammen, statt sie auszuschreiben.
+Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
+
 ## Befehle
 - Bauen: `.\build.ps1 build Nipp.sln -c Debug`
 - Tests: `.\build.ps1 test Nipp.sln`
