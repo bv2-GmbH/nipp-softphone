@@ -52,13 +52,23 @@ public static class Program
             // kein Fenster, keine Dienste, kein Protokoll auf Platte.
             .OnBeforeUninstallFastCallback(_ => RaeumeAuf())
 
-            // <b>Der erste Start nach einer Installation</b> (14.09.2026).
+            // <b>Der erste Start nach einer Installation — und der nach einem
+            // Update</b> (14.09.2026).
+            //
+            // <b>Es sind zwei Haken, und einer allein genuegt nicht.</b>
+            // OnFirstRun feuert laut Velopack «for the first time after
+            // installation», OnRestarted «when the application is restarted by
+            // Velopack after installing updates». Wer nur den ersten setzt,
+            // schweigt nach jedem Update — genau das war am 14.09.2026 der
+            // Fall, und es fiel erst auf, als das stille Update lief und gar
+            // nichts mehr zu sehen war.
             //
             // Hier wird nur ein Schalter gesetzt, nichts angezeigt: dieser
             // Aufruf liegt VOR WinUI, und alles Wartende an dieser Stelle
             // startet nipp nicht mehr (CLAUDE.md). Die Meldung kommt aus der
             // laufenden Anwendung, sobald das Symbol im Infobereich steht.
-            .OnFirstRun(_ => FrischInstalliert = true)
+            .OnFirstRun(_ => Anlass = StartAnlass.Installiert)
+            .OnRestarted(_ => Anlass = StartAnlass.Aktualisiert)
 
             .Run();
 
@@ -72,8 +82,21 @@ public static class Program
         XamlGeneratedProgram.XamlGeneratedMain();
     }
 
+    /// <summary>Weshalb nipp gerade startet — soweit Velopack es sagt.</summary>
+    public enum StartAnlass
+    {
+        /// <summary>Ein gewöhnlicher Start. Der Normalfall.</summary>
+        Normal,
+
+        /// <summary>Der erste Start nach einer Installation.</summary>
+        Installiert,
+
+        /// <summary>Der erste Start nach einem eingespielten Update.</summary>
+        Aktualisiert,
+    }
+
     /// <summary>
-    /// Ob dieser Start der erste nach einer Installation oder einem Update ist.
+    /// Weshalb dieser Start geschieht.
     ///
     /// <para><b>Gesetzt von Velopack, gelesen von <c>App</c>.</b> Ein
     /// statisches Feld und keine Einstellung: es gilt für genau diesen
@@ -81,7 +104,7 @@ public static class Program
     /// einen Neustart überlebt, zeigt die Meldung irgendwann ein zweites
     /// Mal.</para>
     /// </summary>
-    public static bool FrischInstalliert { get; private set; }
+    public static StartAnlass Anlass { get; private set; } = StartAnlass.Normal;
 
     /// <summary>
     /// Was nipp beim Deinstallieren hinterlässt, und zwar nichts (W1.5, E4).

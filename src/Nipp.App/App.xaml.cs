@@ -888,7 +888,7 @@ public partial class App : Application, IDisposable
     /// </summary>
     private void ZeigeInstallationshinweis()
     {
-        if (!Program.FrischInstalliert)
+        if (Program.Anlass is Program.StartAnlass.Normal)
         {
             return;
         }
@@ -896,13 +896,20 @@ public partial class App : Application, IDisposable
         try
         {
             var version = typeof(App).Assembly.GetName().Version;
+            var nummer = version is null
+                ? string.Empty
+                : $"Version {version.Major}.{version.Minor}.{version.Build} ";
 
-            _tray?.ShowHint(
-                "nipp ist eingerichtet",
-                version is null
-                    ? "Die Installation ist abgeschlossen. nipp läuft im Infobereich."
-                    : $"Version {version.Major}.{version.Minor}.{version.Build} ist installiert. "
-                        + "nipp läuft im Infobereich.");
+            // Installiert und aktualisiert sind zwei verschiedene Nachrichten.
+            // «Eingerichtet» nach einem Update zu lesen, waere die Frage wert,
+            // was denn da neu eingerichtet wurde.
+            var (titel, text) = Program.Anlass is Program.StartAnlass.Aktualisiert
+                ? ("nipp ist aktualisiert",
+                    $"{nummer}ist eingespielt. nipp läuft im Infobereich weiter.")
+                : ("nipp ist eingerichtet",
+                    $"{nummer}ist installiert. nipp läuft im Infobereich.");
+
+            _tray?.ShowHint(titel, text);
         }
         catch (Exception ex)
         {
