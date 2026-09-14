@@ -1,0 +1,484 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Design-Tokens für nipp (AP1.6).
+
+    Grundlage ist die Fluent-Palette von WinUI; hier stehen nur die Werte, die
+    nipp zusätzlich braucht oder abweichend festlegt. Alles, was Fluent schon
+    richtig macht, wird NICHT überschrieben — das hält die App system-nativ und
+    überlebt Theme-Wechsel.
+
+    Wo das Mockup und diese Datei sich widersprechen, gilt das Mockup für
+    Struktur und Informationsdichte, nicht für Pixelmasse (§8).
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.ThemeDictionaries>
+
+        <ResourceDictionary x:Key="Light">
+            <!--
+                Präsenz- und Gesprächszustände (§8.4). Die Farbe ist immer nur
+                die Zugabe: jeder Zustand wird zusätzlich als Text angezeigt.
+                Das ist eine Barrierefreiheitsanforderung, keine Stilfrage.
+            -->
+            <Color x:Key="PresenceAvailableColor">#107C10</Color>
+            <Color x:Key="PresenceRingingColor">#A85400</Color>
+            <Color x:Key="PresenceBusyColor">#C42B1C</Color>
+            <Color x:Key="PresenceOfflineColor">#6E6C6A</Color>
+            <Color x:Key="PresenceUnknownColor">#6E6C6A</Color>
+
+            <!-- Registrierungszustand in der Statuszeile -->
+            <Color x:Key="StatusRegisteredColor">#107C10</Color>
+            <Color x:Key="StatusProgressColor">#A85400</Color>
+            <Color x:Key="StatusFailedColor">#C42B1C</Color>
+
+            <!-- Aufnahmeindikator: muss auffallen (§8.2, Rechtslage Schweiz) -->
+            <Color x:Key="RecordingIndicatorColor">#C42B1C</Color>
+
+            <!-- Medienverschlüsselung: gesichert vs. ungesichert -->
+            <Color x:Key="EncryptionSecureColor">#107C10</Color>
+            <Color x:Key="EncryptionInsecureColor">#A85400</Color>
+
+            <!--
+                W1.4 (Befund D2): eigene Farben für das, was im Code gezeichnet
+                wird.
+
+                <b>Der Befund.</b> CardView und die Konverter holten
+                TextFillColorSecondaryBrush, DividerStrokeColorDefaultBrush und
+                CardStrokeColorDefaultBrush über Application.Current.Resources.
+                Auf Anwendungsebene löst ThemeResource nach
+                Application.RequestedTheme auf — und das ist das SYSTEMthema,
+                nicht das, was §20.4 den Benutzer wählen lässt. ThemeService
+                korrigiert die elf eigenen Pinsel; diese hier gehörten nicht
+                dazu, und wer bei hellem Windows «Dunkel» wählte, bekam die
+                Anruferkarte mit hellen Sekundärtexten auf dunklem Grund.
+
+                Die Werte entsprechen den WinUI-Vorgaben; der Unterschied ist,
+                dass ThemeService sie jetzt mitzieht.
+            -->
+            <Color x:Key="CardSecondaryTextColor">#5D5D5D</Color>
+            <Color x:Key="CardDividerColor">#E5E5E5</Color>
+            <Color x:Key="CardOutlineColor">#E1E1E1</Color>
+            <Color x:Key="CardFillColor">#F6F6F6</Color>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Dark">
+            <Color x:Key="PresenceAvailableColor">#6CCB5F</Color>
+            <Color x:Key="PresenceRingingColor">#FCE100</Color>
+            <Color x:Key="PresenceBusyColor">#FF99A4</Color>
+            <Color x:Key="PresenceOfflineColor">#A19F9D</Color>
+            <Color x:Key="PresenceUnknownColor">#A19F9D</Color>
+
+            <Color x:Key="StatusRegisteredColor">#6CCB5F</Color>
+            <Color x:Key="StatusProgressColor">#FCE100</Color>
+            <Color x:Key="StatusFailedColor">#FF99A4</Color>
+
+            <Color x:Key="RecordingIndicatorColor">#FF99A4</Color>
+
+            <!-- W1.4 (D2): die Gegenstuecke fuers dunkle Thema -->
+            <Color x:Key="CardSecondaryTextColor">#C5C5C5</Color>
+            <Color x:Key="CardDividerColor">#3A3A3A</Color>
+            <Color x:Key="CardOutlineColor">#454545</Color>
+            <Color x:Key="CardFillColor">#2B2B2B</Color>
+
+            <Color x:Key="EncryptionSecureColor">#6CCB5F</Color>
+            <Color x:Key="EncryptionInsecureColor">#FCE100</Color>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="HighContrast">
+            <!--
+                Im Kontrastmodus zieht alles die Systemfarben. Eigene Farbwerte
+                hier wären ein Fehler: sie würden die Einstellungen des Benutzers
+                überstimmen, auf die er angewiesen ist.
+            -->
+            <StaticResource x:Key="PresenceAvailableColor" ResourceKey="SystemColorHighlightColor" />
+            <StaticResource x:Key="PresenceRingingColor" ResourceKey="SystemColorHighlightColor" />
+            <StaticResource x:Key="PresenceBusyColor" ResourceKey="SystemColorHotlightColor" />
+            <StaticResource x:Key="PresenceOfflineColor" ResourceKey="SystemColorGrayTextColor" />
+            <StaticResource x:Key="PresenceUnknownColor" ResourceKey="SystemColorGrayTextColor" />
+            <StaticResource x:Key="StatusRegisteredColor" ResourceKey="SystemColorHighlightColor" />
+            <StaticResource x:Key="StatusProgressColor" ResourceKey="SystemColorHighlightColor" />
+            <StaticResource x:Key="StatusFailedColor" ResourceKey="SystemColorHotlightColor" />
+            <StaticResource x:Key="RecordingIndicatorColor" ResourceKey="SystemColorHotlightColor" />
+            <StaticResource x:Key="EncryptionSecureColor" ResourceKey="SystemColorHighlightColor" />
+            <StaticResource x:Key="EncryptionInsecureColor" ResourceKey="SystemColorHotlightColor" />
+
+            <!-- W1.4 (D2): auch die Kartenfarben ziehen die Systemfarben -->
+            <StaticResource x:Key="CardSecondaryTextColor" ResourceKey="SystemColorGrayTextColor" />
+            <StaticResource x:Key="CardDividerColor" ResourceKey="SystemColorWindowTextColor" />
+            <StaticResource x:Key="CardOutlineColor" ResourceKey="SystemColorWindowTextColor" />
+            <StaticResource x:Key="CardFillColor" ResourceKey="SystemColorWindowColor" />
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!--
+        Aus den Farben abgeleitete Pinsel, damit Views nur Pinsel binden.
+
+        Die Farbe hier ist der Startwert (hell). Umgefärbt wird sie von
+        ThemeService.ApplyStatusBrushes, sobald das Erscheinungsbild steht:
+        ThemeResource loest auf Anwendungsebene nach dem SYSTEMthema auf, und
+        §20.4 laesst den Benutzer ausdruecklich etwas anderes waehlen.
+    -->
+    <SolidColorBrush x:Key="PresenceAvailableBrush" Color="{ThemeResource PresenceAvailableColor}" />
+    <SolidColorBrush x:Key="PresenceRingingBrush" Color="{ThemeResource PresenceRingingColor}" />
+    <SolidColorBrush x:Key="PresenceBusyBrush" Color="{ThemeResource PresenceBusyColor}" />
+    <SolidColorBrush x:Key="PresenceOfflineBrush" Color="{ThemeResource PresenceOfflineColor}" />
+    <SolidColorBrush x:Key="PresenceUnknownBrush" Color="{ThemeResource PresenceUnknownColor}" />
+    <SolidColorBrush x:Key="StatusRegisteredBrush" Color="{ThemeResource StatusRegisteredColor}" />
+    <SolidColorBrush x:Key="StatusProgressBrush" Color="{ThemeResource StatusProgressColor}" />
+    <SolidColorBrush x:Key="StatusFailedBrush" Color="{ThemeResource StatusFailedColor}" />
+    <SolidColorBrush x:Key="RecordingIndicatorBrush" Color="{ThemeResource RecordingIndicatorColor}" />
+    <SolidColorBrush x:Key="EncryptionSecureBrush" Color="{ThemeResource EncryptionSecureColor}" />
+    <SolidColorBrush x:Key="EncryptionInsecureBrush" Color="{ThemeResource EncryptionInsecureColor}" />
+
+    <!--
+        W1.4 (D2): dieselben Pinsel fuer das, was im Code gezeichnet wird.
+        CardView und die Konverter holten bisher die WinUI-Pinsel direkt, und
+        die folgen dem Systemthema statt der Wahl des Benutzers.
+    -->
+    <SolidColorBrush x:Key="CardSecondaryTextBrush" Color="{ThemeResource CardSecondaryTextColor}" />
+    <SolidColorBrush x:Key="CardDividerBrush" Color="{ThemeResource CardDividerColor}" />
+    <SolidColorBrush x:Key="CardOutlineBrush" Color="{ThemeResource CardOutlineColor}" />
+    <SolidColorBrush x:Key="CardFillBrush" Color="{ThemeResource CardFillColor}" />
+
+    <!--
+        <b>Radien: nur das, was Fluent nicht schon hat</b> (W2.6, Befund D10).
+
+        Hier standen bis zum 13.09.2026 vier Stueck, und zwei davon waren
+        Kopien: NippCardCornerRadius war 8 wie OverlayCornerRadius,
+        NippControlCornerRadius 4 wie ControlCornerRadius. Ein eigener Name fuer
+        einen fremden Wert sieht nach einer Entscheidung aus und ist keine — er
+        sagt nur, dass jemand die Zahl abgeschrieben hat. Beide sind weg, ihre
+        elf Verwender nehmen jetzt die Fluent-Ressource; <b>aendert Windows
+        seine Radien, geht nipp mit</b>, und genau das ist gewollt.
+
+        Die zwei, die bleiben, haben in Fluent keine Entsprechung.
+    -->
+    <CornerRadius x:Key="NippKeypadCornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="NippBadgeCornerRadius">10</CornerRadius>
+
+    <!--
+        Abstände: eine Skala, damit die Informationsdichte über alle Ansichten
+        gleich bleibt.
+
+        Die Werte sind am 05.09.2026 enger gefasst worden. Grund: das Fenster
+        ist 400 Pixel breit und soll bei 150 % Skalierung auf einen
+        1080p-Bildschirm passen, ohne dass jemand daran zieht. Ein Rand von 24
+        Pixeln kostet auf dieser Breite zwölf Prozent — bezahlbar auf einem
+        Desktopfenster, nicht hier.
+    -->
+    <!--
+        <b>Die Breite der linken Spalte im breiten Layout</b> (ADR-052).
+
+        Der Name ist aelter als die Bedeutung: bis ADR-052 war das die Deckelung
+        der ganzen Hauptansicht (ADR-046, dann je Spalte nach ADR-047). Seit dem
+        12.09.2026 deckelt sie <b>nichts</b> mehr — der Inhalt fuellt das
+        Fenster —, und die Zahl sagt nur noch, wie breit links steht, wenn
+        rechts die Kacheln dazukommen.
+
+        480 statt der 400 aus der Standardgroesse: ein wenig Luft schadet
+        nicht. Der Schluessel behaelt seinen Namen, weil ein Rename zehn
+        Fundstellen kostet und nichts erklaert, was dieser Absatz nicht auch
+        erklaert.
+    -->
+    <x:Double x:Key="NippContentMaxWidth">480</x:Double>
+
+    <!--
+        Die Kachel einer Nebenstelle im breiten Layout (ADR-047).
+
+        <b>Zelle und Kachel sind zwei Zahlen, und das ist kein Versehen.</b> Ein
+        ItemsWrapGrid ordnet in Zellen fester Groesse an; der Abstand zwischen
+        den Kacheln steckt deshalb IN der Zelle und nicht zwischen ihnen. Die
+        Kachel sitzt mit Margin="0,0,8,8" in ihrer Zelle — sichtbar sind also
+        200 x 116, belegt werden 208 x 124.
+
+        Die Hoehe traegt genau zwei Nummernzeilen: Kopf (20) + Firma und
+        Praesenz (16) + zwei Nummernknoepfe (2 x 26) + Innenabstand (2 x 10)
+        + Zwischenraum (2 x 3) = 114, aufgerundet auf 116. Wer eine dritte
+        Nummer hat, bekommt sie hinter dem Zusatz «+1 Nummer»; waere die Kachel
+        variabel hoch, haette das Raster Loecher.
+    -->
+    <x:Double x:Key="NippTileCellWidth">208</x:Double>
+    <x:Double x:Key="NippTileCellHeight">124</x:Double>
+
+    <!--
+        <b>Die Kachelspalte ist nicht mehr gedeckelt</b> (ADR-052). Hier stand
+        NippTilesMaxWidth = 1070: fuenf Zellen breit, damit ein maximiertes
+        Fenster Rand statt Streuung bekommt (C17). Dominic will den Platz —
+        die Kacheln nehmen jetzt den ganzen Rest des Fensters, und was nicht in
+        eine Reihe passt, bricht innerhalb seiner Gruppe um.
+    -->
+    <Thickness x:Key="NippTileMargin">0,0,8,8</Thickness>
+
+    <Thickness x:Key="NippPagePadding">12,8,12,8</Thickness>
+    <Thickness x:Key="NippCardPadding">10</Thickness>
+    <Thickness x:Key="NippSettingCardPadding">12,8,12,8</Thickness>
+    <!--
+        <b>Fuenf Stufen, und sie beschreiben, was gezeichnet wird</b> (W2.6,
+        Befund D5).
+
+        Bis zum 13.09.2026 standen hier 3/6/10/14, und danebengezeichnet wurde
+        ein zweites Raster aus Literalen: 51 mal 8, 15 mal 4, 10 mal 1, 5 mal
+        2 — gegen zwei Verwendungen von GapLarge und eine von GapSection.
+        <b>Eine Aenderung an der Skala griff damit nur zur Haelfte</b>, und
+        welche der beiden Zahlen die gewollte war, stand nirgends.
+
+        Die Skala folgt jetzt der Mehrheit statt umgekehrt: GapLarge ist 8 und
+        nicht mehr 10, GapSection 12 und nicht mehr 14. Die Literale sind auf
+        die naechstliegende Stufe gezogen — 4 auf 3, 2 auf 3, 16 auf 12 —, was
+        an einundzwanzig Stellen ein bis vier Pixel kostet.
+
+        <b>3 und 6 bleiben, obwohl sie nicht ins Viererraster passen.</b> Das
+        ist die Verdichtung vom 05.09.2026 (Absatz darueber), und an GapSmall
+        haengt eine Rechnung: die Kachelhoehe oben zaehlt zweimal 3 mit. Wer
+        die Stufe auf 4 hebt, macht die Kachel zwei Pixel hoeher als ihre
+        Zelle — und die Zelle ist fest.
+
+        Ein Architekturtest haelt fest, dass kein Abstand mehr als Zahl
+        dasteht.
+    -->
+    <x:Double x:Key="NippGapHair">1</x:Double>
+    <x:Double x:Key="NippGapSmall">3</x:Double>
+    <x:Double x:Key="NippGapMedium">6</x:Double>
+    <x:Double x:Key="NippGapLarge">8</x:Double>
+    <x:Double x:Key="NippGapSection">12</x:Double>
+
+    <!--
+        Typo-Skala. Die Fluent-Basisstile bleiben unangetastet; hier nur die
+        Grössen, die nipp mehrfach braucht.
+    -->
+    <!--
+        Die Caption-Groesse der Fluent-Skala. Als Token, weil sie an mehreren
+        Stellen gebraucht wird und der letzte Review sie ueberall herstellen
+        musste (O2).
+    -->
+    <x:Double x:Key="NippFontSizeCaption">12</x:Double>
+    <x:Double x:Key="NippDialedNumberFontSize">20</x:Double>
+    <x:Double x:Key="NippCallDurationFontSize">18</x:Double>
+    <x:Double x:Key="NippKeypadDigitFontSize">18</x:Double>
+    <!--
+        10 und nicht 8 (ADR-046): acht Pixel liegen unter jeder Ramp der
+        Fluent-Skala — dieselbe Regel, die weiter oben fuer die
+        Umschaltleiste schon festgehalten ist.
+    -->
+    <x:Double x:Key="NippKeypadLettersFontSize">10</x:Double>
+
+    <!--
+        <b>Drei Symbolgroessen, und sie heissen jetzt so</b> (W2.6, Befund D12).
+
+        Bis zum 13.09.2026 trugen achtunddreissig FontIcon-Elemente ihre Groesse
+        als Zahl: fuenfzehn mal 14, acht mal 12, fuenf mal 15, vier mal 10, zwei
+        mal 16. <b>14 und 15 waren dabei dieselbe Absicht</b> — ein Symbol neben
+        einer Zeile Text —, geschrieben von zwei verschiedenen Tagen. Die Zehner
+        lagen unter jeder Stufe der Fluent-Skala und sind auf 12 gehoben.
+
+        Small begleitet Kleingedrucktes, die mittlere Groesse einen gewoehnlichen
+        Knopf oder eine Zeile, Tab den Reiter in der Umschaltleiste. Was
+        groesser ist — die 24 und 32 in den Leerzustaenden — ist kein Symbol
+        neben Text, sondern ein Bild, und traegt seine Zahl weiter.
+    -->
+    <x:Double x:Key="NippIconFontSizeSmall">12</x:Double>
+    <x:Double x:Key="NippIconFontSize">14</x:Double>
+    <x:Double x:Key="NippTabIconFontSize">16</x:Double>
+
+    <!--
+        Wählfeld: 3x4 mit Buchstabenzeile (§8.1).
+
+        Breiter als hoch, und das mit Absicht: das Fenster ist 400 Pixel breit
+        und knapp in der Höhe. 56 × 44 statt der ursprünglichen 64 × 64 spart
+        über vier Reihen 80 Pixel — genau die, die der Kontaktliste gefehlt
+        haben —, ohne dass die Tasten kleiner wirken. 44 liegt weiter über der
+        Mindestgrösse für ein Fingerziel (Fluent nennt 40), und mit der Maus
+        ist eine breite Taste ohnehin leichter zu treffen als eine hohe.
+    -->
+    <x:Double x:Key="NippKeypadButtonWidth">56</x:Double>
+    <x:Double x:Key="NippKeypadButtonHeight">44</x:Double>
+    <x:Double x:Key="NippPresenceBadgeSize">8</x:Double>
+
+    <!--
+        Breite der Präsenzspalte. „im Gespräch" ist der längste Zustand, den
+        BlfService.Describe liefert, und misst als Caption rund 66 Pixel; dazu
+        sechs Abstand und acht für den Punkt.
+
+        Die feste Breite ist der Grund, warum die Punkte über die Zeilen hinweg
+        eine Spalte bilden. Ohne sie wandert der Punkt mit der Textlänge und
+        springt zwischen „frei" und „im Gespräch" um zwei Dutzend Pixel — die
+        Liste wirkt unruhig, obwohl sich nichts bewegt hat.
+    -->
+    <x:Double x:Key="NippPresenceColumnWidth">82</x:Double>
+
+    <!--
+        Höhe, ab der der Team-Abschnitt selbst scrollt. Vier bis fünf Zeilen —
+        genug für ein übliches Team, und wenig genug, dass die Outlook-Liste
+        darunter nicht auf einen Streifen zusammenschrumpft.
+    -->
+    <x:Double x:Key="NippTeamListMaxHeight">220</x:Double>
+
+    <!--
+        Höhen, die über mehrere Ansichten gleich bleiben sollen. Sie stehen
+        hier, damit die Zeilen einer Liste und die Bedienzeile oben nicht
+        auseinanderlaufen, wenn jemand nur an einer Stelle etwas ändert.
+    -->
+    <x:Double x:Key="NippInputRowHeight">40</x:Double>
+    <x:Double x:Key="NippAccountRowHeight">32</x:Double>
+    <x:Double x:Key="NippTabBarHeight">46</x:Double>
+    <x:Double x:Key="NippListAvatarSize">28</x:Double>
+    <!--
+        <b>Die Haelfte der Groesse darueber</b> — das ist es, was den Kreis
+        macht. Bis zum 13.09.2026 stand die Groesse als Token da und der Radius
+        an drei Stellen als 14: wer den Avatar groesser gemacht haette, haette
+        drei abgerundete Quadrate bekommen und nicht gewusst, warum. XAML kann
+        nicht rechnen, also stehen beide Zahlen da — aber nebeneinander und mit
+        diesem Satz dazwischen.
+    -->
+    <CornerRadius x:Key="NippListAvatarCornerRadius">14</CornerRadius>
+    <!--
+        Listeneinträge.
+
+        WinUI gibt einem ListViewItem von Haus aus MinHeight 40 plus Padding —
+        mit einem zweizeiligen Inhalt werden daraus rund 70 Pixel. Auf einem
+        Fenster von 660 Pixeln Höhe sind das vier bis fünf sichtbare Zeilen.
+        Dieser Stil drückt den Rahmen auf das Nötige zusammen; die Zeilenhöhe
+        bestimmt dann der Inhalt (rund 50 Pixel bei zwei Zeilen Text).
+    -->
+    <Style x:Key="NippCompactListItemStyle" TargetType="ListViewItem">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="8,0,8,0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!--
+        Die Kachel einer Nebenstelle (ADR-047).
+
+        WinUI gibt einem GridViewItem Rand und Innenabstand mit. Beides muss
+        hier auf null: die Zelle hat ihr Mass aus dem ItemsWrapGrid, und was
+        der Container zusaetzlich nimmt, fehlt der Kachel darin — sie waere
+        dann abgeschnitten statt kleiner. Der Abstand zwischen den Kacheln
+        steckt in NippTileMargin, also in der Kachel selbst.
+    -->
+    <Style x:Key="NippTileItemStyle" TargetType="GridViewItem">
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+
+    <!--
+        Die Filter der Anrufliste. Vorher stand an jedem FontSize="11" — unter
+        der Caption-Groesse der Fluent-Skala, also unter dem Wert, den O2 im
+        letzten Review ueberall hergestellt hat. Ein Stil statt vier Attribute:
+        beim naechsten fuenften Filter ist nichts mehr nachzuziehen.
+    -->
+    <Style x:Key="NippFilterRadioStyle" TargetType="RadioButton">
+        <Setter Property="FontSize" Value="{StaticResource NippFontSizeCaption}" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+    </Style>
+
+    <!--
+        <b>Der dezente Symbolknopf</b> (W2.6, Befund D11).
+
+        Sieben Knoepfe trugen dieselben vier bis fuenf Attribute einzeln:
+        32 x 32, kein Innenabstand, kein Rand, durchsichtiger Hintergrund. Das
+        ist ein Stil, der einmal dastehen sollte — und der achte Knopf haette
+        eines der fuenf vergessen.
+
+        <b>Der Radius ist der von Fluent und nicht mehr 16.</b> Auf einem
+        32er-Knopf ergibt 16 einen Kreis; runde Knoepfe kommen im ganzen
+        Betriebssystem sonst nicht vor, und drei davon standen ausgerechnet im
+        Nummernfeld nebeneinander. Ein abgerundetes Quadrat sieht aus wie ein
+        Knopf in Windows, und genau das ist der Zweck.
+
+        <b>Durchsichtig heisst nicht reglos:</b> die Zustandsvorlage des
+        Knopfes faerbt ihr eigenes Wurzelgitter und nicht diese Eigenschaft —
+        Ueberfahren und Druecken bleiben also sichtbar.
+    -->
+    <!--
+        Die Grundlage: «dezent» heisst durchsichtig und randlos, und mehr
+        nicht. Sie gilt auch fuer die breiten Textknoepfe in der Kontaktzeile,
+        die keine 32 x 32 sind.
+    -->
+    <Style x:Key="NippSubtleButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style x:Key="NippSubtleIconButtonStyle" TargetType="Button" BasedOn="{StaticResource NippSubtleButtonStyle}">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
+    </Style>
+
+    <!-- Derselbe Knopf, der sich merkt, ob er gedrueckt ist. -->
+    <Style x:Key="NippSubtleIconToggleStyle" TargetType="ToggleButton">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
+    </Style>
+
+    <!--
+        <b>Der Gruppenkopf darf die ganze Breite nehmen</b> (ADR-064).
+
+        <c>ListViewHeaderItem</c> und <c>GridViewHeaderItem</c> bringen aus
+        Fluent ein <c>HorizontalContentAlignment="Left"</c> mit. Ein Inhalt mit
+        <c>HorizontalAlignment="Stretch"</c> läuft dagegen ins Leere: er bekommt
+        nur die Breite, die er selbst braucht. <b>Am gebauten Fenster
+        gemessen</b> — der Umschalter «Reihenfolge ändern» klebte ohne diesen
+        Stil direkt am Gruppennamen statt am rechten Rand.
+
+        <b>MinHeight und Padding auf null</b>, weil der Kopf seine Masse selbst
+        mitbringt: der Knopf darin ist 32 hoch und hat seinen eigenen
+        Innenabstand. Was der Container zusätzlich beisteuerte, war der
+        Streifen Luft über dem ersten Gruppenkopf, den ADR-063 als ungemessen
+        vermerkt hatte.
+
+        Zwei Stile und nicht einer: die beiden Containertypen haben keine
+        gemeinsame Basis, auf die sich ein <c>TargetType</c> setzen liesse.
+    -->
+    <Style x:Key="NippGroupHeaderContainerStyle" TargetType="ListViewHeaderItem">
+        <!--
+            <b>Der Behaelter selbst sagt nichts</b> (Paragraf 8.4). Ohne diese
+            Zeile liest eine Sprachausgabe an ihm den Klassennamen des
+            gebundenen Objekts vor — am 14.09.2026 stand
+            «Nipp.Core.ViewModels.ContactGroupRow» dreimal im
+            UI-Automation-Baum. Der Kopf INNEN traegt seinen Namen selbst
+            («Team (3)»); dieser Rahmen darum ist Layout und gehoert nicht in
+            den Baum, den ein Bildschirmleser abgeht.
+        -->
+        <Setter Property="AutomationProperties.AccessibilityView" Value="Raw" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <Style x:Key="NippTileGroupHeaderContainerStyle" TargetType="GridViewHeaderItem">
+        <!--
+            <b>Der Behaelter selbst sagt nichts</b> (Paragraf 8.4). Ohne diese
+            Zeile liest eine Sprachausgabe an ihm den Klassennamen des
+            gebundenen Objekts vor — am 14.09.2026 stand
+            «Nipp.Core.ViewModels.ContactGroupRow» dreimal im
+            UI-Automation-Baum. Der Kopf INNEN traegt seinen Namen selbst
+            («Team (3)»); dieser Rahmen darum ist Layout und gehoert nicht in
+            den Baum, den ein Bildschirmleser abgeht.
+        -->
+        <Setter Property="AutomationProperties.AccessibilityView" Value="Raw" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+</ResourceDictionary>

@@ -1,0 +1,661 @@
+﻿# Manuelle Testmatrix
+
+Für alles, was sich nicht sinnvoll mit Unit-Tests abdecken lässt: SIP, Audio, Windows-Integration (§13). **Ab M2 (P3) bei jedem Meilenstein durchziehen**, nicht erst am Ende.
+
+**Testumgebung:** ausschliesslich der dedizierte Test-Trunk auf der Test-PBX (`pbx.example.ch`). **Nie ein Kundentenant.** Zugangsdaten liegen seit 04.09.2026 vor, unter `%LOCALAPPDATA%\nipp\test-trunk.json` — ausserhalb des Repos, siehe `spike/SdkProbe/test-trunk.template.json`.
+
+Beim Testen bewusst sauber halten: dieselben Zugangsdaten gleichzeitig auf einem Tischtelefon registriert lassen die PBX je nach Konfiguration anders reagieren (§14.11).
+
+---
+
+## Die Spalte `Rüstzeug` (13.09.2026, A0 aus `docs/plans/BEWEIS-PLAN.md`)
+
+**Der Aufwand dieser Matrix ist nicht die Zahl der Zeilen, sondern das
+Umrüsten.** Wer sie von oben nach unten abarbeitet, steckt dreimal dasselbe
+Headset um und fährt zweimal den Windows-10-Rechner hoch. Deshalb trägt seit
+dem 13.09.2026 **jede Zeile**, woran sie geprüft wird — und zwar am Anfang,
+damit sich danach sortieren lässt.
+
+| Code | Was es braucht | offen | gesamt | Runde |
+|---|---|---|---|---|
+| **S** | nur einen Arbeitsplatz: kein Anruf, kein Gerät | **139** | 145 | A1 |
+| **P** | die Anlage (Test-Trunk), ein echter Anruf | **71** | 89 | A2 |
+| **S+P** | im Kern ein Schreibtischfall, die Gegenprobe braucht ein Gespräch | 1 | 1 | A2 |
+| **P+H** | Anruf **und** Headset (Engage 75 / Link 400 / PRO 9470) | **17** | 22 | A3 |
+| **H** | ein Headset, ohne Anruf | 3 | 4 | A3 |
+| **F** | einen frischen Rechner (Installation, Update, Deinstallation) | **14** | 14 | A4 |
+| **F+P** | frischer Rechner **und** ein Anruf darauf | 2 | 2 | A4 |
+| **W** | einen Windows-10-Arbeitsplatz | 4 | 4 | A5 |
+| **X** | echte x64-Hardware (ADR-001) | 1 | 1 | A6 |
+| **—** | überholt, gestrichen — nicht mehr zu prüfen | — | (6) | — |
+| | | **252** | **282** | |
+
+Die sechs gestrichenen Zeilen (T78, T17, T205, T206, T232, T242) zählen in der
+Summe nicht mit.
+
+**Was die Zählung gefunden hat, und es war nicht die Zahl:** von den 255
+Zeilen, die als offen galten, sind **drei überholt und niemand hatte sie
+gestrichen** — T17 (Mailbox und MWI), T205 (Detailbereich unter der Liste) und
+T232 (Mailboxnummer eintragen). Bei T205 stand die Streichung sogar schon oben
+im Text („T205 und T206: beide sind überholt"), nur nicht in der Zeile; T206
+war gestrichen, T205 nicht. **Vier weitere Zeilen nannten die Mailbox in ihrer
+Erwartung** (T154, T193, T210, T213) und verlangten damit etwas, das ADR-062
+entfernt hat — sie sind korrigiert, nicht gestrichen.
+
+**Zwei Zeilen waren ausserdem kaputt, und zwar als Tabelle:** in T197 stand ein
+echter Zeilenumbruch mitten in der Zeile (aus `%APPDATA%` plus `\nipp` war ein
+Umbruch geworden), dasselbe in der Testumgebung ganz oben — beide rendern seit
+jeher als abgebrochene Zeile. Und T79 trug **eine Spalte zu viel**: das alte
+«zurueckgenommen» stand als eigene Zelle neben dem neuen Ergebnis. Behoben.
+
+**Und die grösste Zahl ist die beste Nachricht:** **139 der 252 offenen Zeilen
+brauchen weder die Anlage noch ein Headset noch einen zweiten Rechner.** Sie
+gehören an den Schreibtisch, **bevor** jemand ein Gerät anfasst — geschätzt
+waren 110, gezählt sind es 139.
+
+---
+
+**Neu seit dem 12.09.2026 (die Breite gehört dem Fenster, ADR-052):** **T251
+bis T254** — die Deckelung ist weg, die linke Spalte im breiten Layout fest,
+die Kachelspalte nimmt den ganzen Rest, und die Umschaltleiste steht nur noch
+unter links. Die wichtigste ist **T252**: auf einem maximierten Fenster darf
+rechts **kein toter Streifen** bleiben — vor ADR-052 waren es 468 Pixel, und
+das war der Grund, aus dem zu wenige Kacheln nebeneinander standen.
+
+**Damit überholt:** **T206** (verlangte 480 Pixel mittig — gestrichen, siehe
+T251) und **T242** (verlangte die Obergrenze von 1070 Pixeln für die
+Kachelspalte — invertiert, siehe T252). **T211 ist umformuliert.**
+
+**Neu seit dem 13.09.2026 (das breite Fenster, ADR-047 und ADR-048):** **T211
+bis T221** — zwei Spalten ab 960 Pixeln, die Nebenstellen als Kacheln, und der
+Detailbereich klappt wieder in der Zeile auf. Die wichtigsten sind **T214**
+(zweimal hintereinander ziehen — die Gegenprobe zu T176, jetzt im Raster),
+**T215** (die Virtualisierung des gruppierten Rasters; der Fehler wäre ein
+Ruckeln, kein Absturz), **T220** (die Messung zu `x:Load` — der Einwand, wegen
+dem ADR-042 den Bereich aus der Zeile genommen hatte) und **T211/T212** (der
+Umbau passiert einmal, nicht bei jedem Pixel).
+
+**Achtung bei T205 und T206:** beide sind überholt. T205 verlangte den
+Detailbereich **unter** der Liste — er steht seit ADR-048 in der Zeile (T219).
+T206 verlangte, dass der Inhalt auf voller Breite 480 Pixel breit bleibt und
+mittig steht; **seit ADR-052 füllt er das Fenster** (T251). Die Zwischenfassung
+(«das gilt jetzt für die linke Spalte») gilt nicht mehr.
+
+**Neu seit dem 12.09.2026 (Struktur, ADR-046):** **T202 bis T210** — zwei
+Ebenen in den Einstellungen, ein Suchfeld statt zwei, ein Detailbereich statt
+zwei, eine gedeckelte Breite und das Wiedergabegerät im Gespräch. Die
+wichtigste ist **T205**: der Detailbereich steht jetzt für alle drei Listen
+unter der Liste, und die Team-Vorlage ist dadurch wieder leicht — **T180 gehört
+mitgeprüft**. Danach **T203/T204** (die zusammengeführte Suche, und die
+Gegenprobe, dass das Netz nicht im Tippweg liegt) und **T206** (die Breite).
+
+**Neu seit dem 12.09.2026 (Speichermodell und Erststart, ADR-045):** **T194 bis
+T201** — jede Änderung wirkt sofort, jeder Hinweis führt dorthin, wohin er
+verweist. Die wichtigste ist **T194**: eine angelegte Nebenstelle war bis zum
+12.09.2026 beim Verlassen der Seite **lautlos weg**. Danach **T197** (der Weg
+vom ersten Start zum ersten Konto) und **T200** (eine unvollständige
+Installation sah aus wie «kein Konto»).
+
+**Neu seit dem 12.09.2026 (Bedienbarkeit, ADR-044):** **T185 bis T193** — der
+Tastaturweg zum Kontextmenü, der Kontrast auf getöntem Grund, die Eingabetaste
+beim Weiterleiten und ein Wort je Zustand. Die wichtigste ist **T188**: bis zum
+12.09.2026 gab die Eingabetaste im Weiterleitungsfeld das Gespräch **sofort und
+unwiderruflich** ab. Danach **T185** (ohne Maus war die Kontaktliste nicht
+bedienbar) und **T187** (fast weisser Text auf Gelb).
+
+**Neu seit dem 12.09.2026 (Name beim Hinauswaehlen, ADR-043):** **T181 bis
+T184** — der Name des Gespraechspartners bei **ausgehenden** Anrufen. Die
+wichtigste ist **T182**: der Name eines Fremdsystems trifft ein, nachdem der
+letzte Zustandswechsel durch ist — er muss an allen vier Stellen nachkommen und
+darf die Ansicht nicht viermal neu zeichnen. **T184** ist die Gegenprobe: der
+Umbau hat `CallInfo.DisplayLabel` entfernt, und eingehend war die Richtung, in
+der die Luecke nie auffiel.
+
+**Neu seit dem 12.09.2026 (Kontaktliste, ADR-042):** **T175 bis T180** — das
+Ziehen zwischen Gruppen, die Gruppenliste ohne Neustart und der Detailbereich
+in der Zeile. Die wichtigste ist **T176**: zweimal hintereinander ziehen. Der
+zweite Zug schrieb bis zum 12.09.2026 **nichts** — ohne Fehlermeldung, ohne
+Protokollzeile, und die Anzeige zeigte ihn trotzdem.
+
+**Neu seit dem 11.09.2026 (Anbietervorlagen, ADR-040):** **T169 bis T174** —
+der Import einer Anbietervorlage und der Weg danach. Die beiden wichtigsten:
+**T172** (eine Vorlage mit einem Token darin wird abgelehnt — die Zusage, auf
+der der ganze Weg steht) und **T174** (ein frischer Klon baut durch; die
+Gegenprobe zum Öffentlichmachen).
+
+**Neu seit dem 11.09.2026 (Team-Kontakte, ADR-041):** **T160 bis T168** — die
+Handynummer am Kollegen, der Detailbereich unter der Liste und die eigenen
+Gruppen. Die beiden wichtigsten: **T163** (kein Ruckeln bei vier Gruppen und
+137 Outlook-Kontakten — die Gegenprobe zur Virtualisierung) und **T162** (eine
+zweite Nummer darf die Anlage kein zweites SUBSCRIBE kosten). **Vor T168 die
+`settings.json` kopieren.**
+
+**Neu seit dem 11.09.2026 (Toast-Farben und Karten-Designer):** **T154 bis
+T159** — der Toast bekennt Farbe (grün für Annehmen, rot für Ablehnen; **T155**
+prüft auf einem Windows-10-Arbeitsplatz, dass die Fähigkeitsprüfung greift) und
+der Karten-Designer stolpert nicht mehr: nichts liegt übereinander (**T156**),
+Linien und Abstände sind auf vier Wegen löschbar (**T157**), und die Vorschau
+rechnet mit einer eingegebenen Nummer samt echtem Abruf (**T158**). Die teuerste
+Zeile ist **T159** — der Designer teilt sich den Thread mit `Core.Iterate()`.
+
+**Neu seit dem 10.09.2026 (Nachtrag zu ADR-029, ADR-028 Nachtrag 4):** **T143
+bis T153** — der Rufton beim Waehlen und die Koexistenz mit anderen Programmen
+am selben Headset. Die drei wichtigsten: **T147** (die gemeldete Stoerung — ein
+Teams-Meeting endet, sobald es auf nipp klingelt), **T150** (ob die Erkennung
+einer Fremdbelegung ueberhaupt etwas sieht; sieht sie nichts, traegt allein die
+Regel „keine Berichte ohne Anlass") und **T153** (die Gegenprobe: die Reparatur
+darf T80b nicht kosten). Dazu **T143** fuer den Rufton, mit
+`tools\Test-Ton.ps1` auszuwerten.
+
+**Neu seit dem 07.09.2026 abends (ADR-038, ADR-039):** **T120 bis T133** — der
+Installer und die Update-Verteilung. **Nichts davon ist geprueft**, und drei
+Zeilen entscheiden ueber die ganze Auslieferungsform: **T120** (Installation auf
+einem Rechner ohne .NET und ohne App SDK — die Zusage von self-contained),
+**T122** (ein `tel:`-Link nach einem Update; zeigt der Registrierungseintrag in
+den `current`-Ordner, ist ab dem ersten Update Schluss) und **T131** (Toasts —
+die Voraussetzung, wegen der ueberhaupt unpackaged ausgeliefert wird).
+**T124 braucht eine Kopie von `history.db`, bevor der erste Versuch laeuft.**
+
+**Neu seit dem 07.09.2026 abends (ADR-035 bis ADR-037):** **T111 bis T119** —
+der „gesehen"-Zustand der Anrufliste, die Karte im aufgeklappten Eintrag und die
+zwei neuen Bausteine im Designer. Die drei wichtigsten: **T112** (der Zustand
+ueberlebt einen Neustart — im Arbeitsspeicher haette alles davor auch
+funktioniert), **T113** (der Bereich waechst, und die Liste behaelt ihre
+Virtualisierung — **mit Tab-Wechsel pruefen**, der Fehler ist kein Absturz,
+sondern ein Ruckeln) und **T116** (eine kaputte Karte darf nur sich selbst
+kosten). T111 bis T113 gehen ohne Anlage, wenn man verpasste Anrufe von Hand in
+`history.db` schreibt — fuer T112 ist das der schnellere Weg.
+
+**Vor dem ersten Lauf von T111/T112 die Datei `history.db` unter
+`%LOCALAPPDATA%/nipp/` kopieren.** Die Anrufliste ist die einzige Nutzerdatei, die nipp nicht
+wiederherstellen kann, und Fassung 2 ist ihre erste Wanderung.
+
+**Neu seit dem 07.09.2026 nachmittags (§21.6, ADR-032 bis ADR-034):** **T98
+bis T109** — Katalog, Karten-Designer und der Toast als Kartenart. Die drei
+wichtigsten sind **T99** (Designer waehrend eines Gespraechs — er laeuft auf dem
+Thread, der das SDK bedient), **T104** (eine kaputte Karte darf nur sich selbst
+kosten) und **T105** (Toast-Karte, und dabei T90 bis T92 mitfahren). **T101 ist
+ausdruecklich noch nicht gebaut** und steht als offener Punkt darin.
+
+**Nach dem Review vom 05.09.2026 neu zu pruefen** (docs/plans/REVIEW.md §6.3): T03, T06,
+T08, T09, T21, T22, T26, T27, T29, T30. **T06 ist ausserdem der dringendste
+Fall ueberhaupt**: eingehende Anrufe wurden gar nicht angezeigt (docs/plans/REVIEW.md §8). An allen zehn wurde etwas geaendert,
+das sich nur am Geraet abnehmen laesst — mehrere davon standen vorher auf
+„bestanden“, gemessen an einer Fassung, die es so nicht mehr gibt.
+
+| # | Rüstzeug | Testfall | Erwartung | Ergebnis | Datum | Build |
+|---|---|---|---|---|---|---|
+| T01 | P | Registrierung über **UDP** | REGISTER 200 OK, Status registriert | **bestanden** — im Spike und **in der App selbst** (InProgress → Registered) | 04.09.2026 | M2 |
+| T02 | P | Registrierung über **TCP** | REGISTER 200 OK | | | |
+| T03 | P | Registrierung über **TLS** | REGISTER 200 OK, Zertifikat geprüft | | | |
+| T04 | P | Ausgehender Anruf, intern | Audio in beide Richtungen | **bestanden** — 18 Minuten Gespraech (09:11 bis 09:29), Audio in beide Richtungen, kein einziger Fehler im Protokoll | 07.09.2026 | review-umsetzung |
+| T05 | P | Ausgehender Anruf, extern (E.164) | korrekt normalisiert gewählt | **bestanden** — im Spike und in der App. Eingabe `079…` wird zu `+4179…`. Codec PCMU, Verschlüsselung **None** (ADR-006) | 04.09.2026 | M3 |
+| T06 | P | Eingehender Anruf | Toast erscheint (auch bei geschlossenem Fenster), Fenster kommt nach vorn, Gespraechsansicht ist zu sehen, Annehmen funktioniert | **bestanden** — Toast mit aufgeloestem Namen, Fenster kam aus dem Infobereich nach vorn, Annehmen ueber den Toast | 07.09.2026 | review-umsetzung |
+| T07 | P | Weiterleiten **blind** | Ziel klingelt, eigenes Gespräch endet | **bestanden** | 04.09.2026 | M3 |
+| T08 | P | Weiterleiten **begleitet** | Rückfrage möglich, dann Übergabe | **bestanden** — Log: zweiter Anruf aufgebaut, erstes Gespräch gehalten, dann `weitergeleitet an 151 (begleitet)` | 04.09.2026 | M3 |
+| T09 | P | Makeln zwischen zwei Gesprächen | Umschalten hörbar und sichtbar | **bestanden** | 04.09.2026 | M3 |
+| T10 | P | Dritter Anruf | wird mit klarer Meldung abgelehnt | | | |
+| T11 | P | DTMF gegen ein IVR | Töne werden erkannt | **teilweise** — die Toene gehen als RFC2833 hinaus (im SDK-Protokoll belegt). Gegen ein echtes Sprachmenue ungeprueft | 07.09.2026 | review-umsetzung |
+| T12 | P | Netzwerkwechsel WLAN nach VPN | Neuregistrierung ohne Neustart | *am 04.09.2026 bewusst nicht getestet* | | |
+| T13 | P | Standby und Resume | Registrierung wird erneuert | | | |
+| T14 | P+H | Audiogerätewechsel **im Gespräch** | kein Abbruch, Hinweis erscheint | | | |
+| T15 | P+H | Headset im Gespräch abziehen | Rückfall auf Standardgerät, Gespräch läuft weiter | | | |
+| T16 | P | Verpasster Anruf | erscheint im Verlauf, Filter Verpasst | | | |
+| ~~T17~~ | — | ~~Mailbox und MWI~~ | **Überholt durch ADR-062** — der Mailbox-Reiter ist weg, und mit ihm die Anzeige wartender Nachrichten. Es gibt nichts mehr, dem ein Abzeichen folgen könnte. Gegenprobe dazu ist **T289** | | | |
+| T18 | P | Aufnahme | abspielbares WAV, **sichtbarer Indikator** | **bestanden** — 110'400 Bytes, RIFF/WAVE, 8 kHz mono 16 Bit, 6,9 s Audio, Namensschema korrekt. Zwei Anläufe nötig (Call.Params sind read-only) | 04.09.2026 | M3 |
+| T19 | P | Codec-Reihenfolge geändert | **im SIP-Log** nachweisbar geändert | | | |
+| T20 | P | SRTP erzwungen gegen Gegenstelle ohne SRTP | Abbruch **mit verständlicher Begründung** | **dringend** — ohne Erzwingen fiel der erste Testanruf still auf None zurück (ADR-006 Punkt 1) | | |
+| T21 | S | tel-Link aus Outlook | wählt direkt, ohne Rückfrage | | | |
+| T22 | S | tel-Link aus dem Browser | wählt direkt | | | |
+| T23 | P | Toast bei geschlossenem Fenster | erscheint, Buttons funktionieren | **bestanden** — Fenster war versteckt, Toast erschien, „Annehmen" darauf hat das Gespraech aufgebaut | 07.09.2026 | review-umsetzung |
+| T24 | S | Zweiter Programmstart | aktiviert die erste Instanz | **bestanden** — der zweite Start beendete sich sofort (nur die alte Prozesskennung blieb) und holte das Fenster der laufenden Instanz zurück, auch als es unsichtbar war | 13.09.2026 | review-umsetzung (Debug 20:01) |
+| T25 | S | Autostart nach Neustart | nipp läuft, registriert, im Infobereich | | | |
+| T26 | P | Globaler Hotkey | nimmt an und legt auf | | | |
+| T27 | P | BLF-Zustandswechsel | Nebenstelle telefoniert, sichtbar farblich **und** als Text | | | |
+| T28 | P | CLIP-Auflösung | Name in Toast, Gespräch und Verlauf | **bestanden fuer Toast und Anrufliste** — „Dominic Brunner" in beiden. **Nicht** in der Gespraechsansicht: dort stand „151" (Befund, siehe unten) | 07.09.2026 | review-umsetzung |
+| T29 | S | Provisioning-Profil | richtet ein Konto vollständig ein | | | |
+| T30 | S | Provisioning-Server nicht erreichbar | Start gelingt trotzdem, Hinweis im UI | | | |
+| T31 | S | Gesperrte Felder | nicht editierbar, Schloss und Tooltip | | | |
+| T32 | S | Diagnosepaket | enthält Logs, **nachweislich keine Passwörter** | **bestanden** — Paket erstellt (1,9 MB): `systeminfo.txt`, `einstellungen.json`, `integrationen.json`, vier Protokolle, `crash.txt`. **Datenschutz geprüft (§21.2, ADR-022): keine unmaskierte Rufnummer im ganzen Paket, und kein Passwort, Token oder Zugangsschlüssel** — der einzige Treffer auf Schlüsselfelder ist das Tastenkürzel. Über UI Automation ausgelöst | 14.09.2026 | 0.9.3 |
+| T33 | S | Echo-Kalibrierung | liefert einen Wert in ms | **Vorbehalt** — der Canceller schaltet sich bei 8 kHz selbst ab (ADR-006 Punkt 2) | | |
+| T34 | P | Dauerbetrieb 8 h, 50 Anrufe | kein Neustart nötig, kein Absturz | **teilweise** — 18 Minuten Gespraech ohne Abbruch und ohne Fehler. Die vollen 8 Stunden mit 50 Anrufen stehen aus | 07.09.2026 | review-umsetzung |
+| T35 | W | **Windows 10 22H2 (19045): App startet und registriert** | läuft — Windows App SDK 2.x ist für Win10 formal eine Grauzone (ADR-003) | | | |
+| T36 | W | **Windows 10 22H2: Toast mit Buttons und Laden der nativen DLL** | Toast erscheint, Buttons funktionieren, Audio läuft | | | |
+| T37 | W | **Start als Administrator** unter Windows 10 | kein Absturz — WindowsAppSDK#6268 betrifft packaged Apps unter 17763/19044, Status für 2.x unklar (ADR-003) | | | |
+| T38 | X | **Audioqualität auf echter x64-Hardware** | Jitter im Normalbereich, keine WASAPI-Pufferfehler | offen — unter Emulation 499 ms Jitter, verworfene RTP-Pakete, Pufferfehler (ADR-006 Punkt 3) | | |
+
+Die drei Fälle T35 bis T37 sind **vor der Freigabe zwingend**, nicht optional: sie decken das Restrisiko der Entscheidung ADR-003 ab. T38 klärt, ob die Audiobefunde aus AP2.3 der Emulation zuzuschreiben sind — **vor** jeder Fehlersuche im Code.
+
+## Integrationen (§21) — ab I5
+
+Diese Fälle brauchen ein Gerät und, ab T43, eine erreichbare Schnittstelle. Seit dem 06.09.2026 sind **das CRM und das Gesprächsjournal echt angebunden** — beide sind eigene Systeme von bv2, kein Kundensystem. **Nie ein Kundensystem, auch kein Test-Mandant ohne Absprache** (§13).
+
+| # | Rüstzeug | Testfall | Erwartung | Ergebnis | Datum | Build |
+|---|---|---|---|---|---|---|
+| T40 | S | **Ohne eingerichtete Quelle**: Kontakte-Tab öffnen | kein Suchfeld, Team und Outlook wie bisher — die Suche wird nur angeboten, wenn eine Quelle über das Netz sucht | | | |
+| T41 | S | Kontakte-Tab, Suchfeld tippen und wieder leeren | mit Text ersetzt die Trefferliste die beiden Abschnitte, beim Leeren kommen sie zurück; Escape leert das Feld | | | |
+| T42 | S | Suche mit Treffern aus Team und Outlook | Treffer erscheinen ohne spürbare Verzögerung, jede Zeile trägt ihre Herkunft, Doppelklick wählt | | | |
+| T43 | S | Suche mit einer langsamen fremden Quelle | lokale Treffer sofort, die Zeile darüber sagt „wird gefragt …", die fremden Treffer kommen dazu | | | |
+| T44 | S | Fremde Quelle abschalten oder unerreichbar machen | die Suche bleibt benutzbar, die Zeile darüber nennt Quelle und Grund | | | |
+| T45 | S | Schnell tippen und wieder löschen | keine veralteten Treffer in der Liste; im Protokoll höchstens eine Anfrage je Quelle | | | |
+| T46 | S | Kontakte-Tab bei über hundert Outlook-Kontakten | kein Ruckeln beim Wechsel auf den Tab und beim Tippen — die dritte Liste darf die Virtualisierung nicht kosten | | | |
+| T47 | S | Diagnosepaket mit eingerichteter Quelle | `integrationen.json` liegt bei, ohne Schlüssel, ohne Endpunktpfad, ohne Anfrageparameter | | | |
+
+### Anruferkontext und Karte (T48–T57)
+
+**Diese Fälle fehlten bis zum 06.09.2026** — T40 bis T47 decken nur die Suche
+und das Diagnosepaket ab, obwohl die Karte das Kernstück ist. Seit beide
+Quellen echt angebunden sind, lassen sie sich ohne Attrappe prüfen.
+
+**Testnummern**, am 06.09.2026 gegen beide laufenden APIs bestätigt:
+
+| Nummer | das CRM | das Gesprächsjournal | wofür |
+|---|---|---|---|
+| `+41791234567` | Hans Muster | Profil, 6 Anrufe | **beide Karten** übereinander |
+| `0443954016` | Hans Muster, 3 Kunden, 3 Zeiteinträge | `404` | eine Quelle liefert, eine nicht |
+| `0713142250` | 4net AG, ohne Kunden und Stunden | `404` | magerer Treffer, leere Abschnitte |
+| `+41999999999` | `404` | `404` | beide leer |
+
+| # | Rüstzeug | Testfall | Erwartung | Ergebnis | Datum | Build |
+|---|---|---|---|---|---|---|
+| T48 | P | Anruf zu `+41791234567` | die Gesprächsansicht ist **sofort** da, Nummer und Dauer laufen; die Karten erscheinen kurz darauf und schieben nichts weg, was schon dastand | | | |
+| T49 | P | Anruf zu `0443954016` | CRM-Karte mit Kunde und letzter Arbeit; **kein leerer Platzhalter** für das Gesprächsjournal, das hier `404` liefert | | | |
+| T50 | P | Anruf zu `0713142250` | Karte mit Namen, aber ohne Kunden- und Stundenabschnitt — leere Abschnitte fehlen ganz, statt leer dazustehen | | | |
+| T51 | P | **Beide Quellen abschalten**, dann anrufen | Telefonieren völlig unverändert: klingeln, annehmen, halten, auflegen. Keine Karte, keine Fehlermeldung, keine Verzögerung | | | |
+| T52 | P | **Netz trennen**, dann anrufen | wie T51 — die Zeitgrenze von 1,5 s darf die Gesprächsansicht nicht aufhalten. Im Protokoll steht die Zeitüberschreitung je Quelle | | | |
+| T53 | P | Dieselbe Nummer **zweimal hintereinander** anrufen | beim zweiten Mal ist die Karte sofort da (Cache, 5 Minuten); im Protokoll steht keine zweite Anfrage | | | |
+| T54 | P | Zwei Gespräche, zwischen ihnen makeln | jedes Gespräch behält **seine** Karte; beim Umschalten steht nie die Karte des anderen da | | | |
+| T55 | P | Karte in hellem und dunklem Erscheinungsbild, Fenster auf ~400 px | Text lesbar, nichts abgeschnitten, keine waagerechte Bildlaufleiste | | | |
+| T56 | P | Aktion „Im CRM öffnen" auf der Karte | der Browser öffnet den richtigen Kontakt | | | |
+| T57 | P | **Protokoll nach allen Anrufen durchsehen** | keine Rufnummer, kein Name, kein Feldinhalt — nur Quelle, Status und Dauer (§21.2) | | | |
+| T58 | S | **Symbol im Infobereich** — nach dem Start, nach einem Themenwechsel hell/dunkel, und nach einer Stunde Laufzeit | jedes Mal sichtbar. Der letzte Teil ist der eigentliche: er unterscheidet ein gültiges Handle von einem, das nur noch nicht überschrieben wurde | | | |
+| T59 | S | Kontakt mit **zwei Nummern** suchen (`0443954016`, Festnetz und mobil) | die Zeile sagt „+1 Nummer"; Doppelklick fragt, welche — mit Art und Nummer. Kontakt mit **einer** Nummer (`0713142250`) wählt weiter ohne Rückfrage | | | |
+| T66 | P | **T06 mit verstecktem Fenster.** Fenster ins Infobereich-Symbol schliessen, dann von aussen anrufen | Toast erscheint, Fenster kommt nach vorn, Gespraechsansicht ist da. **Der eigentliche Fall:** am offenen Fenster zeigt sich der Fehler nicht, um den es geht — bis zum 06.09.2026 meldete `MainWindow` beim Verstecken alle Abonnements ab und war danach taub | **bestanden** — der eigentliche Fall. Vor der Korrektur vom 06.09. war das Fenster nach dem ersten Verstecken taub | 07.09.2026 | review-umsetzung |
+| T67 | P+H | **Kopfhoerer im Gespraech ein- und ausstecken**, danach die Einstellungen oeffnen | Codec-Reihenfolge, STUN, Portbereich und Zertifikatspruefung stehen unveraendert. Vorher setzte ein Geraetewechsel sie still auf die Werkseinstellungen zurueck | | | |
+| T68 | P | **Zweiter Anruf mit unbrauchbarer Nummer**, waehrend ein Gespraech laeuft | das erste Gespraech kommt aus dem Halten zurueck, statt stumm gehalten zu bleiben | | | |
+| T69 | P | **Blind weiterleiten mit „079 123 45 67"** (mit Leerzeichen) | das Ziel klingelt. Vorher ging die Rohform in die Adresse und die Uebergabe scheiterte | | | |
+| T70 | P | **Diagnosepaket nach einem Anruf oeffnen**, `logs/*.log` durchsehen | keine vollstaendige Rufnummer, auch nicht im SIP-Trace des SDK. Interne Nebenstellen (drei- und vierstellig) bleiben lesbar (ADR-022) | | | |
+| T71 | P | **Anruf aus Deutschland** auf eine Nummer, deren letzte neun Ziffern einem Schweizer Outlook-Kontakt entsprechen | **kein** Name wird angezeigt. Vorher traf der Suffixvergleich fremde Landesnummern | | | |
+| T72 | S | **Kontaktsuche nach einer Firma**, in der zwei Personen dieselbe Zentrale als Geschaeftsnummer tragen | beide erscheinen als eigene Zeile. Vorher wurden sie eine, und die zweite Person verschwand | | | |
+| T73 | S | **Kontakte-Tab ohne klassisches Outlook** | der Abschnitt nennt den Grund. Laeuft nur das neue Outlook, sagt er das ausdruecklich (§8.4, ADR-018) | **bestanden** — am Geraet, mit dem neuen Outlook | 06.09.2026 | review-umsetzung |
+| T74 | S | **Windows-Textskalierung auf 150 %** (Barrierefreiheit, Textgroesse) | die Beschriftungen unter den Symbolen sind vollstaendig lesbar — Tab-Leiste, Waehltasten, Gespraechsknoepfe | | | |
+| T75 | S | **Kontrastmodus von Windows** einschalten | die Statusfarben kommen vom System, nicht aus dem hellen oder dunklen Thema | | | |
+| T76 | S | **Waehltastatur oeffnen, nipp beenden, neu starten** | die Tastatur ist wieder offen. Einmal abweichend beobachtet (06.09.2026), nicht reproduziert | | | |
+| T77 | S | **Bildschirmleser ueber die Kontaktliste** | vorgelesen werden Name und Nummer, nicht der Klassenname | **bestanden** — im UI-Automation-Baum geprueft | 06.09.2026 | review-umsetzung |
+| ~~T78~~ | — | ~~**Freizeichen beim Waehlen**, Headset auf~~ | **Fehlabnahme, zurueckgenommen am 07.09.2026 mittags.** Die als Beleg dienenden Anrufe waren intern und gingen `Dialing -> Connected` — ohne Rufzustand, es gab also gar keinen Rufton zu hoeren. Geteilt in T78a und T78b | **zurueckgenommen** | 07.09.2026 | review-umsetzung |
+| T78a | P | **Interne Nebenstelle anrufen** und laeuten lassen | der Anruf erreicht ueberhaupt einen Rufzustand (`Ringing`), und der Rufton ist hoerbar. Danach `tools\Test-Ton.ps1`: der Verlauf muss `OutgoingRinging` zeigen, nicht `OutgoingProgress -> Connected` | | | |
+| T78b | P+H | **EXTERNE Nummer anrufen**, Headset auf, laeuten lassen — **der eigentliche Fall** | der Rufton ist hoerbar. Die Anlage schickt `183` mit SDP und danach **kein RTP**; das SDK schweigt dabei selbst, nipp uebernimmt nach 800 ms (ADR-029). `tools\Test-Ton.ps1` muss „Eigener Rufton gestartet" **und** eine Kette nach `MSWASAPIWrite` zeigen | **bestanden** — am Gerät bestätigt, nachdem die Abbruchregel korrigiert war. Vorher lief der eigene Rufton 402 ms und war dann still (siehe T138) | 08.09.2026 | R-Fix |
+| T78c | P+H | **Ausgabegeraet in den Einstellungen namentlich waehlen** (Kopfhoerer Jabra Link 400), dann waehlen | der Rufton kommt auf diesem Geraet. Vorher wurde der Name der neuen Geraete-API blind an die alte gegeben, deren Setter bei unbekannten Namen **wirft** — fuer „Default Playback" ging das gut, fuer einen benannten Endpunkt war es ungeprueft | | | |
+| T79 | P+H | **Auflegen mit der Taste am Headset**, waehrend ein Gespraech laeuft | das Gespraech endet. Im Protokoll steht „Auflegen am Headset gedrueckt" | **bestanden am 09.09.2026** — am Geraet (Engage 75), gemeinsam mit T80 und T80b geprueft, nachdem der Ausgangsreport ueber `WriteFile` laeuft. **Noch offen fuer Link 400 und PRO 9470.** Die Abnahme vom 07.09.2026 war zurueckgenommen: Bestanden war es, aber es belegte nichts: in **keinem** Protokoll dieses Projekts steht je „Annehmen am Headset gedrueckt", auch an keinem der drei Geraete — die Taste traf zufaellig eine der beiden Richtungen. **Eine Taste ist erst geprueft, wenn beide Bedeutungen einmal ausgeloest wurden.** Neu zu pruefen, je Geraet, zusammen mit T80. **Die Abnahme vom 07.09.2026 ist zurueckgenommen.** | 09.09.2026 | headset-fix |
+| T80 | P+H | **Annehmen mit der Taste am Headset**, waehrend es klingelt — **an jedem der drei Geraete** (Engage 75, Link 400, PRO 9470) | das Gespraech steht **und bleibt stehen**. Im Protokoll steht „Annehmen am Headset gedrueckt", und danach **kein** „Auflegen". Auswertung: `tools\Test-Headset.ps1` — die Rueckfallprobe darf nicht anschlagen, und die Reports an das Geraet muessen **unter 500 ms** liegen | **bestanden** — am Geraet (Engage 75, 09.09.2026 12:36:53): der Druck wird erkannt, das Gespraech steht und bleibt stehen. **Noch offen fuer Link 400 und PRO 9470** | 09.09.2026 | headset-fix |
+| T80b | P+H | **Das Headset aus der Ladeschale nehmen**, waehrend es klingelt | der Anruf wird angenommen — die Funktion, die Bria am selben Geraet hat. Sie haengt daran, dass das Ring-Signal das Geraet **rechtzeitig** erreicht: bis zum 09.09.2026 brauchte ein Report 10 bis 83 Sekunden (`HidD_SetOutputReport` ueber die Control-Pipe), und das Geraet wusste nicht, dass es klingelt. Ueber `WriteFile` sind es 3 ms. **Im Protokoll pruefen: die Zeile „Zustand gemeldet … klingelt=true" muss unmittelbar nach dem Eingang des Anrufs stehen** | **bestanden** — am Geraet (Engage 75, 09.09.2026), zusammen mit T79 und T80. Vorher tat das Herausnehmen nichts, und der Vergleich mit Bria war der Hinweis, der die Ursache fand. **Noch offen fuer Link 400 und PRO 9470** | 09.09.2026 | headset-fix |
+| T81 | P+H | **Ausgehenden Anruf mit der Taste abbrechen**, waehrend es beim Gegenueber klingelt | der Anruf endet. Das ist der Fall, fuer den „Dialing gilt als abgenommen" gebaut ist (§22.5) | | | |
+| T82 | P+H | **Gespraech in der Oberflaeche beenden**, dann die Headset-Taste beim naechsten Anruf druecken | die Taste nimmt an. Seit dem 09.09.2026 haengt das nicht mehr am Gabelzustand des Geraets, sondern am Anrufzustand — als Test in `HeadsetPolicyTests`. **Am Geraet zu bestaetigen bleibt es trotzdem**: der Test prueft die Regel, nicht das Geraet (Nachtrag zu ADR-028) | | | |
+| T83 | P+H | **Stummtaste am Headset** im Gespraech | das Mikrofon schaltet stumm und wieder frei; die Anzeige in der Gespraechsansicht folgt | | | |
+| T84 | P+H | **Off-Hook-Lampe am Headset** waehrend eines Gespraechs, **Ring-Lampe** waehrend es klingelt | leuchtet bzw. blinkt. **Seit dem 09.09.2026 ist es Anzeige und nicht mehr Protokoll** — die Bedeutung der Taste haengt nicht daran (Nachtrag zu ADR-028). Im Protokoll steht auf Debug jetzt auch, ob das Geraet den Bericht angenommen hat | | | |
+| T85 | P+H | **Headset waehrend eines Gespraechs abziehen und wieder einstecken** | das Gespraech laeuft weiter, und die Taste wirkt danach wieder. Der Zustand wird beim Anbinden neu gemeldet | | | |
+| T86 | S | **nipp ohne Headset starten** | Start ohne Verzoegerung, im Protokoll „Kein Headset mit Telefonie-Tasten gefunden". Telefonieren unveraendert (§22.5) | | | |
+| T88 | S | **Toast bei geschlossenem Fenster in der PACKAGED Fassung** | erscheint. Tut er heute **nicht**: `AppNotificationManager.Register()` scheitert packaged mit `0x80004005`, im Manifest fehlt `windows.toastNotificationActivation`. Unpackaged (der Alltagsweg) funktioniert er | **gescheitert** — packaged, 07.09.2026 | 07.09.2026 | headset |
+| T89 | S | **Alle Symbole nach einem Rebuild** — Infobereich, Titelleiste, Startmenue | alle drei da. Ein packaged Build liess `bin\...\Assets\` leer und nahm damit alle gleichzeitig mit; die `Content`-Eintraege haben jetzt `CopyToOutputDirectory` | **bestanden** — 16 Dateien im Ausgabeverzeichnis, Symbol im Infobereich laut Protokoll angelegt | 07.09.2026 | headset |
+| T90 | P | **Eingehender Anruf einer Nummer, die beide Quellen kennen** (`+41791234567`), Fenster geschlossen | der Toast ist **sofort** da (Name oder Nummer) und ergaenzt sich kurz darauf um Firma, letzte Arbeit und das letzte Gespraech. Er **blinkt dabei nicht** mehrfach neu auf — ersetzt wird nur bei tatsaechlicher Textaenderung (ADR-030) | | | |
+| T91 | P | **Beide Quellen abschalten**, dann anrufen | der Toast steht wortgleich wie vor ADR-030: Name oder Nummer, drei Knoepfe. Keine Verzoegerung, keine leere Zeile, keine Fehlermeldung (§21) | | | |
+| T92 | P | **Anruf annehmen oder verpassen, danach das Benachrichtigungscenter oeffnen** | dort steht **nichts** mehr von diesem Anruf. Sonst bliebe eine Gespraechszusammenfassung liegen, bis jemand sie wegklickt — genau die Grenze, die ADR-027 zieht | | | |
+| T93 | S | **Klingelton hoeren**, dann in den Einstellungen umstellen, „Probe hoeren" druecken, nipp neu starten | der neue Klang ist weicher und hat eine Pause; die Probe kommt auf dem **Klingelgeraet**; die Auswahl ueberlebt den Neustart. Vorher wurde `RingtonePath` von `Compose()` nie geschrieben (ADR-031) | | | |
+| T94 | S | **Info-Bereich unten in den Einstellungen**, in hell und dunkel, Fenster auf ~400 px | Symbol (96 px), „nipp 0.1.0 (unpackaged)", Copyright, Mail und Website. Die Verweise oeffnen Mailprogramm und Browser. Die Buildart ist der Teil, der zaehlt: packaged bekommt keine Toasts | | | |
+| T95 | S | **Angepinntes Symbol nach einem Logo-Wechsel** | in Taskleiste, Startmenue und Alt+Tab dasselbe neue Logo. **Erst nach dem Zuruecksetzen des Symbolcaches** — die drei Stellen, die ein Logo festhalten, stehen in docs/packaging.md. Neu erzeugt wird jetzt die vollstaendige `targetsize`-Familie; vorher lag nur die 24er unplated im Paket, und Windows skalierte sie fuer 32 Pixel hoch | | | |
+| T96 | S | **Fenster ins Infobereich-Symbol schliessen, dann darauf klicken** — einfach und doppelt, und einmal mit Tastatur (Symbol anwaehlen, Eingabe) | das Fenster kommt zurueck. **Der Befund vom 07.09.2026:** es kam nicht. Der Klick trifft als `KeyboardEvent.Select` ein, nicht als Mausereignis, und er kommt auf einem Fremdthread — beides behoben. Im Protokoll (Debug) muss `Infobereich: Select` stehen und **keine** COMException | **bestanden** — mit der echten Shell-Nachricht (`NIN_SELECT`) gegen das Nachrichtenfenster geprueft, zweimal hintereinander | 07.09.2026 | review-umsetzung |
+| T97 | S | **Explorer neu starten** (oder abstuerzen lassen), dann nipp im Infobereich suchen | das Symbol ist wieder da. Beobachtet am 07.09.2026: nach einem Explorer-Neustart fehlte die Zeile „Symbol im Infobereich angelegt" — ob H.NotifyIcon es selbst neu anlegt (es hat ein `TaskbarCreated`-Ereignis), ist **ungeprueft**. Faellt es aus, ist nipp bei geschlossenem Fenster nur noch ueber den Task-Manager erreichbar | | | |
+| T98 | S | **Quelle aus dem Katalog hinzufuegen**, dann eine zweite | beide stehen danach in der Liste, **beide abgeschaltet**. Der Befund vom 07.09.2026: „Einlesen" ersetzte die ganze Datei, und nach `crm.json` war das Gesprächsjournal weg — eine zweite Quelle ging nur ueber Handarbeit im JSON (ADR-033). Nebenprobe: die eigenen Wartezeiten unter „Wann nachgeschlagen wird" duerfen sich dabei nicht zuruecksetzen | | | |
+| T99 | P | **Karten-Designer oeffnen, waehrend ein Gespraech laeuft** | der Designer geht auf, das Gespraech laeuft weiter, und die Gesprächsansicht bleibt bedienbar. Danach: **auflegen und einen neuen Anruf annehmen** — die Ansicht muss wie immer nach vorn kommen (§10, T06). Der Designer laeuft auf demselben Thread, der alle 20 ms `Core.Iterate()` bedient; im Protokoll darf **kein** neuer Ereignisschleifen-Ueberlauf stehen | | | |
+| T100 | S | **Designer bei 150 % Skalierung**, hell und dunkel | das Fenster passt auf den Bildschirm (`AppWindow` rechnet in physischen Pixeln — 1100 × 760 logisch sind dort 1650 × 1140), Palette, Aufbau und Vorschau sind vollstaendig sichtbar, und das Erscheinungsbild ist dasselbe wie im Hauptfenster. **Danach das Erscheinungsbild in den Einstellungen umstellen und pruefen, dass das HAUPTFENSTER folgt** — `ThemeService` merkt sich ein Wurzelelement, und der Designer haette es ihm entziehen koennen | | | |
+| T101 | S | **Ein Feld aus der Palette auf eine Zeile ZIEHEN** | es landet dort. **Noch nicht gebaut** (K4): eingefuegt wird ueber Doppelklick oder den Knopf, und Ziehen ist abgeschaltet — ein halb funktionierendes Ziehen waere schlimmer als keines. Der Fall bleibt hier stehen, bis es gebaut ist | | | |
+| T102 | P | **Karte aendern, speichern, anrufen lassen** | in der Gesprächsansicht steht, was im Designer stand. Nebenprobe: **nipp neu starten** — die Karte gilt weiter (sie steht in `integrations.json`). Und `emptyText`: eine Zeile mit abgeschaltetem Haken muss nach dem Neustart weiterhin **verschwinden** statt „—" zu zeigen; genau das ueberlebte das Speichern vor dem 07.09.2026 nicht | | | |
+| T103 | S | **Dreissig Schritte im Designer, dann Rueckgaengig bis zum Anfang** | die Karte ist wieder wie beim Oeffnen. Danach Wiederholen bis zum Ende und wieder zurueck. Der Stapel ist auf fuenfzig begrenzt; darueber hinaus geht der aelteste Stand verloren, nichts stuerzt ab | | | |
+| T104 | S | **Eine Karte kaputt machen** (im Designer einen Ausdruck wie `coalesce((` eintragen) | **Speichern ist gesperrt**, und unten steht die Stelle. Zweite Probe, haerter: `integrations.json` von Hand mit einer kaputten Karte versehen und nipp starten — die Gesprächsansicht zeigt dann die **mitgelieferte** Karte, und in den Einstellungen steht ein Befund mit `cards[...]` und dem Satz „Bis das behoben ist, gilt die mitgelieferte Karte" (I4). Die Quellen bleiben dabei eingeschaltet | | | |
+| T105 | P | **Toast-Karte einrichten und anrufen lassen** | die Benachrichtigung zeigt die drei Zeilen der Karte in ihrer Reihenfolge, die Nummer klein darunter. Dann die Karte **zuruecksetzen** und erneut anrufen lassen: es gilt wieder die mitgelieferte Zusammensetzung, wortgleich wie vor ADR-034. **T90 bis T92 sind dabei mitzufahren** — der Weg ist angefasst worden | | | |
+| T106 | S | **Vier Textzeilen in der Toast-Karte** | Speichern ist gesperrt mit dem Hinweis auf drei Zeilen. Falls doch eine vierte in die Datei kommt (von Hand): sie erscheint im Toast **nicht** — Windows wuerde sie nicht abschneiden, sondern weglassen | | | |
+| T107 | S | **Vorschau im Designer ohne Testabruf, dann mit** | ohne: „Vorschau mit erfundenen Beispieldaten" und erfundene Namen. Nach einem Testabruf in den Einstellungen: die **eigenen** Daten und „Vorschau mit der Antwort des letzten Testabrufs". Nach einem Neustart von nipp wieder Beispieldaten — die echte Antwort bleibt im Arbeitsspeicher (§21.2) | | | |
+| T108 | S | **Quelle entfernen, dann erneut aus dem Katalog anlegen** | nach der Rueckfrage ist sie weg; nach dem erneuten Anlegen ist das **Token noch hinterlegt** und muss nicht neu eingetragen werden. Ein Token wird nur einmal ausgegeben — es beim Entfernen mitzuloeschen waere der teurere Fehler | | | |
+| T109 | S | **Sprachausgabe ueber Katalog und Palette** (Narrator) | vorgelesen wird der Name des Eintrags, nicht die Aufstellung des Datensatzes. Der Befund vom 07.09.2026: ohne `AutomationProperties.Name` nahm die Automation den `ToString()` eines `record` — bei einer Katalogzeile mehrere Tausend Zeichen samt vollstaendiger Beispielantwort | | | |
+| T110 | P | **Packaged starten und anrufen lassen**, Fenster geschlossen | der Toast erscheint. **Stand 07.09.2026 abends: er erscheint nicht.** `AppNotificationManager.Register()` scheitert packaged — nach dem Nachtragen der beiden Manifest-Erweiterungen (com:ComServer und windows.toastNotificationActivation) nicht mehr mit `0x80004005`, sondern mit `0x80070490`. Die Benachrichtigungsplattform registriert nipp jetzt erfolgreich (Ereignis 2413), der Aufruf wirft trotzdem. Ausgeschlossen sind: fehlende Namensraeume, veralteter Registrierungscache, virtualisierte CLSID. Details im Nachtrag zu ADR-008. **Bis das geht, wird unpackaged ausgeliefert** | **offen** | 07.09.2026 | review-umsetzung |
+| T111 | S | **Zwei Anrufe verpassen lassen, dann EINEN anklicken** | das Abzeichen geht von 2 auf 1, die angeklickte Zeile steht normal, die andere bleibt fett. Vor dem 07.09.2026 zaehlte das Abzeichen *alle* verpassten Anrufe der Aufbewahrungsfrist und wurde nie kleiner (ADR-035) | | | |
+| T112 | S | **Danach nipp beenden und neu starten** (ueber das Infobereich-Symbol, nicht das Fensterkreuz) | die Zahl ist **1** und nicht 2. Das ist die eigentliche Abnahme von ADR-035 — im Arbeitsspeicher haette T111 auch funktioniert. Nebenprobe mit einer `history.db` aus der Zeit **vor** dem Umbau: die alten Eintraege sind alle noch da und gelten als ungesehen | | | |
+| T113 | S | **Einen Eintrag mit viel Kontext oeffnen, dann einen ohne** | der Bereich waechst und schrumpft, die Liste bleibt bedienbar und behaelt ihre Mindesthoehe. **Danach auf den Kontakte-Tab wechseln und scrollen** — ruckelt es, hat die Liste ihre Virtualisierung verloren (zwei Listen in einem ScrollViewer, CLAUDE.md „WinUI und XAML"). Und das Kreuz oben rechts schliesst den Bereich und hebt die Auswahl auf | | | |
+| T114 | S | **Der aufgeklappte Bereich bei 150 % Skalierung**, hell und dunkel | Kopfzeile (Name, Uhrzeit, Ergebnis), Karte und Kreuz sind vollstaendig sichtbar; der Bereich nimmt hoechstens 60 % der Hoehe. Gerechnet wird auf `ActualHeight`, also logisch — ein fester Pixelwert waere hier zusaetzlich falsch | | | |
+| T115 | S | **Karte der Anrufliste im Designer aendern, speichern, einen Eintrag oeffnen** | es steht da, was im Designer stand — **ohne den Bereich zu schliessen und neu zu oeffnen** (der `CardResolver` meldet die Aenderung). Danach nipp neu starten: die Karte gilt weiter | | | |
+| T116 | S | **Diese Karte kaputt machen** (`coalesce((` von Hand in `integrations.json`) | der Bereich zeigt die **mitgelieferte** Karte, in den Einstellungen steht ein Befund mit `cards[...]`. **Und die Anrufliste selbst funktioniert weiter** — eine kaputte Karte darf nur sich selbst kosten (wie T104) | | | |
+| T117 | S | **Gespraechskarte in die Anrufliste uebernehmen** | die Abschnitte sind da, **Kennung und Name der Anruflisten-Karte sind geblieben** (sonst staenden zwei Karten mit derselben Kennung in der Datei), und ein Rueckgaengig holt den alten Stand zurueck | | | |
+| T118 | S | **Gespraechskarte in die Benachrichtigung uebernehmen** | Speichern ist gesperrt, unten steht, welche Bausteine dort nicht erscheinen. **Gekuerzt wird nichts** — welche Zeile faellt, entscheidet der Benutzer. Nach dem Loeschen der ueberzaehligen geht das Speichern | | | |
+| T119 | S | **Abstand und Beschriftung**: eine Feldzeile mit abgeschalteter Beschriftung, darunter ein grosser Abstand | der Wert steht **links am Rand** und nicht eingerueckt (die 110 px Mindestbreite der Beschriftungsspalte muessen weg sein), der Abstand ist sichtbar. **Sprachausgabe pruefen** (Narrator): sie muss die Beschriftung trotzdem nennen — „Firma: Muster AG" (§8.4) | | | |
+| T120 | F | **Installation auf frischem Windows 11** (ohne .NET 8, ohne Windows App SDK) | nipp startet, meldet sich an der Anlage an, ein eingehender Anruf klingelt. **Das ist die Zusage von self-contained** — schlaegt es fehl, fehlt etwas im Paket und nicht auf dem Rechner | | | |
+| T121 | F | **Erststart nach der Installation** | Verknuepfung auf Desktop und im Startmenue, Symbol im Infobereich **richtig** (hell/dunkel), Autostart eingerichtet. Nach einem Neustart des Rechners startet nipp mit | | | |
+| T122 | F | **`tel:`-Link aus Outlook NACH einem Update** | waehlt. Der Registrierungseintrag muss auf den **Stub** zeigen (`%LocalAppData%\nipp\Nipp.App.exe`), nicht in `current\` — sonst zeigt er nach dem ersten Update ins Leere. Nachlesen mit `reg query "HKCU\Software\Classes\tel\shell\open\command"` | | | |
+| T123 | F | **Update stable auf stable** | beim Start erscheint die Zeile in den Einstellungen, **ohne dass etwas geladen wurde**. Laden auf Knopfdruck, dann „Neu starten und aktualisieren": nipp kommt in der neuen Fassung zurueck, der Infobereich ist wieder besetzt | | | |
+| T124 | F | **Update mit Daten** | Einstellungen, **`history.db`**, SIP-Passwort, Integrationen und eigene Karten ueberleben. **Vorher `history.db` kopieren** — sie ist die einzige Nutzerdatei, die nipp nicht wiederherstellen kann | | | |
+| T125 | F+P | **Update waehrend eines Gespraechs anwenden wollen** | der Knopf ist abgeblendet, darunter steht der Grund. **Das Gespraech bleibt unberuehrt.** Nach dem Auflegen wird der Knopf von selbst wieder aktiv — ueber das Ereignis, nicht durch Neuoeffnen der Seite | | | |
+| T126 | F | **Kanal auf beta stellen, „Jetzt pruefen"** | findet die Beta-Fassung. Ein Arbeitsplatz auf stable sieht sie **nicht** — beide gleichzeitig pruefen | | | |
+| T127 | F | **Kanal zurueck auf stable** | die stable-Fassung wird gefunden und laesst sich anwenden, **obwohl ihre Versionsnummer niedriger ist** (Rueckstufung). Geht das nicht, ist beta eine Einbahnstrasse | | | |
+| T128 | S | **Start ohne Netz** (Kabel ziehen, WLAN aus) | keine Verzoegerung beim Start, keine Meldung, eine Zeile im Protokoll. **Telefonie unbeeintraechtigt**, soweit ohne Netz moeglich | | | |
+| T129 | F | **Deinstallation** ueber „Apps & Features" | Verknuepfungen, Autostart und Protokoll-Handler sind weg (mit `reg query` gegenpruefen). **Benutzerdaten bleiben** — gewollt, damit eine Neuinstallation nicht bei null anfaengt | | | |
+| T130 | F | **Setup auf einem Rechner ohne importiertes Zertifikat** | dokumentieren, **wie** die SmartScreen-Meldung aussieht und welche Klicks noetig sind. Bis AP9.2 beschafft ist, ist das der Auslieferungszustand — und der Satz, den ein Kollege am Telefon zu hoeren bekommt | | | |
+| T131 | F+P | **Toasts nach der Installation** | ein eingehender Anruf bei **geschlossenem Fenster** gibt ein Zeichen. Das ist die Voraussetzung, wegen der unpackaged ausgeliefert wird (T110); faellt sie hier, steht die ganze Auslieferungsform in Frage | | | |
+| T132 | S | **Update-Pruefung ohne hinterlegtes Token** (privates Repo) | still aus: kein Fehlerdialog, eine Protokollzeile, Telefonie unberuehrt. In den Einstellungen steht „nicht moeglich" und **nicht** „auf dem neuesten Stand" | | | |
+| T133 | F | **Token ueber das Provisioning** (`update.token` in `nipp-factory.xml`) | ein frisch eingerichteter Arbeitsplatz findet Updates, **ohne dass jemand etwas eintippt**. Und: dasselbe Token in einem Profil **aus dem Netz** wird abgelehnt, mit Protokollzeile | | | |
+| T134 | S | **„Beenden“ im Infobereich-Menü, danach den Task-Manager ansehen** | der Prozess **Nipp.App ist weg**, nicht nur das Symbol. Am 07.09.2026 war er es nicht: Herunterfahren komplett im Protokoll, Prozess vier Minuten später noch da und `Nipp.Core.dll` gesperrt. Im Protokoll stehen jetzt die Zeilen `Beenden: …` — **die erste fehlende sagt, wo es hängt**. Greift der Wächter, steht eine Warnung nach acht Sekunden da. **Hängt der Prozess, scheitert jedes Update** (T123): Velopack kann current\ nicht ersetzen | | | |
+| T140 | F | **Auf einem installierten nipp „Jetzt prüfen“ drücken** — mit und ohne hinterlegtes Token | die Zeile in den Einstellungen ändert sich, **und die App läuft weiter**. Am 08.09.2026 stürzte sie ab: der Dienst meldete nach dem Warten auf das Netz vom Threadpool-Thread an die gebundene Oberfläche. **Nur auf einer installierten Fassung prüfbar** — läuft nipp aus dem Ausgabeverzeichnis, kehrt die Prüfung vorher zurück, und der Fehler kann gar nicht auftreten | | | |
+| T135 | P | **Wechsel WLAN → LAN (Dock andocken), danach anrufen lassen** | im Protokoll steht **eine** Zeile „Netzwerkzustand an das SDK gemeldet“, mit `erreichbar=true`. **Kein** `false` nach einem `true`, keine zweite Registrierungsrunde. Der eingehende Anruf klingelt und lässt sich annehmen — im Protokoll steht dann „Anruf … angenommen“ (die Zeile gab es bis zum 08.09.2026 nicht) | | | |
+| T136 | P | **Nach dem Wechsel die Team-Lampen ansehen** | sie zeigen wieder Präsenz. Am 08.09.2026 quittierte die Anlage jedes NOTIFY mit `481 Call/transaction does not exist` — die Abos hatten den Wechsel nicht überlebt. **Offen: ob nipp sie von selbst erneuert** | | | |
+| T137 | P | **Einen eingehenden Anruf läuten lassen, bis der Anrufer auflegt** | er steht in der Anrufliste als **verpasst**, nicht als fehlgeschlagen. Bis zum 08.09.2026 stand dort „fehlgeschlagen“, was drei verpasste Anrufe wie drei Fehler aussehen liess | | | |
+| T138 | P | **Nach aussen waehlen und zuhoeren, bis abgenommen wird** | es ist ein Rufton zu hoeren, **durchgehend bis zur Annahme**. Danach im Protokoll pruefen: entweder `startRingbackTone` (das SDK spielt) oder „Eigener Rufton gestartet“ ohne ein „beendet“ kurz darauf. Steht dort doch ein Ende, nennt die Zeile jetzt Empfang, Pegel und Early-Media-Zustand — **diese drei Werte gehoeren in den Befund** | **bestanden** — der Ton lief **2,3 s statt 402 ms** und endete erst mit echtem Audio: `Empfang 73.5 kbit/s, Pegel -5.0 dBm0, Early Media: True`. Damit ist die Ursache belegt, nicht nur vermutet | 08.09.2026 | R-Fix |
+| T139 | P | **Der `488` beim Waehlen nach aussen** | **geklaert am 08.09.2026, kein Fehler.** nipp bietet zuerst `RTP/SAVP` mit vier `a=crypto`-Zeilen an; die Anlage kann kein SRTP und antwortet `488 Not Acceptable Here`, worauf nipp denselben Anruf mit `RTP/AVP` wiederholt. Das ist der Rueckfall aus **ADR-007** (SRTP angeboten, nicht erzwungen) und kostet **rund 180 ms**, nicht mehr. **Was daran wichtig ist: jedes Gespraech nach draussen laeuft damit unverschluesselt.** Kann die Anlage eines Tages SRTP, verschwindet der 488 von selbst — und dann gehoert `nat.encryption-mandatory` im Kundenprofil auf `true` | **geklaert** — aus dem SIP-Trace belegt | 08.09.2026 | R-Fix |
+| T141 | P+H | **Anruf annehmen und einfach dranbleiben** — je Geraet, und einmal **mit abgezogenem Headset** | das Gespraech steht nach zehn Sekunden noch. **Das ist die Gegenprobe zum Befund vom 09.09.2026**: dort war es nach 700 ms weg, und zwar unabhaengig davon, wie angenommen wurde (Toast, Oberflaeche, Taste). Mit abgezogenem Headset muss es in jedem Fall stehen bleiben — tut es das nicht, liegt die Ursache nicht am HID-Pfad | **bestanden** — am Geraet (Engage 75, 09.09.2026): 26 s Gespraech ohne Abbruch, nachdem es vorher nach 700 ms weg war. **Noch offen fuer Link 400 und PRO 9470** | 09.09.2026 | headset-fix |
+| T142 | P | **Nach aussen waehlen, verbinden lassen und nichts anfassen** | kein „Auflegen am Headset gedrueckt" im Protokoll. Am 08.09.2026 kam es 331 ms nach dem Verbinden von selbst, dreimal in zwei Minuten — **niemand hatte eine Taste berührt**. `tools\Test-Headset.ps1` prueft genau das gegen | | | |
+| T143 | P | **Nach aussen waehlen, wo die Anlage `183` mit SDP und Audio schickt — auf den ersten Moment hoeren** | **kein Fremdton am Anfang.** Im Protokoll steht „Audiostrom der Gegenstelle beginnt nach X ms" und **kein** „Eigener Rufton gestartet". Bis zum 10.09.2026 stand dort zweimal ein Start und 168 beziehungsweise 193 ms spaeter ein Ende — nipp legte sich ueber den Anfang des Anlagentons, weil es nach 800 ms ein Sekundenmittel las, das noch auf 0 stand. Auswertung: `tools\Test-Ton.ps1` | | | |
+| T144 | P | **Der Fall aus ADR-029: `183` mit SDP, danach kein RTP** (Gegenprobe zu T78b) | der eigene Rufton kommt nach ~1,4 s und laeuft bis zum Audio der Anlage. **Die Startzeile muss `Pakete 0` nennen** — nennt sie eine Zahl ueber 0, hat nipp wieder blind entschieden, und `Test-Ton.ps1` sagt das auch | | | |
+| T145 | P | **RTP mit echter Stille ueber die ganze Laeutdauer**, falls auf dem Test-Trunk provozierbar | der eigene Rufton kommt nach 5 s und laeuft dann durch. **Dieser Fall ist in der ganzen Protokollhistorie nie aufgetreten**; laesst er sich nicht provozieren, bleibt die Zeile offen und der Unit-Test `Ein_Strom_der_stumm_bleibt_bringt_den_eigenen_Rufton_doch_noch` traegt sie | | | |
+| T146 | P | **Nach dem Waehlen nach aussen die Jitter-Zeilen zaehlen** | `Jitter buffer stays unconverged` und `discarding too old packet` — am 10.09.2026 konvergierte der Puffer eine Sekunde lang nicht (`9 942 363 ms`) und 9 von 252 Paketen kamen zu spaet. **Der Anfang des Anlagentons kommt beschaedigt an**, und das ist der zweite Kandidat fuer „das klingt nicht nach unserer Anlage". Eigene Spur, kein Auftrag zur Aenderung — erst der Befund | | | |
+| T147 | P+H | **Teams-Meeting laeuft, nipp klingeln lassen — nichts druecken.** Je Geraet (Engage 75, Link 400, PRO 9470) **und einmal mit Notebook-Audio als gewaehltem Geraet in nipp** | **Das Meeting laeuft weiter.** Das ist die gemeldete Stoerung vom 10.09.2026. Im Protokoll steht `Ausgangsbericht unterdrueckt (Fremdbelegung)` und **kein** `Headset-Zustand gemeldet ... klingelt=true`. **Der Fall mit Notebook-Audio ist der aussagekraeftigste:** trifft es auch dann, haengt nipp am HID-Geraet eines fremden Audiowegs (T152) | | | |
+| T148 | H | **nipp starten, waehrend ein Teams-Meeting laeuft** — und danach beenden | Das Meeting laeuft weiter. Im Protokoll steht `Ausgangsbericht unterdrueckt (ohne Anlass)` und **kein** `Headset-Zustand gemeldet`. Bis zum 10.09.2026 ging hier ein Bericht „alles aus" hinaus, ohne dass ein Anruf existierte (ADR-028 Nachtrag 3) | | | |
+| T149 | H | **Teams-Meeting laeuft, Audiogeraet wechseln** — Dock andocken/abziehen und das Windows-Standardgeraet umstellen | Das Meeting laeuft weiter. Im Protokoll `Telefoniegeraet ... unveraendert, nicht neu angebunden` und kein Bericht. Vorher machte **jedes** `AudioDevicesChanged` ein Ablegen und Anbinden samt Bericht | | | |
+| T150 | P+H | **Teams in einem 1:1-Gespraech (nicht Meeting), dann nipp klingeln lassen** — je Geraet | Das Teams-Gespraech laeuft weiter, und im Protokoll steht `Fremdbelegung true`. **Der Test, der entscheidet, ob die billige Erkennung ueberhaupt etwas sieht.** Schlaegt sie an einem Geraet nicht an, ist das der Befund — sie liest einen gehaltenen Gabelzustand, und ob ein Geraet einen fuehrt, steht in seinem Report-Deskriptor | | | |
+| T151 | P+H | **Im Meeting den nipp-Anruf annehmen** | Der nipp-Anruf steht. **Dass Teams das Geraet verliert, ist hier zulaessig** — wer annimmt, hat entschieden. Im Protokoll geht der Off-Hook-Bericht hinaus, der Ring-Bericht davor nicht | | | |
+| T152 | H | **Alle drei Headsets angeschlossen, Notebook-Audio in nipp gewaehlt** | Im Protokoll steht, **an welchem von wie vielen** Telefoniegeraeten nipp haengt (Zeile „Headset geoeffnet ... eines von N Telefoniegeraeten"). Ist es nicht das in nipp gewaehlte, erklaert das T147 mit Notebook-Audio — dann ist die Zuordnung ueber die Container-ID faellig | | | |
+| T153 | P+H | **Gegenprobe ohne Teams: T80, T80b, T79 und T84 noch einmal** | unveraendert bestanden. **Die Reparatur darf T80b nicht kosten** — Annehmen durch Herausnehmen aus der Ladeschale haengt daran, dass der Ring-Bericht das Geraet rechtzeitig erreicht, und genau dieser Bericht wird jetzt manchmal unterdrueckt | | | |
+| T154 | P | **Eingehender Anruf, den Toast ansehen** — dabei T90 bis T92 mitfahren lassen | „Annehmen" steht **grün**, „Ablehnen" **rot** — **zwei** Knöpfe, seit ADR-062 ohne „Mailbox" (Gegenprobe: **T289**). Die Farben kommen von `AppNotificationButtonStyle`; setzt Windows sie nicht, ist der Toast einfarbig und **trotzdem vollständig bedienbar** — das ist kein Fehler, sondern der Rückfall | | | |
+| T155 | W | **Dasselbe auf einem Windows-10-Arbeitsplatz** | Toast erscheint, Knöpfe funktionieren, **kein Absturz**. `hint-buttonStyle` ist eine neuere Toast-Fähigkeit; hier greift die Prüfung `IsButtonStyleSupported`. Ob die Farben dort erscheinen, ist gleichgültig — dass nichts abstürzt, nicht. Von genau so einem Gerät kam am 08.09.2026 die Absturzmeldung zur Update-Prüfung | | | |
+| T156 | S | **Designer öffnen (je Kartenart), Fenster auf die schmalste Breite ziehen** | Die Palette-Liste ist bis unten sichtbar — **kein Knopf liegt darüber** —, und die vier Bausteinknöpfe stehen 2×2: **„Linie" und „Abstand" sind ganz zu lesen**. Beide wurden vorher abgeschnitten, und genau daraus wurde die Meldung, sie gingen nicht. Das Fenster lässt sich nicht schmaler als 1000 logische Pixel ziehen | | | |
+| T157 | S | **Eine Linie und einen Abstand einfügen und wieder löschen** — einmal über das ✕ am Baustein, einmal über das Kontextmenü, einmal mit der Entf-Taste, einmal über „Entfernen" rechts | Alle vier Wege entfernen denselben Baustein. Der Kern konnte das immer; **geprüft wird die Auffindbarkeit**. Dazu: Strg+Z holt ihn zurück, Strg+Y wieder weg — beide standen seit K4 in den Kurzhinweisen und gab es nicht | | | |
+| T158 | S | **Vorschau: eine echte Rufnummer eintragen und „Abrufen" drücken** — mit eingeschalteter Quelle | Die Karte zeigt die Werte **dieser** Nummer, und darunter steht „Antwort des letzten Testabrufs". Ohne Abruf folgt die Vorschau der Nummer trotzdem (formatPhone). **Gegenprobe mit getrenntem Netz:** die bisherige Vorschau bleibt stehen, daneben steht, wie viele Quellen geantwortet haben — **keine Rufnummer im Protokoll** (§21.2) | | | |
+| T159 | P | **T99 mitfahren lassen: Designer offen, währenddessen ein Anruf** — annehmen, sprechen, auflegen, und dabei im Designer abrufen | Kein Ruckeln, kein Abbruch. Der Abruf läuft im eigenen Befehl und nicht in `Refresh()`; der Designer teilt sich den Thread mit `Core.Iterate()` (§6). **Das ist die Zeile, die diese Etappe teuer machen könnte** | | | |
+| T160 | P | **Detailbereich: einen Kollegen mit Handynummer anklicken, erst die interne, dann die Handynummer wählen** | Im Protokoll steht die **jeweils gewählte** Nummer, nicht zweimal die Nebenstelle. Dazu: Präsenz mit Farbe **und** Text im Bereich (§8.4), und ein Doppelklick wählt weiterhin — die Auswahl öffnet, der Doppelklick wählt | | | |
+| T161 | P | **Von der Handynummer eines Kollegen von aussen anrufen** | Toast, Gesprächsansicht und Anrufliste zeigen den **Kollegen**. Gegenprobe: dieselbe Nummer zusätzlich in Outlook hinterlegen — **Team gewinnt** (die Reihenfolge von `ContactSourceKind` entscheidet). Das ist der Alltagsfall, für den diese Etappe gebaut wurde: auf dem neuen Outlook gibt es kein COM | | | |
+| T162 | P | **Zwölf Nebenstellen, acht davon mit Mobilnummer, BLF ein** | Die Zahl der Präsenz-Abos entspricht der Zahl der Einträge **mit SIP-Adresse**. Die Mobilnummern erzeugen **kein** SUBSCRIBE (§14.8) — im SIP-Trace nachzählen. Die Last auf der Anlage darf sich um null ändern | | | |
+| T163 | S | **Vier Gruppen à acht Einträge und 137 Outlook-Kontakte: Tab wechseln und scrollen** | **Kein Ruckeln.** Die Gegenprobe zur Virtualisierung: eine gruppierte ListView darf sich nicht wie N Listen verhalten. **Der Fehler wäre kein Absturz**, sondern ein Hakeln beim Wechsel auf den Kontakte-Tab — auf dem Thread, der alle 20 ms `Core.Iterate()` bedient | **bestanden** | 14.09.2026 | 0.9.3 |
+| T164 | S | **Gruppen zuklappen, darunter eine leere; nipp neu starten** | Alle Köpfe sind da, auch der leere, und der Klappzustand überlebt. **Wenn WinUI den Kopf einer leeren Gruppe nicht zeichnet, ist das der Befund** — dann ist der Rückfall eine flache Liste aus Kopf- und Zeilenobjekten mit `DataTemplateSelector` | **bestanden** | 14.09.2026 | 0.9.3 |
+| T165 | S | **Sortiermodus mit mehreren Gruppen, einmal mit Escape abbrechen** | Die Reihenfolge stimmt nach dem Loslassen **und nach einem Neustart**; der Abbruch schreibt nichts. **Einmal mit einer zugeklappten Gruppe wiederholen** — deren Einträge dürfen nicht ans Ende wandern | **bestanden** | 14.09.2026 | 0.9.3 |
+| T166 | S | **Eine Gruppe umbenennen, eine andere entfernen** | Kein Eintrag steht in einer Gruppe, die es nicht gibt, und **alle** Einträge sind noch da. Die Rückfrage beim Entfernen nennt die Gruppe, in die sie wechseln. Die letzte Gruppe lässt sich nicht entfernen | **bestanden** | 14.09.2026 | 0.9.3 |
+| T167 | S | **Profil mit `mobile=` und `group=` über `nippprov show` und danach in nipp** | Die Gruppen stehen in der Reihenfolge des Profils; mit `<locked>contacts</locked>` ist das Formular gesperrt | | | |
+| T168 | S | **Eine `settings.json` von vor dem 11.09.2026 einsetzen** | Alle Nebenstellen da, alle in einer Gruppe, **keine `.kaputt-…`-Datei** daneben. Danach einmal speichern und die Datei ansehen: `Groups` und `Group` stehen jetzt darin, `Mobile` nur, wo eine Nummer gesetzt ist | | | |
+| T169 | S | **Eine Anbietervorlage importieren** (Einstellungen → Integrationen → API-Anbieter importieren), dann Quelle hinzufügen, Token eintragen, Testabruf, einschalten | Der ganze Weg trägt. Der Anbieter erscheint im Katalog als **importiert** mit Hersteller daneben; die Quelle kommt **abgeschaltet** herein; die Beschriftung der Zugangsdaten kommt aus der Vorlage, nicht das generische «API-Token» | | | |
+| T170 | S | **Dieselbe Vorlage zweimal anwenden** (zwei Mandanten) | Es entstehen zwei Quellen mit fortlaufender Kennung. **Die Vorlage bleibt dabei liegen** — sonst stünde bei der zweiten Quelle wieder die generische Beschriftung | | | |
+| T171 | S | **Beim Import die eigene `integrations.json` auswählen** | Eigene Meldung: «Das ist eine nipp-Konfiguration, keine Anbietervorlage.» **Nichts wird geändert.** Das ist der wahrscheinlichste Fehlgriff | | | |
+| T172 | S | **Eine Vorlage einlesen, in die von Hand ein Token geschrieben wurde** | Abgelehnt, mit Begründung. Das ist die Zusage, auf der der ganze Weg steht: eine Vorlage wird weitergegeben, ein Zugangsschlüssel nicht | | | |
+| T173 | S | **nipp neu starten, nachdem eine Vorlage importiert wurde** | Der Anbieter steht weiterhin im Katalog, und die eingerichteten Quellen laufen unverändert. Im Protokoll steht «Anbietervorlagen geladen: N» **nach** dem Start der Telefonie (§21.2) | | | |
+| T174 | S | **Frischer Klon des Repos ohne SDK, nach der eigenen Anleitung gebaut** | Der Build läuft durch. **Das ist die Gegenprobe zum Öffentlichmachen:** was nur auf dieser Maschine liegt, fällt hier auf — beim letzten Mal war es eine Quelldatei, die eine `.gitignore`-Regel verschluckt hatte | | | |
+| T175 | S | **Einen Kontakt in eine andere Gruppe ziehen** (Sortiermodus ein), danach nipp neu starten | Er steht nach dem Neustart **in der neuen Gruppe**, an der Stelle, an der er losgelassen wurde. Kein anderer Eintrag hat sich bewegt. Im Protokoll stehen «Team-Reihenfolge geaendert» und «Gruppe gewechselt (1 Nebenstellen)» — **und keine Namen, keine Gruppennamen, keine Nummern** | **bestanden** | 14.09.2026 | 0.9.3 |
+| T176 | S | **Zweimal hintereinander ziehen, ohne dazwischen etwas anderes zu tun** — danach neu starten | Beide Züge sind erhalten. **Das ist der Fall, der bis zum 12.09.2026 stumm verlorenging:** der zweite Zug schrieb nichts, weil die Kennung am Platz hing; die Anzeige zeigte ihn trotzdem, und der Neustart holte den alten Stand zurück | **bestanden** | 14.09.2026 | 0.9.3 |
+| T177 | S | **Das letzte Mitglied aus einer Gruppe ziehen, dann wieder zurück** | Die leer gewordene Gruppe bleibt sichtbar und nimmt den Eintrag wieder auf. Eine leere Gruppe ist ein gültiges Ziel — sie existiert in den Einstellungen, nicht durch ihre Mitglieder | **bestanden** | 14.09.2026 | 0.9.3 |
+| T178 | S | **In den Einstellungen eine Gruppe anlegen und speichern, ohne nipp neu zu starten** | Sie steht **sofort** in der Kontaktliste, auch leer. Dasselbe für Umbenennen, Entfernen und eine neu angelegte Nebenstelle. Bis zum 12.09.2026 half nur ein Neustart — «Kontakte neu einlesen» half nicht einmal | **bestanden** | 14.09.2026 | 0.9.3 |
+| T179 | S | **Einen Kollegen anklicken, dann einen Outlook-Kontakt, dann einen Suchtreffer** | Beim Kollegen klappt der Bereich **unter der Zeile** auf, bei den beiden anderen **unter der Liste**. Nie beides zugleich. Die Präsenz im Bereich zeigt Farbe **und** Text und zieht live nach; jede Nummer ist einzeln wählbar. Der Doppelklick wählt weiterhin | **bestanden** | 14.09.2026 | 0.9.3 |
+| T180 | S | **T163 wiederholen: vier Gruppen, 137 Outlook-Kontakte, Tab-Wechsel und scrollen** — dabei einen Kollegen aufklappen | **Kein Ruckeln.** Die Team-Vorlage ist um den Detailbereich gewachsen; die Outlook-Vorlage ausdrücklich nicht. Zeigt sich hier ein Hakeln, ist der Bereich in der Zeile der Grund und gehört hinter ein `x:Load` | **bestanden** | 14.09.2026 | 0.9.3 |
+| T181 | P | **Ausgehend an einen Outlook-Kontakt** (oder einen Kollegen) | Der **Name** steht sofort in der Kopfzeile der Gespraechsansicht, in der Gespraechsleiste, in der Makel-Liste und im Tooltip des Infobereich-Symbols. **Bis zum 12.09.2026 stand dort ueberall die Nummer** — die Aufloesung lief, aber die Kopfzeile fragte sie nie | | | |
+| T182 | P | **Ausgehend an eine Nummer, die nur das CRM kennt** | Zuerst die **gruppierte Nummer**, dann — beim Eintreffen der Antwort — der Name, **an allen vier Stellen zugleich**. Und **nur einmal neu gezeichnet**: jede Quellenantwort veroeffentlicht einen Schnappschuss, gemeldet wird nur bei echter Aenderung. Danach steht der Name auch in der **Anrufliste** (bewusst, ADR-043) | | | |
+| T183 | P | **Ausgehend an eine Nummer, die niemand kennt** | Die **gruppierte Nummer** im Kopf, kein leeres Feld. Und die Nummer steht **nicht** als „Name" da — wer eine Anlage hat, die den Anzeigenamen mit der Nummer fuellt, prueft das hier | | | |
+| T184 | P | **Eingehend, unveraendert** — dabei T90 bis T92 mitfahren lassen | Toast, Kopfzeile und Karte wie bisher. **Die Gegenprobe:** der Umbau hat `CallInfo.DisplayLabel` entfernt, und eingehend war die Richtung, in der die Luecke nie auffiel | | | |
+| T185 | S | **Kontaktliste ohne Maus**: mit Tab in die Team-Liste, mit den Pfeiltasten auf einen Kollegen, dann **Menütaste** (oder Umschalt+F10) | Das Kontextmenü geht auf, mit «Anrufen», «Nummer kopieren» und «In Gruppe verschieben». **Bis zum 12.09.2026 passierte gar nichts** — das Flyout hing am Zelleninhalt, den die Tastatur nie erreicht. Dasselbe in der Outlook-Liste, der Trefferliste und der Anrufliste | **bestanden** | 14.09.2026 | 0.9.3 |
+| T186 | S | **Dieselbe Zeile mit der Eingabetaste** | Ruft an, wie der Doppelklick. In der Anrufliste ruft sie zurück. Die Gegenprobe dazu: ein **Rechtsklick** mit der Maus öffnet weiterhin genau ein Menü und nicht zwei | **bestanden** | 14.09.2026 | 0.9.3 |
+| T187 | P | **Ein Gespräch aufbauen, dabei das dunkle Erscheinungsbild** — auf den Chip «unverschlüsselt» schauen | Der Text ist **lesbar**. Bis zum 12.09.2026 stand er fast weiss auf Gelb (rund 1,4:1). Dasselbe für jedes Abzeichen auf einer Anruferkarte — dafür eine Karte mit einem Warn- oder Fehlerabzeichen einrichten. **Auch im hellen Erscheinungsbild prüfen** | | | |
+| T188 | P | **Ein Gespräch weiterleiten, nur mit der Tastatur**: «Weiterleiten», Namen tippen, **Eingabe** | Die Eingabe **übernimmt** den Vorschlag und setzt den Fokus sichtbar auf «Sofort abgeben». Das Gespräch ist **nicht** weg. Erst das zweite Enter gibt ab. **Das ist der gefährlichste Fall der Liste** — bis zum 12.09.2026 gab das erste Enter sofort ab | | | |
+| T189 | P | **Eingehender Anruf, Fenster im Vordergrund, Hände auf der Tastatur** | Der Fokus liegt auf «Annehmen» — Leertaste nimmt an, ohne einen einzigen Tabulatorschritt. Nach dem Verbinden liegt er bei erneutem Öffnen auf «Auflegen» | | | |
+| T190 | S | **Mit Tab in die Wähltastatur, dann mehrere Ziffern nacheinander drücken** | Der Fokus **bleibt auf der Tastatur** und wandert mit Tab zur nächsten Ziffer. Bis zum 12.09.2026 sprang er nach jeder Ziffer ins Nummernfeld zurück. Gegenprobe mit der **Maus**: dort gehört der Sprung ins Feld und muss bleiben | | | |
+| T191 | S | **Die vier destruktiven Dialoge mit der Eingabetaste**: Gruppe entfernen, Quelle entfernen, Vorlage ersetzen, Karte zurücksetzen | Enter wählt **«Abbrechen»**, nichts geht verloren. Vorher tat Enter dort gar nichts, während es in den anderen fünf Dialogen reagierte | | | |
+| T192 | S | **Die Wörter zählen**: Konto abmelden und die Zustände an allen vier Stellen ablesen — Hauptansicht, Einstellungen, Infobereich-Symbol, Fehlermeldung | Überall **dasselbe Wort**. «Registrierung» kommt in der Oberfläche nicht mehr vor, nur noch im Protokoll. Dasselbe für ein gehaltenes Gespräch: «von der Gegenseite gehalten», nie «Gegenstelle» | **halb bestanden** — die Wortprüfung hält: in **allen drei Bereichen** (Kontakte, Anrufe, Einstellungen, 502 Texte) kommt weder «Registrierung» noch «Gegenstelle» noch «Mailbox» vor, über UI Automation geprüft. **Offen bleibt der Ablauf**: abmelden und die vier Stellen im Zustandswechsel ablesen | 14.09.2026 | 0.9.3 |
+| T193 | S | **Der Kontakte-Tab bei mehreren Gruppen** | Der Abschnitt heisst **«Nebenstellen (n)»**, die Gruppe darin weiterhin «Team». Dazu: das Symbol rechts im leeren Nummernfeld ist eine **Uhr**, kein Chevron | **bestanden** | 14.09.2026 | 0.9.3 |
+| T194 | S | **Eine Team-Nebenstelle anlegen, dann sofort über den Pfeil zurück** — danach nipp neu starten | Sie ist **da**. Bis zum 12.09.2026 war sie weg, ohne Meldung: «Hinzufügen» schrieb nur in die Sammlung, und der Knopf «Speichern» unten war der einzige Weg in die Datei. **Denselben Test für eine neue Gruppe, einen Audiogerätewechsel und eine Codec-Reihenfolge** | | | |
+| T195 | S | **In «SIP-Port» eine ungültige Zahl tippen und das Feld verlassen** | Die Beanstandung steht da, und die Datei bleibt unverändert — ein Neustart holt den alten Wert zurück. **Beim Tippen selbst darf nichts beanstandet werden:** ein halb getippter Port ist unfertig, kein Fehler | **bestanden** — von Hand geprüft: die «999999» bleibt im Feld stehen, aber **die Datei bleibt unverändert** (`SipPort` steht weiterhin auf 5061, und `network.sip-port` ist **nicht** in den Benutzer-Overrides). **Nicht maschinell prüfbar:** über `ValuePattern` klemmt die NumberBox den Wert auf ihr Maximum und übernimmt ihn — echtes Tippen tut das nicht | 14.09.2026 | 0.9.3 |
+| T196 | S | **Auf der Einstellungsseite ohne «Speichern» arbeiten** | Es gibt keinen Knopf mehr. Jede Änderung an einem Schalter, einer Auswahlliste oder einem Regler ist nach dem nächsten Start noch da. **Gegenprobe:** die drei neustartpflichtigen Werte (SIP-Port, Zertifikatsprüfung, Transport) melden weiterhin den Neustarthinweis | | | |
+| T197 | S | **Erststart auf einem frischen Profil** (`%APPDATA%\nipp` vorher wegsichern und leeren) | Die Hinweisleiste trägt **«Konto einrichten»**. Ein Klick darauf öffnet die Einstellungen, klappt «SIP-Konten» auf und setzt den Fokus in «Benutzername». **Das ist der Weg, den bis zum 12.09.2026 eine Wegbeschreibung in Prosa ersetzte** | | | |
+| T198 | S | **Im Kontoformular nur den Benutzernamen tippen** | Unter der Schaltfläche steht «Es fehlt noch: Domain.» — und nach der Domain «Es fehlt noch: Passwort.». Beim **leeren** Formular steht dort nichts | **bestanden** — leeres Formular schweigt, dann «Es fehlt noch: Domain.», dann «… Passwort.» (über UI Automation geprüft) | 14.09.2026 | 0.9.3 |
+| T199 | S | **Als Domain `sip:pbx.example.ch` oder `151@pbx.example.ch` eintragen** | Der Grund steht **sofort** da, ohne zwölf Sekunden Wartezeit. **Gegenprobe:** eine Domain ohne Punkt (`pbx`) und eine IP-Adresse werden durchgelassen — eine Anlage kann im Intranet stehen | **bestanden** — `sip:`, `@`, Leerzeichen und Pfad werden beanstandet; **Gegenprobe hält**: Domain ohne Punkt und IP-Adresse gehen durch (über UI Automation geprüft) | 14.09.2026 | 0.9.3 |
+| T200 | S | **Eine Linphone-DLL aus dem Ausgabeverzeichnis entfernen und nipp starten** | Die Hinweisleiste ist **rot** und sagt, dass die Installation unvollständig ist. Bis zum 12.09.2026 sah das aus wie «noch kein Konto eingerichtet» — zwei grundverschiedene Ursachen, ein Bildschirm. **Danach die DLL zurücklegen** | **bestanden mit Vorbehalt** — `liblinphone.dll` entfernt: «Die Telefonie-Komponenten konnten nicht geladen werden. Die Installation ist unvollständig — nipp neu installieren», samt technischer Ursache und Protokollzeile. **Ob die Leiste rot ist, konnte ich nicht sehen** (über UI Automation geprüft). **Beobachtung:** daneben steht weiterhin «Kein Konto eingerichtet» — die Verwechslung, die dieser Fall ausschliessen soll, ist damit nicht ganz weg | 14.09.2026 | 0.9.3 |
+| T201 | S | **«Quelle hinzufügen» mit genau einer Vorlage im Katalog** | Kein Dialog — die Quelle entsteht direkt, abgeschaltet, mit der Anleitung als Rückmeldung. **Nach dem Import einer zweiten Vorlage** geht der Auswahldialog wieder auf. Dazu: der Importknopf steht **über** «Quelle hinzufügen» | | | |
+| T202 | S | **Die Einstellungen öffnen und nach dem Klingelton suchen** | Fünf Gruppen stehen oben, «Für Administratoren» unten. SIP-Port, Codecs, Provisionierung und Zurücksetzen stecken darin. **Gegenprobe:** ein Provisionierungsprofil, das `advanced` sperrt, sperrt weiterhin «Start und Bedienung» **und** «Provisionierung und Diagnose» | **halb bestanden** — «Klingelgerät», «Klingelton» und «Probe hören» stehen unter «Audio»; fünf Gruppen oben, «Für Administratoren» unten mit SIP-Port, Codecs, Provisionierung und Zurücksetzen darin. **Offen:** die Gegenprobe mit einem sperrenden Profil | 14.09.2026 | 0.9.3 |
+| T203 | S | **Im Nummernfeld einen Kundennamen tippen, den nur das CRM kennt** | Die lokalen Vorschläge stehen **sofort** unter dem Feld; der Treffer aus der Quelle erscheint kurz darauf in der Liste darunter, mit Herkunftsabzeichen. **Es gibt kein zweites Suchfeld mehr.** Der Platzhalter nennt die Quelle mit | | | |
+| T204 | S | **Dasselbe mit getrenntem Netz** | Die lokalen Vorschläge kommen unverändert sofort — **das Netz darf nicht im Tippweg liegen** (die Zusage aus ADR-025). Über der Trefferliste steht, welche Quelle nicht antwortet | | | |
+| ~~T205~~ | — | ~~Einen Kollegen anklicken, dann einen Outlook-Kontakt~~ | **Überholt durch ADR-048** — der Detailbereich steht seit dem 13.09.2026 **in der Zeile**, nicht unter der Liste. Ersetzt durch **T219**; die Virtualisierungsprobe daraus lebt in **T180** weiter | | | |
+| ~~T206~~ | — | ~~Das Fenster auf volle Bildschirmbreite ziehen~~ | **Überholt durch ADR-052** — der Inhalt füllt jetzt das Fenster, statt gedeckelt mittig zu stehen. Ersetzt durch **T251** | | | |
+| T207 | P+H | **Während eines Gesprächs das Headset abziehen** | Die Hinweisleiste meldet den Gerätewechsel. Über das Lautsprechersymbol in der Kopfleiste lässt sich das Gerät **im Gespräch** umstellen, mit Haken am aktiven. **Danach nipp neu starten:** die Wahl ist noch da | | | |
+| T208 | P+H | **Dasselbe über das Symbol im Infobereich**, ohne das Fenster zu öffnen | Die Geräte stehen im Menü, mit ✓ am aktiven. **Bei genau einem Wiedergabegerät steht dort keines** — eine Wahl zwischen einer Möglichkeit ist keine | | | |
+| T209 | S | **Mit einer Sprachausgabe durch die Listen gehen** (Windows-Sprachausgabe, Einfg+Pfeile) | Ein Kollege wird mit **Präsenz** angesagt, ein Anruflisteneintrag mit **Richtung, Ergebnis und Zeit** — auch wenn er schon gesehen ist. Der Anrufe-Tab sagt die Zahl der verpassten mit | | | |
+| T210 | S | **Strg+1 bis Strg+3 und Strg+F** | Wechseln den Bereich beziehungsweise setzen den Fokus ins Nummernfeld und markieren dessen Inhalt. **Strg+4 tut seit ADR-062 nichts** (T289). Die Kürzel stehen in den Kurzinfos der Umschaltleiste. **Dazu:** die Buchstaben unter den Wählziffern sind lesbar, und die Schliessen-Kreuze sind mit der Maus zu treffen | | | |
+| T211 | S | **Das Fenster von 400 Pixeln auf Vollbild ziehen und zurück** | Ab rund 960 Pixeln stehen zwei Spalten: links wählen und der gewählte Bereich (**fest 480 Pixel**), rechts die Nebenstellen als Kacheln über den **ganzen** Rest. Der Umbau passiert **einmal**, nicht bei jedem Pixel. **Dabei ein Gespräch laufen lassen** — der Umbau läuft auf dem Thread, der alle 20 ms `Core.Iterate()` bedient | **bestanden, aber die Zahl in der Zeile ist die der Seite, nicht des Fensters** — zwei Spalten stehen ab rund **980 logischer Fensterbreite**, nicht ab 960: gemessen bei 974 noch schmal, bei 980 breit. Die 960 aus §23 gelten für die **Seite**, und die ist rund 15 bis 20 Pixel schmaler als das Fenster. Wer das Fenster auf 960 zieht, sieht das schmale Layout und meldet einen Fehlschlag, der keiner ist | 13.09.2026 | review-umsetzung (Debug 20:01) |
+| T212 | S | **Genau an der Schwelle langsam hin und her ziehen** | **Kein Flackern.** Hinein ab 960, hinaus erst unter 920 — die Hysterese. Ohne sie baut sich die halbe Seite bei jedem Pixel neu auf | **bestanden** — Hysterese wirkt und in der richtigen Grössenordnung: hinein zwischen **974 und 980**, hinaus zwischen **935 und 930** (Fensterbreite), Abstand rund 45 Pixel bei 40 spezifizierter Hysterese. **Kein Flackern**: 852 schnelle Grössenänderungen über die Schwelle hin und her, ohne Zucken und ohne Absturz. **Zur Zahl in der Zeile siehe T211.** Aber: beim Messen mit Bildschirmabzügen verschwand das Fenster zweimal — siehe **A1-4** | 13.09.2026 | review-umsetzung (Debug 20:01) |
+| T213 | S | **Im breiten Layout die Umschaltleiste durchgehen** | Links wechselt der Bereich (Kontakte, Anrufe — seit ADR-062 ohne Mailbox), **die Kacheln rechts bleiben stehen**. Unter «Kontakte» steht links nur noch Outlook samt Suchtreffern — die Nebenstellen stehen rechts, nicht zweimal. **Die Leiste selbst steht nur unter der linken Spalte**, das Kachelfeld reicht daneben bis an den unteren Rand (ADR-052) | | | |
+| T214 | S | **Vier Gruppen, eine Kachel per Ziehen in eine andere Gruppe — zweimal hintereinander** | Beide Züge sitzen und überleben den Neustart. Die Gegenprobe zu **T176**: dort ging der zweite Zug stumm verloren. **Dazu der Weg ohne Maus:** Menütaste auf einer Kachel öffnet das Kontextmenü mit «In Gruppe verschieben» | | | |
+| T215 | S | **Vierzig Nebenstellen in vier Gruppen, Tab-Wechsel und Scrollen** | **Kein Ruckeln.** Ein gruppiertes `GridView` virtualisiert nur mit `ItemsWrapGrid` im `GroupStyle.Panel`; fehlt das, erzeugt es jede Kachel jeder Gruppe sofort — der Fehler wäre kein Absturz | | | |
+| T216 | P | **Eine Kachel im dunklen Erscheinungsbild, während der Kollege im Gespräch ist** | **Punkt, Schrift und Rand tragen die Farbe, die Fläche nicht** (ADR-044). Der Zustand steht als Text daneben. Bei einer Nebenstelle **ohne** SIP-Adresse: gewöhnlicher Kartenrand, keine Lampe | **bestanden** — ohne eigenes Zutun prüfbar: «Zeit Aus» und «Hotline DB» standen laut Besetztlampenfeld im Gespräch. Punkt, Schrift und **Rand** der Kachel tragen die Farbe (rosa bzw. grün), **die Fläche bleibt dunkel** — ADR-044 hält. Im dunklen Erscheinungsbild geprüft | 13.09.2026 | review-umsetzung (Debug 20:01) |
+| T217 | S | **Nur mit der Tastatur ins Kachelraster** | Tab hinein, Pfeiltasten zwischen den Kacheln, **Enter wählt**, Menütaste öffnet das Kontextmenü. Jeder Nummernknopf auf der Kachel ist einzeln erreichbar | | | |
+| T218 | S | **Mit der Sprachausgabe über eine Kachel** (Windows-Sprachausgabe) | Name, **Gruppe**, Nummer und Zustand werden angesagt. Die Gruppe gehört dazu: ein Raster hat keine Zeilenreihenfolge, an der man sich entlanghangelt | | | |
+| T219 | S | **Einen Outlook-Kontakt unten in der Liste anklicken** | Er klappt **in der Zeile** auf, direkt darunter, und bleibt im Blick. Ein zweiter Klick schliesst ihn. **Dasselbe bei einer Nebenstelle und einem Suchtreffer** — dreimal derselbe Ort. Der Bereich unter der Liste ist weg | | | |
+| T220 | S | **137 Outlook-Kontakte durchscrollen, dabei auf- und zuklappen** | Kein Ruckeln, auch nicht beim Tab-Wechsel. Das ist die Messung zu `x:Load`: der Detailteil darf nur für die **eine** offene Zeile im Baum stehen. **Dazu:** ein Doppelklick auf einen Nummernknopf im aufgeklappten Teil wählt **diese** Nummer und nicht zusätzlich die Hauptnummer | | | |
+| T221 | S | **nipp maximiert beenden und neu starten** | Es kommt **maximiert** zurück, nicht als beinahe volles Fenster mit Rand ringsum. **Gegenprobe:** ein nicht maximiertes Fenster kommt an seiner Stelle und in seiner Grösse zurück, und eine `settings.json` von vor dem 13.09.2026 wird unverändert gelesen | | | |
+| T222 | S | **Im Karten-Designer etwas ändern und das Fenster über das Kreuz schliessen** | Die Rückfrage «Änderungen an der Karte verwerfen?» kommt, mit **«Weiterbearbeiten» auf der Eingabetaste**. Bis zum 13.09.2026 ging die Arbeit hier **lautlos** verloren. **Dazu:** der Fenstertitel trägt einen Punkt, solange etwas offen ist; «Speichern» im Dialog speichert und schliesst; bei einer kaputten Karte bleibt das Fenster stehen und die Fussleiste sagt, woran es liegt | | | |
+| T223 | P | **In einer anderen Anwendung tippen, dabei anrufen lassen** | Das nipp-Fenster bleibt, wo es war — **der Fokus auch**. Der Toast zeigt den Anruf. Bis zum 13.09.2026 sprang das Fenster nach vorn, der Fokus lag auf «Annehmen», und die nächste Leertaste nahm den Anruf entgegen. **Gegenprobe:** ist das Fenster offen, wechselt es trotzdem in die Gesprächsansicht | | | |
+| T224 | P | **Dasselbe mit abgeschalteten Benachrichtigungen** (packaged starten oder Windows-Benachrichtigungen für nipp sperren) | Jetzt holt sich das Fenster den Vordergrund — ohne Toast ist es das einzige Zeichen. Im Protokoll steht «Benachrichtigungen nicht verfuegbar» | | | |
+| T225 | P | **In einem Gespräch «Aufnahme» drücken** | Die Rückfrage «Gespräch aufzeichnen?» kommt, mit **«Abbrechen» auf der Eingabetaste**; nach «Abbrechen» läuft **keine** Aufnahme und der Umschalter steht wieder aus. Ein zweites Ein- und Ausschalten **im selben Gespräch** fragt nicht mehr — im nächsten Gespräch wieder | | | |
+| T226 | P | **Die Aufnahme im dunklen Erscheinungsbild laufen lassen** | Symbol, Beschriftung und Rand tragen den Aufnahmeton, **die Fläche nicht** (ADR-044). Der Knopf steht in der zweiten Reihe bei «Weiterleiten» und «Tastentöne», nicht neben «Stumm» | | | |
+| T227 | S | **Einen Namen ins Nummernfeld tippen und Enter drücken** | **Kein Anruf.** Der Fokus springt in die Vorschlagsliste, Enter dort übernimmt die Nummer. «Anrufen» ist grau und sagt warum — als Kurzinfo **und** für die Sprachausgabe. Bis zum 13.09.2026 ging ein `INVITE sip:Meier@…` hinaus | | | |
+| T228 | S | **Die Gegenprobe mit Nummern** | `044 512 84 30`, `+41 79 …`, `40`, `112`, `*8010`, `(044) 512-84-30` und `sip:151@pbx…` wählen unverändert mit Enter. **Besonders `112`** — eine Notrufnummer darf an keiner neuen Prüfung hängenbleiben | | | |
+| T229 | S+P | **Das Menü im Infobereich ohne laufendes Gespräch öffnen** | «Stumm schalten» ist **grau**. Während eines Gesprächs ist es aktiv und heisst nach dem Stummschalten «Stummschaltung aufheben» — **ohne das Menü zu schliessen und neu zu öffnen**. Über der Geräteliste steht «Wiedergabe» | | | |
+| T230 | S | **In den Einstellungen die vorletzte Gruppe entfernen, dann die letzte** | Beim letzten Mal ist «Entfernen» **grau**, und die Kurzinfo sagt warum. Vorher liess er sich drücken und tat stillschweigend nichts | | | |
+| T231 | S | **nipp mit frischer `settings.json` starten** | Die Wähltastatur ist **zu**, und in der Kontaktliste stehen rund zehn Zeilen statt fünf. Einmal einschalten, nipp neu starten: sie ist wieder da. **Gegenprobe:** eine `settings.json` von vor dem 13.09.2026 mit eingeblendeter Tastatur behält sie — **vorher kopieren** | | | |
+| ~~T232~~ | — | ~~Mailbox-Bereich ohne hinterlegte Nummer, «Mailboxnummer eintragen» drücken~~ | Die Einstellungen gehen auf, das Formular steht als **«Konto bearbeiten»** mit gefüllten Feldern, «Weitere Angaben zum Konto» ist **offen**, und der Cursor steht im Feld **Mailboxnummer**. Eintragen, Feld verlassen, zurück: die Mailbox hat ihre Nummer. Bis zum 13.09.2026 landete man vor einem leeren Anlegen-Formular mit dem Fokus auf «Benutzername» | | | |
+| T233 | S | **Escape und Alt+Links auf der Einstellungsseite** | Beide gehen zurück zur Hauptansicht. **In einem Textfeld getippt und dann Escape:** der Wert ist übernommen — der Fokuswechsel löst `ApplyEdits` aus (ADR-045) | | | |
+| T234 | P | **Escape in der Gesprächsansicht** | Zurück zur Wähltastatur, **das Gespräch läuft weiter** — die Gesprächsleiste oben führt zurück hinein. **Bei offenem Weiterleiten-Feld oder offener Zehnertastatur:** das erste Escape schliesst den Bereich, das zweite navigiert. Alt+Links navigiert immer | | | |
+| T235 | P | **Im Gespräch Strg+M, Strg+H und Strg+E** | Schalten stumm, halten und legen auf — die Umschalter oben ziehen mit. Die Kürzel stehen in den Kurzinfos. **Gegenprobe:** steht der Fokus im Weiterleiten-Feld, tippt Strg+M kein «m» ins Feld | | | |
+| T236 | P | **`Ctrl+Shift+M` als systemweites Stummkürzel eintragen, «Übernehmen»** | «schaltet stumm» steht daneben. Dann in einer anderen Anwendung arbeiten und während eines Gesprächs drücken: es schaltet stumm, **und nipp kommt nicht nach vorn**. Nochmal drücken hebt auf. **Ohne Gespräch passiert nichts** — im Protokoll steht «stumm: kein Gespraech» | | | |
+| T237 | S | **Beide Kürzel gleich setzen** | Die Meldung sagt, dass eine Taste nur eine Bedeutung haben kann. **Gegenprobe:** das Feld leeren und «Übernehmen» — «Kein Tastenkürzel fürs Stummschalten», und Annehmen/Auflegen wirkt unverändert. Eine `settings.json` von vor dem 13.09.2026 hat kein Stummkürzel und bekommt auch keines | | | |
+| T238 | P | **Einen Kollegen mit Festnetz und Mobil zweimal anrufen, beide Nummern** | In der Anrufliste stehen zwei Zeilen mit seinem Namen, und die zweite Zeile nennt **je die gewählte Nummer**: «Ausgehend · 1:23 · +41 79 …». **Gegenprobe:** bei einem Eintrag ohne aufgelösten Namen steht die Nummer nur oben, nicht zweimal | | | |
+| T239 | S | **Mit der Sprachausgabe über einen aufgeklappten Kontakt gehen** | Jeder Nummernknopf sagt «Mobil anrufen, +41 79 …» — nicht nur die Ziffernfolge. **An allen vier Orten gleich:** Zeile, Kachel, Flyout «+1 Nummer» und das Menü bei mehreren Nummern | | | |
+| T240 | S | **Den Sortiermodus einschalten** | Über der Liste steht «Zeilen ziehen, um sie umzusortieren. Fertig», im breiten Layout «Kacheln ziehen …». «Fertig» beendet den Modus, und der Umschalter geht mit — **auch der jeweils andere**. Zuklappen der Gruppen ist im Modus weiterhin gesperrt | **halb bestanden** — schmal «Zeilen ziehen, um sie umzusortieren. Fertig», maximiert «Kacheln ziehen …»; «Fertig» beendet den Modus und der Hinweis verschwindet. **Offen:** ob das Zuklappen im Modus gesperrt ist und ob der jeweils andere Umschalter mitgeht | 14.09.2026 | 0.9.3 |
+| T241 | S | **Im Karten-Designer etwas ändern** | Neben den Knöpfen steht «Noch nicht gespeichert.», und der Fenstertitel trägt einen Punkt. Nach «Speichern» sind beide weg — **auch nach Rückgängig bis zum Ausgangsstand** | | | |
+| ~~T242~~ | — | ~~Das Fenster auf einem breiten Bildschirm maximieren~~ | **Invertiert durch ADR-052** — die Kachelspalte ist nicht mehr gedeckelt und nimmt den ganzen Rest. Ersetzt durch **T252** | | | |
+| T243 | S | **Die Einstellungen von oben nach unten durchgehen** | «Anruferkarte» steht als eigene Gruppe direkt unter «Darstellung»; «Bearbeiten …» öffnet den Designer. Im Benutzerteil steht **kein** JSON-Feld und **kein** Zugangsschlüssel mehr — «Quellen: CRM, ERP, Ticketing» steht unter «Für Administratoren» | | | |
+| T244 | P | **Während eines Gesprächs auf die Anruferkarte rechtsklicken** | «Karte bearbeiten …» öffnet den Designer auf der **ausführlichen** Karte. **Dabei T99/T159 mitfahren:** das Gespräch läuft weiter, und der Designer teilt sich den Thread mit `Core.Iterate()` | | | |
+| T245 | S | **Ein Provisionierungsprofil, das `integrations` sperrt** | Beide Gruppen sind grau — die Quellen unter «Für Administratoren» **und** «Anruferkarte» oben. Die Karte gehört zur Integrationskonfiguration, auch wenn sie jetzt woanders steht | | | |
+| T246 | S | **Einen Namen tippen, der im Team und im CRM steht** | **Genau eine Liste.** Der Kollege steht in der Trefferliste unten mit Herkunftsabzeichen, die Vorschlagsliste unter dem Feld bleibt weg. Bis zum 13.09.2026 stand er zweimal da, mit zwei Bedeutungen für dieselbe Geste | | | |
+| T247 | S | **Eine Nummer tippen** | Jetzt umgekehrt: die Vorschlagsliste steht (Kontakte **und** Anrufliste), die Trefferliste bleibt weg. **Gegenprobe ohne eingerichtete Quelle:** die Vorschlagsliste steht immer, auch bei einem Namen — es gibt dann keine Trefferliste | | | |
+| T248 | S | **Vierzig Nebenstellen, breites Fenster, einen Namen tippen** | Das Kachelraster zeigt **nur die passenden**; darüber steht «3 von 40 · Filter aufheben». Der Verweis leert das Nummernfeld und bringt alle zurück. Gruppen ohne Treffer verschwinden | | | |
+| T249 | S | **Im Sortiermodus einen Namen tippen** | Der Modus geht **aus**, und der Umschalter verschwindet, solange gefiltert wird. Danach das Feld leeren und erneut sortieren: **die Reihenfolge ist vollständig** — eine gefilterte Ordnung zurückzuschreiben verlöre die ausgefilterten Einträge | | | |
+| T250 | S | **Alle Nebenstellen wegfiltern** (ein Name, den keine trägt) | Rechts steht «Keine Nebenstelle passt zur Suche.», **nicht** «Keine Nebenstellen eingetragen.» — die beiden Fälle sind verschieden | | | |
+| T251 | S | **Das Fenster auf rund 830 Pixel ziehen** (zwischen 480 und 960) | **Keine seitlichen Ränder** — Kontofeld, Nummernfeld und Listen füllen die Breite. Rechts aussen bleibt auch kein schmaler Streifen (der Spaltenabstand). **Gegenprobe bei 320 und bei 400 Pixeln:** unverändert wie bisher. **Und hinsehen:** Name links, Präsenz rechts aussen — das ist der bewusst getragene Preis aus ADR-052; wenn es im Alltag stört, steht die Milderung dort | **bestanden bei 830 und 400, NICHT bei 320** — keine seitlichen Ränder, Kontofeld, Nummernfeld und Listen füllen die Breite; rechts bleibt nur der normale Seitenrand. Der Preis aus ADR-052 ist deutlich zu sehen: Name links, Präsenz rechts aussen. **Aber die Gegenprobe bei 320 fällt durch** — der Platzhalter «Nummer oder Name» wird nicht gekürzt, sondern von den beiden Symbolknöpfen überlagert. Eingekreist: sauber ab rund 360, ab 340 abwärts überlappt es; §23 sagt «Die Mindestbreite bleibt 320 Pixel». Siehe A1-1 | 13.09.2026 | review-umsetzung (Debug 20:01) |
+| T252 | S | **Auf einem breiten Bildschirm maximieren** (1920 oder mehr) | Links genau 480 Pixel, rechts die Kacheln **bis an den Fensterrand** — kein toter Streifen. Vor ADR-052 blieben dort 468 Pixel leer und es standen vier statt sieben Kacheln je Reihe. **Zählen:** sechs bis sieben je Reihe | **bestanden** — gemessen auf 1920 logischen Pixeln (2880 physisch bei 150 %): linke Spalte genau **480 logisch**, die Kacheln reichen bis an den Fensterrand, **kein toter Streifen**. **Sechs Kacheln je Reihe** (verlangt sind sechs bis sieben). Der Befund von vor ADR-052 (468 Pixel tot, vier Kacheln) ist weg. **Aber:** die linke Spalte ist unter «Kontakte» ein **leerer Rahmen ohne ein Wort** — siehe A1-2 | 13.09.2026 | review-umsetzung (Debug 20:01) |
+| T253 | S | **Die Umschaltleiste in beiden Layouts ansehen** | Breit: sie steht **nur unter der linken Spalte**, und das Kachelfeld reicht daneben bis an den unteren Fensterrand. Schmal: sie geht über die volle Breite. **Beim Ziehen über die Schwelle wechselt sie mit**, ohne dass ein Knopf springt oder verschwindet | **bestanden für das breite Layout** — die Leiste steht **nur unter der linken Spalte** (drei Knöpfe bis 480 logisch), das Kachelfeld reicht daneben bis an den unteren Fensterrand. Schmal geht sie über die volle Breite. **Offen bleibt der Wechsel über die Schwelle** — das ist T211/T212 | 13.09.2026 | review-umsetzung (Debug 20:01) |
+| T254 | S | **Vierzig Nebenstellen in drei Gruppen, Fenster maximiert** | Jede Gruppe füllt ihre Reihen selbst und bricht **innerhalb** der Gruppe um; der nächste Gruppenkopf beginnt eine neue Reihe. **Dabei den Tab wechseln und zurück** — kein Ruckeln (die Gegenprobe zu T215, jetzt mit mehr Kacheln je Reihe) | | | |
+| T274 | P | **Im Infobereich «Klingelton stumm für 30 Minuten» wählen, dann anrufen lassen** | **Es klingelt nicht** — aber der Toast erscheint, der Anruf lässt sich annehmen, und die Anrufliste führt ihn. Im Menü steht jetzt «Klingelton wieder ein (noch 29 Minuten)». **Gegenprobe:** aufheben, erneut anrufen lassen — es klingelt wieder, und zwar mit dem eingestellten Ton (ADR-055) | | | |
+| T275 | S | **nipp zweimal starten** (Verknüpfung doppelt anklicken, während nipp schon läuft) | Der zweite Start beendet sich sofort und holt das laufende Fenster nach vorn. **Dann mit einer Nummer:** `Nipp.App.exe tel:+41791234567` bei laufendem nipp — die Nummer landet im Feld der **laufenden** Instanz. Bis zum 13.09.2026 lief nipp unpackaged mehrfach (W2.4, B23) | **teilweise bestanden** — der zweite Start beendet sich sofort und holt das laufende Fenster nach vorn (zweimal geprüft, einmal davon aus einem unsichtbaren Fenster heraus). **Die Weitergabe einer Nummer mit `tel:` steht noch aus** — sie löst einen Wählvorgang aus und gehört an die Anlage (A2) | 13.09.2026 | review-umsetzung (Debug 20:01) |
+| T276 | P+H | **Im Gespräch das Mikrofon über die Kopfleiste umstellen** | Das Menü zeigt «Wiedergabe» und «Mikrofon» getrennt, beide mit Haken. Die Gegenseite hört danach das andere Mikrofon. Bis zum 13.09.2026 liess sich nur die Wiedergabe umstellen — wer wechselte, hörte am Headset und sprach ins Notebook (W2.5, C5) | | | |
+| T277 | P | **Im Gespräch Ziffern auf der Tastatur tippen** (Zifferreihe **und** Nummernblock, dazu `*` und `#`) | Die Gegenseite hört die Tastentöne, das Feld unter der Wähltastatur füllt sich. **Gegenprobe:** in das Weiterleitungsfeld tippen — dort geht **nichts** hinaus (W2.5, C6) | | | |
+| T278 | F | **Einen frischen Arbeitsplatz mit `build\Install-Nipp.ps1` einrichten** (Administrator-Konsole, dann ohne Adminrechte gegenprüfen) | Die Factory-Datei liegt unter `%PROGRAMDATA%\bv2\nipp`, das Setup läuft durch, und nipp nimmt danach ein Kundenprofil an. **Ohne Adminrechte** meldet das Skript das und installiert trotzdem — dann fehlt nur der Auslieferungszustand, und das steht da. **Dazu die Gegenprobe:** eine kaputte XML angeben — sie darf gar nicht erst kopiert werden (W2.3, E6) | | | |
+| T279 | F | **Dasselbe als Computerstartskript per Gruppenrichtlinie, mit `-Silent`** | Kein Fenster, kein SmartScreen — es läuft als SYSTEM. **Das ist der Weg, der beim Kunden zählt**, solange das Setup unsigniert ist (AP9.2) | | | |
+| T280 | S | **Die `settings.json` während des Betriebs schreibgeschützt setzen** (oder mit einem Editor offen halten), dann auf der Einstellungsseite ein Konto entfernen | **nipp bleibt stehen.** Es erscheint «Die Einstellungen liessen sich nicht speichern … noch einmal versuchen», die bisherigen Einstellungen gelten weiter, und im Protokoll steht eine Zeile mit maskiertem Pfad. Bis zum 13.09.2026 nahm dieser Klick den Prozess mit — der Handler läuft aus einem `async void` (W2.2, B21) | | | |
+| T281 | S | **Mit getrenntem Netz eine Kontaktsuche auslösen, die über eine Quelle geht, und dabei die Ansicht wechseln** | **Kein Absturz.** Die Meldung der Quelle kommt auf dem Oberflächen-Thread an. Bis zum 13.09.2026 meldete der Kontaktspeicher aus dem Hintergrund an gebundene Ansichten — derselbe Fehler, der am 08.09.2026 die Update-Prüfung zum Absturz brachte (W2.2, B22) | | | |
+| T282 | S | **Die Hauptansicht und die Gesprächsansicht nach der Token-Umstellung ansehen** (hell und dunkel, 100 % und 150 % Textskalierung) | Nichts steht schief, nichts überlappt. **Besonders:** die drei Symbolknöpfe im Nummernfeld sind abgerundete Quadrate statt Kreise, das Abzeichen auf dem Anruf-Reiter sitzt rechts neben dem Symbol ohne negativen Rand, und der Auflegen-Knopf **antwortet beim Überfahren** mit einem leicht abgestuften Rot. Einundzwanzig Stellen haben ein bis vier Pixel Abstand verloren (W2.6, ADR-058) | | | |
+| T283 | S | **Den Karten-Designer öffnen und eine Zeile auswählen** | Die Ränder um Zeilen und Vorschau haben den Fluent-Radius. Sie kommen seit dem 13.09.2026 aus der Ressource statt aus einer ausgeschriebenen 4 (W2.6, D10) | | | |
+| T284 | P | **Mit zwei aktiven Netzwegen arbeiten** (WLAN und Mobilfunk/Hotspot gleichzeitig), nipp eine halbe Stunde offen lassen | **Die Anmeldung bleibt stehen.** Im Protokoll steht höchstens beim Start ein Registrierungswechsel, und die Präsenz der Nebenstellen bleibt sichtbar. Auf Debug erscheint «Netzwechsel ohne Wirkung» statt einer Meldung an das SDK. Bis zum 13.09.2026 lief das Konto im Sekundentakt Ok → Progress → Failed → Ok, die Präsenz stand auf «offline», und das Protokoll wuchs auf 248 MB in sechs Minuten (ADR-060) | | | |
+| T285 | P | **Die Gegenprobe: im Betrieb von WLAN auf LAN wechseln** (Kabel einstecken, WLAN trennen) | nipp registriert **neu** — die lokale Adresse hat sich geändert, und ohne Neuregistrierung trägt der Contact-Header die alte. Ein eingehender Anruf muss danach ankommen. **Das ist die Hälfte, die eine zu grobe Bremse verschlucken würde** (der Befund vom 08.09.2026) | | | |
+| T286 | S | **Eine Einstellung ändern und das Protokoll auf Debug mitlesen** | Ein Speichern, eine Meldung, eine Übertragung auf den Core. Danach Ruhe. Bis zum 13.09.2026 konnte daraus eine Kette ohne Ende werden — alle neun Millisekunden derselbe Block (ADR-060) | | | |
+| T288 | S | **Im Karten-Designer eine Nummer eingeben und «Abrufen» drücken** — gegen eine Quelle, die eine **grosse** Antwort liefert (über 8 KB) | Die Vorschau zeigt die Werte aus der Antwort, und die Zeile darunter sagt «Testabruf» statt «Beispieldaten». Die Statuszeile sagt «übernommen», nicht «geantwortet». Bis zum 13.09.2026 zeigte die Vorschau bei grossen Antworten weiter die erfundenen Beispieldaten, und die Statuszeile meldete trotzdem Erfolg (ADR-061). **Dabei prüfen, dass keine Rufnummer im Protokoll steht.** Dasselbe auf der Einstellungsseite beim Testabruf — dort war derselbe Fehler | | | |
+| T289 | S | **Drei Reiter statt vier** — Kontakte, Anrufe, Einstellungen. Strg+1 bis Strg+3 wechseln, Strg+4 tut nichts | Die Leiste zeigt drei gleich breite Knöpfe, schmal **und** breit. **Gegenprobe mit einem Profil von vorher**: ein `voicemail="*98"` im Konto wird folgenlos überlesen, das Profil kommt vollständig an. Und ein eingehender Anruf zeigt einen Toast mit **zwei** Knöpfen (ADR-062) | | | |
+| T290 | S | **Der Umschalter «Reihenfolge ändern» steht im Kopf einer Gruppe** — «Team» zuklappen, er muss zu «Dienste» wandern; beide zuklappen, er bleibt bei «Team» | **Schmal UND breit prüfen**, die Kacheln tragen dieselben Köpfe. **Den Sortiermodus bei zugeklapptem «Team» von «Dienste» aus einschalten:** alle Gruppen gehen auf, und der Knopf bleibt trotzdem bei «Dienste» — er darf nicht unter dem Zeiger wegspringen (ADR-064). **Dabei ansehen, ob er am rechten Rand sitzt**; ohne den Container-Stil klebt er am Gruppennamen. Zum Schluss eine Zeile in eine andere Gruppe ziehen, «Fertig» drücken, nipp neu starten — die Reihenfolge hält | **bestanden** — über UI Automation, schmal **und** maximiert: «Team» offen → Umschalter bei Team; «Team» zu → bei HRN; **alle** zu → bleibt bei Team. Der kritische Fall hält: Sortiermodus von HRN aus eingeschaltet, alle Gruppen gehen auf, **der Knopf bleibt bei HRN**. Genau einer im ganzen Baum | 14.09.2026 | 0.9.3 |
+| ~~T291~~ | — | ~~**Eine Nebenstelle in eine andere Gruppe ziehen** (Sortiermodus ein) — auf die **untere** Hälfte einer Zeile, auf die **obere**, und auf den **Gruppenkopf** | Sie landet dahinter, davor und ganz oben — **dort, wo losgelassen wurde**. Auch **innerhalb** derselben Gruppe umsortieren. Danach «Fertig», nipp neu starten: alles hält. Im Protokoll auf Debug je Zug «Ziehvorgang angefragt» und «beendet», **keine Namen und keine Nummern** (ADR-065). **Dasselbe breit im Kachelraster**: linke Hälfte einer Kachel davor, rechte dahinter, Gruppenkopf ganz oben. Und die Gegenprobe: ein **Klick** auf eine Kachel oder Zeile wählt sie nur aus, ein Rechtsklick öffnet das Menü — kein Zug ohne Bewegung~~ — **überholt durch ADR-066:** die Stelle kommt nicht mehr aus der Hälfte der Zeile darunter, sondern aus der Zeigerposition in der Liste. Ersetzt durch **T292 bis T296** | | | |
+| T292 | S | **Ziehen mit Vorschau: eine Nebenstelle langsam über zwei, drei andere ziehen** (Sortiermodus ein) | **Die anderen weichen aus, während gezogen wird** — die gezogene Zeile steht sichtbar schon dort, wo sie landet, und ist gedämpft (ADR-066). Beim Loslassen bewegt sich **nichts mehr**: was dastand, gilt. **Dasselbe breit im Kachelraster**, dort entscheidet die linke/rechte Hälfte statt oben/unten | **bestanden** — schmal und breit (Kachelraster), dunkles Erscheinungsbild | 14.09.2026 | ADR-066 |
+| T293 | S | **Den Zeiger an der Gruppengrenze anhalten und dort ruhig halten** | **Die Vorschau steht still.** Sie darf nicht zwischen «ganz unten in der einen» und «ganz oben in der anderen» hin- und herspringen. Am 14.09.2026 tat sie das in vier von sieben Zügen, 25 bis 50 ms zwischen Hin und Zurück — nicht wegen des Zeigers, sondern weil das Layout unter ihm wandert. Die Bremse ist `VorschauSchwelle` (6 Pixel), **ein gewählter und kein gemessener Wert**: zittert es weiter, erhöhen; fühlt es sich träge an, senken | **bestanden** — kein Zittern gemeldet. Die Schwelle von 6 Pixeln steht damit als brauchbar da; **gemessen ist sie weiterhin nicht**, nur bewaehrt | 14.09.2026 | ADR-066 |
+| T294 | S | **Bewusst daneben loslassen** — in den Abstand zwischen zwei Zeilen, in den Streifen zwischen zwei Gruppen, an den unteren Rand der Liste, neben eine Kachel | **Der Zug geht trotzdem dorthin, wo die Vorschau stand.** Kein stummer Fehlschlag. Das ist der Befund vom 14.09.2026: ein Zug von sechzehn ging verloren, weil beim Loslassen kein Ablegeziel unter dem Zeiger war (*letztes Ziel Zeile, vor 703 ms*) — zwischen den Zeilen lag totes Gebiet. Seit ADR-066 ist die **Liste** das Ziel | **bestanden** im Rahmen des Gesamtdurchgangs — ein eigener Versuch «bewusst daneben» ist nicht vermerkt | 14.09.2026 | ADR-066 |
+| T295 | S | **Einen Zug mit Escape abbrechen**, nachdem die Vorschau quer durch beide Gruppen gewandert ist | Die Reihenfolge steht **exakt** wie vorher — auch nach einem Neustart. Es wird **nichts** geschrieben. Dasselbe, wenn die Zeile an ihren Ausgangsplatz zurückgezogen wird: die Vorschau lief, geändert hat sich nichts, also schreibt nipp nichts | **bestanden** — Abbruch mit Escape, Reihenfolge unveraendert | 14.09.2026 | ADR-066 |
+| T296 | S | **Im Sortiermodus eine Zeile anklicken** | **Der Detailbereich bleibt zu** (ADR-066). Bis zum 14.09.2026 ging er auf: die Regel stand nur im Kommentar. Eine Zeile mit ausgeklapptem Innenleben ist dreimal so hoch wie ihre Nachbarn und verschiebt beim Ausweichen das halbe Bild | **bestanden** im Rahmen des Gesamtdurchgangs | 14.09.2026 | ADR-066 |
+| T297 | P | **Im Gespräch mit der Maus über «Auflegen» fahren**, drücken, mit gedrückter Taste wegziehen, loslassen | **nipp läuft weiter** — und der Knopf ist beim Überfahren rot, nicht grau. Bis zum 14.09.2026 beendete das blosse Überfahren den Prozess, siebenmal reproduziert: `0xc000027b` in `combase.dll`, **ohne `crash.txt`, ohne Protokollzeile** (ADR-067). Dabei **hell und dunkel** prüfen, und die Gegenprobe am Gerät: über die anderen Knöpfe der Gesprächsansicht fahren | **bestanden** — mehrfach ueberfahren, gedrueckt und weggezogen, ohne Absturz. Vorher siebenmal reproduziert | 14.09.2026 | ADR-067 |
+| T298 | P+H | **Teams-Meeting läuft, Anruf kommt in nipp, ABLEHNEN** | **Das Meeting läuft weiter.** Das ist der gemeldete Fall vom 14.09.2026: nicht der Ring beendete es, sondern der Abschlussbericht beim Ablehnen (ADR-068). Im Protokoll auf Debug steht «Ausgangsbericht unterdrueckt (Fremdbelegung)» — **und keine zweite Zeile über ein Ende** | **bestanden** | 14.09.2026 | ADR-068 |
+| T299 | P+H | **Teams-Meeting läuft, Anruf kommt, ANNEHMEN** — danach auflegen | Teams darf das Gerät jetzt verlieren: wer annimmt, hat entschieden. **Nach dem Auflegen muss die Lampe ausgehen** und darf nicht hängen bleiben — ohne Abschlussbericht klingelt das Jabra weiter, auch wenn der Anrufer auflegt (M1) | **bestanden** | 14.09.2026 | ADR-068 |
+| T300 | P+H | **Meeting läuft, aber ein ANDERES Gerät ist Standardgerät** als das Headset | **Ungeprüft, und es ist eine Annahme:** `AudioSessionWatch` fragt die Standardgeräte, nicht das Headset. Solange beides dasselbe ist, stimmt es. Trifft dieser Fall zu und nipp beendet das Meeting trotzdem, muss die Abfrage auf das Gerät zielen, dessen HID-Interface geteilt wird |  |  |  |
+| T301 | P+H | **Ohne fremdes Programm: Anruf kommt, annehmen, auflegen** | Die Gegenprobe zu T298 bis T300: Ring-Lampe blinkt, Off-Hook-Lampe leuchtet, danach ist alles aus (§22.5). **Ein zu scharfer Schutz fällt hier auf** — etwa ein Hintergrunddienst, der dauerhaft eine Audio-Sitzung hält und nipp damit stumm schaltet | **bestanden** | 14.09.2026 | ADR-068 |
+| T302 | S | **Den UI-Automation-Baum auf Klassennamen prüfen** — `tools/Test-Ui.ps1`, dann `Test-NippAccessibleNames` | **Kein Element heisst wie eine Klasse.** Was dort steht, liest eine Sprachausgabe vor (§8.4). Am 14.09.2026 stand «Nipp.Core.ViewModels.ContactGroupRow» dreimal im Baum — einmal je Gruppenkopf; für die Zeilen war es längst behoben, für den Kopf nicht. **Nach jeder Änderung an einem DataTemplate wiederholen**, das ist die billigste Prüfung der ganzen Matrix | **bestanden** — nach dem Fix in **allen drei Bereichen** sauber, und **kein einziges Bedienelement ohne Namen** (Knöpfe, Felder, Listeneinträge) | 14.09.2026 | 0.9.3 |
+| T287 | S | **Die Nebenstellen: «Team» und «Dienste» einzeln zuklappen, nipp neu starten** | Beide bleiben zu. **Schmal UND breit prüfen** — die Kacheln rechts tragen dieselben Köpfe und denselben Zustand. **Dann eine Gruppe löschen, bis nur noch eine übrig ist:** ihr Kopf muss weiterhin da sein und klappen. Bis zum 13.09.2026 stand über allem noch «Nebenstellen (10)», und bei genau einer Gruppe wurde gar kein Kopf gezeichnet (ADR-063). **Gegenprobe im Sortiermodus:** alle Gruppen gehen auf, und eine zugeklappte darf ihre Einträge nicht aus der gespeicherten Reihenfolge verlieren | **halb bestanden** — «Team» zugeklappt, neu gestartet: bleibt zu, `CollapsedTeamGroups` trägt genau «Team». **Offen:** breit gegengeprüft und der Fall «Gruppen löschen, bis eine übrig ist» | 14.09.2026 | 0.9.3 |
+| T272 | F | **nipp deinstallieren, dann die Registrierung prüfen** (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` und die Handler für `tel:`) | **Nichts bleibt zurück.** Bis zum 13.09.2026 war der Rückbau-Hook gar nicht angemeldet: der Autostart zeigte auf eine gelöschte EXE, und ein `tel:`-Klick aus Outlook ging ins Leere (W1.5, E4) | | | |
+| T273 | S | **Ein Diagnosepaket aus einer Beta-Fassung erstellen** | In der ersten Zeile steht die volle Fassung samt Suffix, etwa `0.9.3-beta.1`. Bis zum 13.09.2026 stand dort `0.9.3` — der Support sah den Kanal nicht (W1.5, E12) | | | |
+| T269 | S | **Das Symbol im Infobereich bei heller UND dunkler Taskleiste ansehen** (Windows-Einstellungen umschalten), beide Male vergrössert | Es liest sich in beiden. **Das ist die offene Frage aus W1.4:** die beiden Dateien waren byteidentisch, die Wahl nach Erscheinungsbild hat nie etwas bewirkt, und es gibt jetzt nur noch eine. Liest es sich auf einer der beiden schlecht, braucht es eine zweite, **gezeichnete** Fassung — die Wahl im Code sind zehn Zeilen | | | |
+| T270 | P | **Erscheinungsbild «Dunkel» bei hellem Windows einstellen, dann einen Anruf mit Anruferkarte** | Die Beschriftungen der Karte sind hell auf dunklem Grund. Bis zum 13.09.2026 holten sie ihre Farbe über die Anwendungsressourcen und folgten damit dem **System**thema (W1.4, D2) | | | |
+| T271 | S | **Den Kontrastmodus im laufenden Betrieb einschalten** (linke Alt + linke Umschalt + Druck), dabei die Präsenzpunkte ansehen | Sie wechseln sofort auf die Systemfarben. Bis zum 13.09.2026 behielten sie Gelb, Grün und Rot aus dem vorherigen Thema — das Wörterbuch wirkte nur, wenn der Modus beim Start schon an war (W1.4, D4). **Auch mit fest eingestelltem Thema prüfen** | | | |
+| T266 | P | **Beim Klingeln neben die Toast-Knöpfe klicken** | Das Fenster kommt nach vorn, **der Anruf klingelt weiter**. Bis zum 13.09.2026 geschah gar nichts: ohne Standardargument kehrte der Behandler still zurück (W1.3, C3) | | | |
+| T267 | S | **Ein falsches Passwort eintragen und die Anmeldung scheitern lassen** | Unter dem Zustandstext steht «Zugangsdaten prüfen» als Verweis, und er führt in einem Schritt zum Kontoformular. Bis zum 13.09.2026 kostete der Weg vier Schritte (W1.3, C4) | | | |
+| T268 | S | **nipp zum ersten Mal über das Fensterkreuz schliessen** (`settings.json` vorher kopieren oder das Feld `TrayHintSeen` entfernen) | Eine Sprechblase am Infobereich-Symbol sagt, dass nipp weiterläuft und wie man es beendet. **Beim zweiten Mal nicht mehr** (W1.3, C10) | | | |
+| T263 | P | **In Word tippen, anrufen lassen — mit ABGESCHALTETEN Benachrichtigungen** (Windows-Einstellungen, nipp auf «aus») | Das Fenster erscheint, **nimmt aber den Fokus nicht**: der getippte Buchstabe landet in Word, und die Leertaste nimmt den Anruf **nicht** an. Im Protokoll: «Fenster beim Klingeln gezeigt, ohne den Fokus zu nehmen». Bis zum 13.09.2026 war der Befund von ADR-049 hier neu gebaut (W1.1) | | | |
+| T264 | P | **Blind weiterleiten an eine Nummer, die es nicht gibt** | Nach der Antwort der Anlage steht «Die Weiterleitung wurde nicht angenommen. Das Gespräch läuft weiter» — und es läuft wirklich weiter. Im Protokoll: «angestossen», dann «gescheitert». Bis zum 13.09.2026 stand dort sofort «weitergeleitet», bevor die Anlage geantwortet hatte (W1.2) | | | |
+| T265 | P+H | **Das Headset im Gespräch abziehen und nach fünf Sekunden wieder anstecken** | Im Protokoll steht der **Grund** des Lesefehlers, dann «Das Headset ist wieder da — Tasten erneut angebunden». Die Taste wirkt ohne Neustart und ohne Audiogerätewechsel. Bis zum 13.09.2026 blieb sie tot, und im Protokoll stand «DeviceLost» ohne Ursache (W1.7) | | | |
+| T257 | S | **Keep-Alive von Hand auf 15 stellen, nipp beenden, mit einem Profil starten, das 300 setzt** | **Es steht 15.** Im Protokoll auf Debug: «Profilwert fuer network.keep-alive-seconds uebersprungen». **Dann den Pfad im Profil sperren und neu starten:** jetzt steht 300, das Feld ist ausgegraut, und ein erneuter Start mit demselben Profil lässt es dabei. Bis zum 13.09.2026 war der Handwert nach jedem Start weg, lautlos (ADR-054) | | | |
+| T258 | S | **Eine `settings.json` von vor dem 13.09.2026 einspielen** (vorher kopieren!), mit Profil starten | **Erster Start: das Profil gewinnt** — das ist die Wanderung, sie steht so in ADR-054. Danach einen Wert von Hand ändern und noch einmal starten: ab jetzt gilt T257 | | | |
+| T259 | P | **Den SIP-Port im Profil auf einen anderen Wert setzen, nipp neu starten** | Im Protokoll steht «Lauscht auf UDP/TCP/TLS …» mit dem neuen Port, und die Anmeldung gelingt. **Nur gegen den Test-Trunk, nie gegen einen Kundentenant.** Bis zum 13.09.2026 erreichte der Port das SDK nie — der Neustart-Hinweis erschien, und nichts änderte sich (ADR-019 Nachtrag) | | | |
+| T260 | S | **`+41 (0)79 123 45 67` aus einer Outlook-Signatur ins Nummernfeld einfügen** | Die Vorschau unter dem Feld und die gewählte Nummer lauten `+41791234567`. Bis zum 13.09.2026 wurde `+410791234567` gewählt — eine Nummer, die es nicht gibt, ohne Fehlermeldung | | | |
+| T255 | P | **Protokollstufe auf Debug, anmelden, einen Anruf führen, dann die Datei durchsuchen** | **Keine Zeile** enthält `response="` mit Inhalt, keinen Anzeigenamen in Anführungszeichen vor einer SIP-Adresse, keine fremde Rufnummer im Klartext. **Und die Gegenprobe:** Zustandsverläufe, SIP-Antwortcodes und Filterketten sind weiter lesbar, `tools/Test-Blf.ps1` läuft durch. Bis zum 13.09.2026 standen an einem Tag 714 Digest-Zeilen und 4 282 Rufnummern darin (ADR-022, Nachtrag) | | | |
+| T256 | P | **Debug an, eine Minute Betrieb, dabei die Prozessorlast von `Nipp.App` im Task-Manager beobachten** | Kein sichtbarer Unterschied zu vorher. Die Maskierung läuft drei Regex-Durchgänge je Zeile, und zwar auf dem UI-Thread — dort ruft das SDK seinen Listener. Bei rund 34 000 Zeilen am Tag ist das tragbar; wenn nicht, wandert sie in den Serilog-Sink hinter die Warteschlange | | | |
+| T261 | P | **Im Gespräch «Halten» drücken, während die Gegenseite auflegt** (mehrere Anläufe, das Zeitfenster ist schmal) | **nipp bleibt stehen.** Statt eines Absturzes erscheint «Das Gespräch liess sich nicht halten. Es läuft weiter.» oder «Dieses Gespräch ist bereits beendet.», und im Protokoll steht eine Warnzeile mit der Anrufkennung. **Dasselbe mit «Stumm», «Auflegen» und einer Zifferntaste.** Bis zum 13.09.2026 nahm jeder dieser Klicks im falschen Moment den Prozess mit (ADR-053) | | | |
+| T262 | S | **Eine kaputte `history.db` unterschieben** (die Datei mit einem Editor mit Unsinn überschreiben, mindestens 4 KB), dann nipp starten | **nipp startet.** Die Anrufliste ist leer, die kaputte Datei liegt als `history.db.kaputt-<Zeit>` daneben, und im Protokoll stehen beide Zeilen. **Vorher die echte Datei kopieren.** Bis zum 13.09.2026 startete nipp in diesem Fall gar nicht — ohne Fenster, ohne Meldung, nur ein Eintrag in `crash.txt` | **bestanden** — history.db mit Unsinn überschrieben: nipp startet, die kaputte Datei liegt als `history.db.kaputt-20260914-145802` daneben, und **beide** Protokollzeilen stehen da («ist nicht benutzbar: SQLite Error 26» und «wurde nicht geloescht, sondern beiseitegelegt»). Echte Datei danach zurückgespielt | 14.09.2026 | 0.9.3 |
+| T87 | H | **nipp mit Headset starten** | Start ohne Verzoegerung. Der erste Anlauf blockierte hier den UI-Thread und **nipp startete gar nicht** — kein Fenster, keine Anmeldung (ADR-028) | **bestanden** — 07.09.2026 10:13, Start vollstaendig bis zur Kontoanmeldung | 07.09.2026 | headset |
+
+**T51, T52 und T57 sind die wichtigsten drei.** Die ersten beiden prüfen die
+Regel, auf der alles steht: *Telefonieren hängt von keiner Integration ab.*
+Der dritte prüft, dass die Karte nicht in einem Protokoll landet, das später
+im Diagnosepaket an den Support geht.
+
+## A1 — was die Schreibtisch-Runde gefunden hat (13.09.2026, läuft)
+
+Runde A1 aus `docs/plans/BEWEIS-PLAN.md`: die 139 Zeilen, die kein Gerät
+brauchen. Geprüft am laufenden Debug-Build (`Nipp.App.exe` vom 13.09.2026
+20:01, Fassung 0.9.2.0), Zweig `review-umsetzung`, **Windows auf 150 %
+Skalierung**, Bildschirm 1920 × 1200 logisch. Fenstergrössen sind **logische**
+Pixel; physisch ist alles das Anderthalbfache.
+
+**Nach der Regel des Plans wird ein Fehlschlag eingetragen und liegen
+gelassen**, nicht sofort behoben — sonst laufen die restlichen Zeilen gegen
+einen anderen Build als die vorherigen.
+
+### A1-1 · Bei der Mindestbreite überlagern die Symbolknöpfe den Platzhalter · T251
+
+Auf **320 logischen Pixeln** — der Breite, die §23 ausdrücklich zusichert
+(«Die Mindestbreite bleibt 320 Pixel») — wird der Platzhalter «Nummer oder
+Name» **nicht gekürzt, sondern von der Uhr und der Tastatur überlagert**: zu
+lesen ist «Nummer oder Nam» mit dem Uhrsymbol darüber.
+
+**Eingekreist:** bei 400 und 360 sauber (bei 360 knapp), **ab 340 abwärts
+überlappt es**, bei 320 deutlich. Es ist also keine Frage des Inhalts, sondern
+der fehlenden Kürzung: das Textfeld gibt seine Breite nicht an die Knöpfe ab.
+
+**Vermutlich** liegt es daran, dass die beiden Knöpfe im `AutoSuggestBox`- bzw.
+`TextBox`-Bereich überlagert statt daneben gesetzt sind — **gemessen ist das
+nicht**, nur das Ergebnis am Fenster.
+
+### A1-2 · Im breiten Layout ist die linke Spalte unter «Kontakte» leer · T252, T73, T213
+
+Ab 960 logischen Pixeln wandern die Nebenstellen nach rechts ins Kachelraster,
+und links soll «nur noch Outlook samt Suchtreffern» stehen (T213). Auf dieser
+Maschine gibt es kein klassisches Outlook (ADR-018) — **und links steht ein
+leerer Rahmen, ohne ein einziges Wort.** Rund 480 × 680 Pixel Fläche ohne
+Inhalt und ohne Begründung.
+
+**Das ist genau der Fall, den ADR-018 ausschliessen wollte:** «nipp nennt in
+der Oberfläche den Grund, statt eine leere Liste zu zeigen.» Im schmalen
+Layout fällt es nicht auf, weil dort die Nebenstellen den Platz füllen; breit
+ist die Fläche leer.
+
+### A1-3 · Der Hinweis verspricht Outlook, und niemand widerspricht · T73, T203
+
+Unter dem Nummernfeld steht «sucht auch in … und Outlook». Auf dieser Maschine
+kann Outlook nicht befragt werden (ADR-018), **und im Protokoll steht dazu
+keine einzige Zeile** — weder beim Start noch beim Laden der Kontakte
+(`Kontakte geladen: 10`, das sind die zehn Nebenstellen). Der erwartete
+Fehlschlag wird also **nicht** gemeldet, obwohl `QuietFailures` seit W1.7 genau
+dafür da ist.
+
+**Offen und nicht verwechseln:** ob bei einer **tatsächlichen** Suche eine
+Meldung erscheint, ist hier noch nicht geprüft — das ist T203/T204. Der Befund
+betrifft vorerst nur den Hinweistext und das Schweigen des Protokolls.
+
+### A1-4 · Das Fenster verschwindet lautlos, wenn es beim Layoutwechsel von aussen nach vorn geholt wird · T212, und vermutlich T223/T224/T263
+
+**Was passiert ist.** Beim Messen der Layout-Schwelle wurde das nipp-Fenster
+**unsichtbar**: der Prozess lief weiter, das Fenster existierte noch (dieselbe
+Kennung, dieselbe Position, dieselbe Grösse), aber `IsWindowVisible` sagte
+`false` und `MainWindowHandle` war 0. **Im Protokoll steht dazu keine einzige
+Zeile** — keine Warnung, kein Fehler, nichts.
+
+**Die Messreihe, und sie trennt die Ursache sauber:**
+
+| Was | Ergebnis |
+|---|---|
+| Grössenänderungen **ohne** Schwellenübergang, mit Abzug dazwischen | 6 von 6 in Ordnung |
+| **852** schnelle Grössenänderungen **über** die Schwelle, **ohne** Abzug | 852 von 852 in Ordnung |
+| Grössenänderungen **über** die Schwelle **mit** Abzug dazwischen | **2 von 2 verschwunden** |
+
+Der Abzug ruft `ShowWindow(SW_SHOW)` und `SetForegroundWindow` von aussen.
+**Es ist also nicht das Ziehen, und es ist nicht die Geschwindigkeit — es ist
+ein fremder Vordergrundwechsel genau während des Layoutumbaus.**
+
+**Zurückgeholt** wird das Fenster **nicht** durch `ShowWindow` von aussen
+(zweimal erfolglos), sondern durch einen **zweiten Programmstart** — der Weg
+aus §10, der dabei gleich T24 und die halbe T275 bestanden hat.
+
+**Warum das nicht nur ein Messartefakt ist — und warum das «vermutlich» hier
+stehen bleibt:** nipp ruft `SetForegroundWindow` **selbst**, im Rückfallpfad
+beim Klingeln, wenn keine Benachrichtigung durchkommt (ADR-049, W1.1). Wenn ein
+Anruf hereinkommt, während der Benutzer das Fenster gerade über die Schwelle
+zieht, träfe genau dieselbe Kombination zusammen. **Gemessen ist das nicht** —
+der Fall braucht einen echten Anruf und gehört damit an die Anlage: **T223,
+T224 und T263 mitprüfen**, und zwar ausdrücklich beim Ziehen an der Schwelle.
+
+**Was in jedem Fall gilt, ohne weitere Messung:** ein Fenster, das
+verschwindet, ohne dass eine Zeile ins Protokoll geht, ist die Lücke, die
+dieses Projekt zweimal bezahlt hat.
+
+---
+
+---
+
+## Abnahme vom 04.09.2026 — was sie gefunden hat
+
+Fünf Punkte bestanden: ausgehender Anruf mit Normalisierung, blindes
+Weiterleiten, Halten, Stumm, Auflegen.
+
+**Nachtrag vom 06.09.2026:** hier stand auch „eingehender Anruf samt
+Annehmen". Das war zu viel. Gesehen wurde die Gesprächsleiste bei offenem
+Fenster; Toast und Gesprächsansicht kamen nie (docs/plans/REVIEW.md §8), und T06 steht
+oben folgerichtig auf offen. Die widersprüchliche Zeile hat die Lage besser
+aussehen lassen, als sie war.
+
+**Drei echte Fehler, die nur diese Abnahme zeigen konnte** — kein Test und kein Log hätte sie gefunden:
+
+1. **Die Gesprächsansicht blieb leer**, wenn ein Anruf schon lief. Das ViewModel entstand erst beim Öffnen der Seite und hatte die Ereignisse nie gesehen.
+2. **Die Ansicht wurde leer, sobald man „Halten" drückte.** Die Gesprächsliste war two-way an die Auswahl gebunden; da `CallInfo` unveränderlich ist, tauscht jeder Zustandswechsel die Instanz aus, die Liste verlor ihre Auswahl und schrieb `null` zurück. Das Gespräch lief die ganze Zeit weiter.
+3. **Die Aufnahme schrieb keine Datei**, obwohl Indikator und Log Erfolg meldeten. `Call.Params` sind read-only; der Pfad muss beim Aufbau des Anrufs feststehen. Das ist eine Abweichung von §6, die dort nicht stehen kann — sie liegt am SDK.
+
+Dazu ein vierter, der die Abnahme selbst blockierte: **`CanDial` verlangte, dass kein Gespräch läuft.** Damit waren Makeln und begleitetes Weiterleiten unerreichbar, obwohl beide gebaut sind. §8.2 erlaubt zwei Gespräche.
+
+**Ergebnis nach den Korrekturen: alle geprüften Punkte bestanden.** Ausgehender und eingehender Anruf, Annehmen, Halten, Stumm, Auflegen, blindes und begleitetes Weiterleiten, Makeln, Aufnahme.
+
+Damit ist **M3 vollständig abgenommen** (§12: „blindes und begleitetes Weiterleiten funktionieren gegen die Test-PBX; zwei Gespräche makeln; Aufnahme erzeugt abspielbares WAV mit sichtbarem Indikator").
+
+**M2 ist es nicht ganz:** Neuregistrierung nach Netzwerkwechsel (T12) und 20 Anrufe in Folge (T34) wurden auf Wunsch nicht getestet. Beide sind gebaut und protokollieren sichtbar; sie stehen als offene Abnahmepunkte, nicht als offene Arbeit.
+
+## Was in M2 (04.09.2026) verifiziert wurde
+
+Nachweise aus dem Log der laufenden App, nicht aus dem Spike:
+
+| Nachweis | Ergebnis |
+|---|---|
+| SDK lädt aus der App | `Version 5.5.0, 8 Grammatiken, 2 Plugins` |
+| Grundkonfiguration greift | `Codec G722 true` — im SDK standardmässig aus (§9.5) |
+| Core läuft | `GlobalState = On` |
+| Ereignisschleife | `Intervall 20 ms`, Überlaufzähler aktiv |
+| Netzwerk- und Energieüberwachung | gestartet |
+| Konto wird geladen und angemeldet | `151bv2@pbx.example.ch über Udp` — **ohne Passwort im Log** |
+| **Registrierung in der App** | `InProgress` → **`Registered`** |
+
+**Zwei Beobachtungen, die nicht in die Zeilen oben passen:**
+
+1. **Ein Überlauf der Ereignisschleife beim Start:** 62 ms statt 20 ms, genau im ersten Registrierungs-Callback. Danach keiner mehr. Erklärbar durch den ersten Aufbau der Oberfläche im Callback — der Zähler tut also, was er soll (§14.1). **Zu beobachten:** wächst der Wert im Dauerbetrieb (T34), steckt eine blockierende Operation in einem Callback.
+2. **Speicherbedarf 247 MB** gegen den Zielwert von 180 MB aus §2. Debug-Build unter x64-Emulation, also nicht aussagekräftig — die Messung gehört nach AP7.8 auf echte x64-Hardware (T38).
+
+**Noch offen für die M2-Akzeptanz** (§12): eingehender Anruf in der App, Neuregistrierung nach Netzwerkwechsel (T12), Standby/Resume (T13) und 20 Anrufe in Folge ohne Absturz. Alle vier brauchen einen Menschen am Gerät.
+
+## Plattformvorbehalt
+
+Solange auf ARM64 unter x64-Emulation getestet wird (ADR-001), sind **T04 bis T06, T11, T14, T15, T18 und T34** nur eingeschränkt aussagekräftig — Audio über WASAPI ist der Bereich, in dem Emulation am ehesten auffällt. Diese Fälle sind auf echter x64-Hardware zu wiederholen; die Zeile, in der das erledigt wurde, hier vermerken.

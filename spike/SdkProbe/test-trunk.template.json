@@ -1,0 +1,27 @@
+{
+  "//": "VORLAGE — hier keine echten Werte eintragen. Diese Datei liegt im Repo.",
+  "//kopieren-nach": "%LOCALAPPDATA%\\nipp\\test-trunk.json",
+  "//warum-dort": "Ausserhalb des Repos, damit die Zugangsdaten auch bei einem versehentlichen 'git add -f' nicht eingecheckt werden koennen. Die Datei wird nur vom Spike gelesen (AP2.3) und niemals ins Log geschrieben.",
+  "//regel": "Nur der Test-Trunk der Test-PBX. NIE ein Kundentenant (NIPP-BUILD.md Paragraph 13).",
+
+  "displayName": "nipp Testgeraet",
+  "username": "",
+  "authUserId": "",
+  "password": "",
+  "domain": "",
+
+  "//transport": "Udp, Tcp oder Tls — Paragraph 9.2 gibt Tls als Standard vor",
+  "transport": "Tls",
+
+  "//outboundProxy": "leer lassen, wenn keiner gebraucht wird",
+  "outboundProxy": "",
+
+  "//expires": "Registrierungsdauer in Sekunden, Paragraph 9.1 Standard 600",
+  "expires": 600,
+
+  "//echoTarget": "Nebenstelle oder Nummer, die zuruecksendet, was man ihr sagt — fuer den Audiotest in AP2.3",
+  "echoTarget": "",
+
+  "//rootCaFile": "Optional: Pfad zu einer PEM-Datei mit den Wurzelzertifikaten. Das SDK will eine DATEI, nicht den Windows-Zertifikatspeicher (Paragraph 14.6). Leer lassen fuer einen ersten Versuch.",
+  "rootCaFile": ""
+}

@@ -1,0 +1,69 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F8DCB848-77AE-4180-88D3-CAEC912CB32A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nipp.App", "src\Nipp.App\Nipp.App.csproj", "{81AC12A8-E11A-4913-B9F3-D28195ED38C2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nipp.Core", "src\Nipp.Core\Nipp.Core.csproj", "{BCFB1D37-32BD-4F0D-9A76-8A605ED72675}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nipp.Provisioning", "src\Nipp.Provisioning\Nipp.Provisioning.csproj", "{AA4874CE-2AD1-447A-8855-3AD52EECEFD5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{D37AA233-2FC9-4717-8344-2C25CB5FBACE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nipp.Core.Tests", "tests\Nipp.Core.Tests\Nipp.Core.Tests.csproj", "{4C71A0D6-CBF7-49B6-8EE1-C4F2C053A2DE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nipp.Architecture.Tests", "tests\Nipp.Architecture.Tests\Nipp.Architecture.Tests.csproj", "{69737D3C-6926-43EE-BB82-EB32C06E8355}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1B0A5E37-9C4D-4A8B-B2F1-7E6D3C9A0B54}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+		nuget.config = nuget.config
+		global.json = global.json
+		.editorconfig = .editorconfig
+		CLAUDE.md = CLAUDE.md
+		NIPP-BUILD.md = NIPP-BUILD.md
+		IMPLEMENTATION-PLAN.md = IMPLEMENTATION-PLAN.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{81AC12A8-E11A-4913-B9F3-D28195ED38C2}.Debug|x64.ActiveCfg = Debug|x64
+		{81AC12A8-E11A-4913-B9F3-D28195ED38C2}.Debug|x64.Build.0 = Debug|x64
+		{81AC12A8-E11A-4913-B9F3-D28195ED38C2}.Debug|x64.Deploy.0 = Debug|x64
+		{81AC12A8-E11A-4913-B9F3-D28195ED38C2}.Release|x64.ActiveCfg = Release|x64
+		{81AC12A8-E11A-4913-B9F3-D28195ED38C2}.Release|x64.Build.0 = Release|x64
+		{81AC12A8-E11A-4913-B9F3-D28195ED38C2}.Release|x64.Deploy.0 = Release|x64
+		{BCFB1D37-32BD-4F0D-9A76-8A605ED72675}.Debug|x64.ActiveCfg = Debug|x64
+		{BCFB1D37-32BD-4F0D-9A76-8A605ED72675}.Debug|x64.Build.0 = Debug|x64
+		{BCFB1D37-32BD-4F0D-9A76-8A605ED72675}.Release|x64.ActiveCfg = Release|x64
+		{BCFB1D37-32BD-4F0D-9A76-8A605ED72675}.Release|x64.Build.0 = Release|x64
+		{AA4874CE-2AD1-447A-8855-3AD52EECEFD5}.Debug|x64.ActiveCfg = Debug|x64
+		{AA4874CE-2AD1-447A-8855-3AD52EECEFD5}.Debug|x64.Build.0 = Debug|x64
+		{AA4874CE-2AD1-447A-8855-3AD52EECEFD5}.Release|x64.ActiveCfg = Release|x64
+		{AA4874CE-2AD1-447A-8855-3AD52EECEFD5}.Release|x64.Build.0 = Release|x64
+		{4C71A0D6-CBF7-49B6-8EE1-C4F2C053A2DE}.Debug|x64.ActiveCfg = Debug|x64
+		{4C71A0D6-CBF7-49B6-8EE1-C4F2C053A2DE}.Debug|x64.Build.0 = Debug|x64
+		{4C71A0D6-CBF7-49B6-8EE1-C4F2C053A2DE}.Release|x64.ActiveCfg = Release|x64
+		{4C71A0D6-CBF7-49B6-8EE1-C4F2C053A2DE}.Release|x64.Build.0 = Release|x64
+		{69737D3C-6926-43EE-BB82-EB32C06E8355}.Debug|x64.ActiveCfg = Debug|x64
+		{69737D3C-6926-43EE-BB82-EB32C06E8355}.Debug|x64.Build.0 = Debug|x64
+		{69737D3C-6926-43EE-BB82-EB32C06E8355}.Release|x64.ActiveCfg = Release|x64
+		{69737D3C-6926-43EE-BB82-EB32C06E8355}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{81AC12A8-E11A-4913-B9F3-D28195ED38C2} = {F8DCB848-77AE-4180-88D3-CAEC912CB32A}
+		{BCFB1D37-32BD-4F0D-9A76-8A605ED72675} = {F8DCB848-77AE-4180-88D3-CAEC912CB32A}
+		{AA4874CE-2AD1-447A-8855-3AD52EECEFD5} = {F8DCB848-77AE-4180-88D3-CAEC912CB32A}
+		{4C71A0D6-CBF7-49B6-8EE1-C4F2C053A2DE} = {D37AA233-2FC9-4717-8344-2C25CB5FBACE}
+		{69737D3C-6926-43EE-BB82-EB32C06E8355} = {D37AA233-2FC9-4717-8344-2C25CB5FBACE}
+	EndGlobalSection
+EndGlobal

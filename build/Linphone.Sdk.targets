@@ -1,0 +1,152 @@
+<Project>
+
+  <!--
+    Einbindung des Linphone SDK — eine Stelle für alle Projekte.
+
+    NIPP-BUILD.md Paragraph 14.2 verlangt einen Post-Build-Schritt statt
+    Handarbeit. Genau der steht hier, damit App und Spike nicht auseinander
+    laufen: eine Aenderung an der DLL-Liste wirkt sofort ueberall.
+
+    Beschaffung: Weg C (Prebuilt-ZIP) nach ADR-005, entpackt unter sdk/.
+    Das SDK liegt NICHT im Repo. Fehlt es, bricht der Build mit einer
+    Meldung ab, die sagt, was zu tun ist (Paragraph 15).
+
+    Was hier absichtlich NICHT passiert: eine PackageReference auf
+    LinphoneSDK.Windows. Der GitLab-Feed traegt keinen Build (ADR-005).
+  -->
+
+  <PropertyGroup>
+    <LinphoneSdkRoot Condition="'$(LinphoneSdkRoot)' == ''">$(MSBuildThisFileDirectory)..\sdk\extracted\linphone-sdk\win64</LinphoneSdkRoot>
+    <LinphoneWrapperPath>$(LinphoneSdkRoot)\share\linphonecs\LinphoneWrapper.cs</LinphoneWrapperPath>
+
+    <!--
+      Der Wrapper darf nur EINMAL kompiliert werden - sonst gibt es die Typen
+      Linphone.Core und Co. in zwei Assemblies und der Compiler streitet.
+      Er gehoert zu Nipp.Core (dort sitzt die Schichtgrenze aus Paragraph 6).
+
+      Die native Laufzeit dagegen muss in JEDES Ausgabeverzeichnis, aus dem ein
+      Prozess startet - also auch nach Nipp.App. Deshalb ist die Datei in zwei
+      Haelften teilbar: Nipp.App importiert sie mit
+      LinphoneIncludeWrapper=false und bekommt nur die Kopierlogik.
+    -->
+    <LinphoneIncludeWrapper Condition="'$(LinphoneIncludeWrapper)' == ''">true</LinphoneIncludeWrapper>
+  </PropertyGroup>
+
+  <Target Name="CheckLinphoneSdkPresent" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(LinphoneWrapperPath)')"
+           Text="Das Linphone SDK fehlt. Erwartet: $(LinphoneWrapperPath)%0A%0ASo beschaffen (siehe docs/sdk-setup.md):%0A  1. https://download.linphone.org/releases/windows/sdk/linphone-sdk-win64-5.5.18.zip nach sdk/ herunterladen%0A  2. nach sdk/extracted/ entpacken%0A%0ADas SDK liegt bewusst nicht im Repo (299 MB, gitignoriert)." />
+  </Target>
+
+  <!--
+    Der generierte C#-Wrapper. Paragraph 0 Regel 1: die Datei ist die einzige
+    Wahrheit ueber die API. Sie wird nicht kopiert, sondern verlinkt - so bleibt
+    sichtbar, dass sie fremder Code ist, und ein SDK-Wechsel wirkt sofort.
+  -->
+  <ItemGroup Condition="'$(LinphoneIncludeWrapper)' == 'true'">
+    <Compile Include="$(LinphoneWrapperPath)">
+      <Link>Sdk\LinphoneWrapper.cs</Link>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Haupt-DLLs flach neben die EXE. Ausgeschlossen:
+      - *tester*.dll: Testbibliotheken gehoeren nicht in ein Auslieferungspaket
+      - libmsopenh264.dll: Video ist laut Paragraph 2 ausgeschlossen
+    -->
+    <LinphoneNativeDll Include="$(LinphoneSdkRoot)\bin\*.dll"
+                       Exclude="$(LinphoneSdkRoot)\bin\*tester*.dll" />
+
+    <!--
+      Mediastreamer-Plugins behalten ihre relative Struktur - mediastreamer2
+      erwartet sie dort. Der Pfad wird zur Laufzeit ueber Factory.MspluginsDir
+      explizit gesetzt, statt auf die DLL-Suchpfade zu hoffen; das ist der
+      Hebel fuer den MSIX-Fall aus Paragraph 14.3.
+    -->
+    <LinphonePluginDll Include="$(LinphoneSdkRoot)\lib\mediastreamer\plugins\*.dll"
+                       Exclude="$(LinphoneSdkRoot)\lib\mediastreamer\plugins\libmsopenh264.dll" />
+
+    <!--
+      Nicht nur DLLs: belr laedt acht Grammatiken zur Laufzeit aus Dateien.
+      Fehlen sie, stirbt der Core-Start mit "bctbx-fatal: Unable to load
+      VCARD grammar" - eine Meldung, die nicht sagt, dass eine DATEI fehlt.
+      Paragraph 14.2 kennt diesen Fall nicht.
+    -->
+    <LinphoneGrammar Include="$(LinphoneSdkRoot)\share\belr\grammars\*.belr" />
+    <LinphoneSound Include="$(LinphoneSdkRoot)\share\sounds\**\*.*" />
+  </ItemGroup>
+
+  <Target Name="CopyLinphoneRuntime"
+          AfterTargets="Build"
+          Inputs="@(LinphoneNativeDll);@(LinphonePluginDll);@(LinphoneGrammar);@(LinphoneSound)"
+          Outputs="@(LinphoneNativeDll->'$(OutDir)%(Filename)%(Extension)');@(LinphonePluginDll->'$(OutDir)lib\mediastreamer\plugins\%(Filename)%(Extension)');@(LinphoneGrammar->'$(OutDir)share\belr\grammars\%(Filename)%(Extension)')">
+    <Copy SourceFiles="@(LinphoneNativeDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(LinphonePluginDll)" DestinationFolder="$(OutDir)lib\mediastreamer\plugins" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(LinphoneGrammar)" DestinationFolder="$(OutDir)share\belr\grammars" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(LinphoneSound)" DestinationFolder="$(OutDir)share\sounds\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Message Importance="normal"
+             Text="Linphone-Laufzeit: @(LinphoneNativeDll->Count()) DLLs, @(LinphonePluginDll->Count()) Plugins, @(LinphoneGrammar->Count()) Grammatiken, @(LinphoneSound->Count()) Klangdateien" />
+  </Target>
+
+  <!--
+    Fuer "dotnet publish": ein DRITTER Weg, und ohne ihn fehlt die ganze Kette.
+
+    Gemessen am 07.09.2026 beim ersten self-contained Publish (RELEASE-PLAN.md
+    R0): das Ausgabeverzeichnis enthielt 229 MB .NET- und WindowsAppSDK-
+    Laufzeit und KEINE einzige Linphone-DLL. Der Grund steht oben - das
+    Kopier-Target haengt an "Build" und schreibt nach $(OutDir); publish
+    sammelt aber seine eigene Dateiliste und kennt $(OutDir) nicht.
+
+    Aufgefallen waere es sonst erst auf dem Zielrechner, mit der Meldung aus
+    Paragraph 14.2, die nicht sagt, welche Datei fehlt. Genau deshalb prueft
+    build\Release-Nipp.ps1 das Ergebnis noch einmal nach - ein Target, das
+    lautlos nichts tut, sieht wie ein Erfolg aus.
+
+    ResolvedFileToPublish statt eines eigenen Copy-Schritts: damit gehen die
+    Dateien denselben Weg wie alles andere, landen bei "publish -o <pfad>" am
+    richtigen Ort und stehen im Manifest.
+  -->
+  <Target Name="AddLinphoneToPublish" BeforeTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Include="@(LinphoneNativeDll)">
+        <RelativePath>%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+      <ResolvedFileToPublish Include="@(LinphonePluginDll)">
+        <RelativePath>lib\mediastreamer\plugins\%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+      <ResolvedFileToPublish Include="@(LinphoneGrammar)">
+        <RelativePath>share\belr\grammars\%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+      <ResolvedFileToPublish Include="@(LinphoneSound)">
+        <RelativePath>share\sounds\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Fuer das MSIX: dieselben Dateien muessen ins Paket, nicht nur ins
+    Ausgabeverzeichnis. Ohne diesen Block laedt die packaged App die Kette
+    nicht - der klassische Bruch aus Paragraph 14.3.
+  -->
+  <Target Name="AddLinphoneToPackage" BeforeTargets="_ComputeAppxPackagePayload" Condition="'$(EnableMsixTooling)' == 'true'">
+    <ItemGroup>
+      <AppxPackagePayload Include="@(LinphoneNativeDll)">
+        <TargetPath>%(Filename)%(Extension)</TargetPath>
+      </AppxPackagePayload>
+      <AppxPackagePayload Include="@(LinphonePluginDll)">
+        <TargetPath>lib\mediastreamer\plugins\%(Filename)%(Extension)</TargetPath>
+      </AppxPackagePayload>
+      <AppxPackagePayload Include="@(LinphoneGrammar)">
+        <TargetPath>share\belr\grammars\%(Filename)%(Extension)</TargetPath>
+      </AppxPackagePayload>
+      <AppxPackagePayload Include="@(LinphoneSound)">
+        <TargetPath>share\sounds\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+      </AppxPackagePayload>
+    </ItemGroup>
+  </Target>
+
+</Project>

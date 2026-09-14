@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="Nipp.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="nipp"
+    mc:Ignorable="d">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <!--
+        §20.1: schmales Fenster im Smartphone-Format. Kein NavigationView mehr —
+        die Umschaltleiste sitzt unten in der ShellPage.
+    -->
+    <Grid x:Name="RootGrid">
+        <Grid.RowDefinitions>
+            <!--
+                32 ist die Standardhöhe einer WinUI-Titelleiste; 36 war
+                Verschwendung. Als Zahl und nicht als Token: RowDefinition.Height
+                ist eine GridLength, und ein x:Double lässt sich nicht darauf
+                zuweisen — das scheitert erst zur Laufzeit beim Laden des
+                Fensters.
+            -->
+            <RowDefinition Height="32" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TitleBar
+            x:Name="AppTitleBar"
+            Title="nipp"
+            IsBackButtonVisible="False"
+            IsPaneToggleButtonVisible="False">
+            <!--
+                Das Symbol wird im Code gesetzt, nicht hier: es folgt dem
+                Erscheinungsbild (§20.4). Die helle Fassung auf dunklem Mica
+                sah aus wie ein aufgeklebter Zettel.
+            -->
+        </TitleBar>
+
+        <Frame x:Name="ContentFrame" Grid.Row="1" />
+    </Grid>
+</Window>

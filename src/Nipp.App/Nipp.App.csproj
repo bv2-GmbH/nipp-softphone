@@ -1,0 +1,191 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    WinUI-3-Oberflaeche. TargetFramework, Nullable, Platform und die
+    Analyse-Einstellungen kommen aus Directory.Build.props im Repo-Root.
+
+    Windows App SDK 2.4.0 statt der in Paragraph 4 genannten 1.x-Linie:
+    siehe ADR-003 (1.x faellt am 09.09.2026 aus dem Support, das
+    Windows-10-Minimum ist in beiden Linien identisch).
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Nipp.App</RootNamespace>
+    <AssemblyName>Nipp.App</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!--
+      Das Anwendungssymbol als Win32-Ressource in der EXE.
+
+      Ohne diese Zeile hat die EXE kein Icon, und dann nimmt Windows ueberall
+      sein Standardsymbol: in der Taskleiste, bei einer angepinnten
+      Verknuepfung, im Task-Manager, in Alt+Tab und in der Liste der
+      installierten Programme. Aufgefallen ist es beim Anpinnen — dort faellt
+      es zuerst auf, weil man das Symbol dann dauerhaft vor sich hat.
+
+      <b>Nicht zu verwechseln mit drei anderen Symbolen</b>, die nipp schon
+      hatte und die alle anderswo herkommen:
+        - das im Infobereich: Tray.ico, ueber TrayIconHost
+          zur Laufzeit geladen (ADR-014, Befund 1 vom 06.09.)
+        - das in der Titelleiste: ein PNG ueber ms-appx, in ApplyTitleBarIcon
+        - das im Startmenue der packaged Fassung: die Square*Logo.png aus dem
+          Paketmanifest
+
+      Nur dieses hier gilt fuer die EXE selbst und damit fuer die unpackaged
+      Fassung, die im Alltag laeuft (ADR-008).
+    -->
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <EnableMsixTooling>true</EnableMsixTooling>
+
+    <!--
+      Fallstrick Paragraph 14.4: das Standardtemplate leitet den
+      RuntimeIdentifier aus der Prozessarchitektur der BAUMASCHINE ab
+      (RuntimeInformation.ProcessArchitecture). Auf der ARM64-Maschine
+      (ADR-001) waere das win-arm64 - und die x64-DLL-Kette des SDK laedt
+      dann nicht. Deshalb hier fest verdrahtet und NICHT aus dem Template
+      uebernommen. Platforms und RuntimeIdentifier stehen in
+      Directory.Build.props; hier nur die Absicherung dagegen, dass ein
+      leerer Wert wieder auf die Prozessarchitektur zurueckfaellt.
+    -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <!--
+      Der Fenstertitel und alles, was der Benutzer sieht, schreibt sich klein:
+      "nipp" (Paragraph 15). Nur Namespace und Assembly sind PascalCase.
+    -->
+    <ApplicationTitle>nipp</ApplicationTitle>
+
+    <!--
+      ADR-038: der Velopack-Hook muss als ERSTES im Prozess laufen, vor jeder
+      WinUI-Initialisierung. Deshalb ein eigener Einstiegspunkt (Program.cs)
+      statt der Main, die der XAML-Compiler erzeugt.
+
+      Die generierte Datei verschwindet dadurch nicht - sie behaelt ihre
+      Startlogik unter dem Namen XamlGeneratedProgram.XamlGeneratedMain() und
+      wird von Program.cs aufgerufen. So bleibt die Reihenfolge aus
+      ComWrappers, Application.Start und SynchronizationContext genau die des
+      Werkzeugs; nachgebaut waere sie eine zweite Wahrheit, die beim naechsten
+      SDK-Update auseinanderlaeuft.
+    -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.6.1" />
+
+    <!-- Paragraph 4 und 10: Infobereich-Symbol; WinUI 3 hat keines -->
+    <PackageReference Include="H.NotifyIcon.WinUI" Version="2.2.0" />
+
+    <!--
+      ADR-038: Installer und Updates. Hier nur fuer den Hook in Program.cs -
+      der Update-Dienst selbst liegt in Nipp.Core (Services\Updates), weil
+      Nipp.App kein Testprojekt hat.
+    -->
+    <PackageReference Include="Velopack" Version="1.2.0" />
+
+    <!-- Paragraph 4: DI-Container und Logging der App -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Serilog" Version="4.2.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nipp.Core\Nipp.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    Die native Linphone-Laufzeit muss auch hier ins Ausgabeverzeichnis: aus
+    diesem Projekt startet der Prozess, und der Windows-Ladepfad geht vom
+    Verzeichnis der EXE aus - nicht vom Ausgabeverzeichnis der
+    Klassenbibliothek. Ohne diesen Import startet die App, findet aber
+    liblinphone.dll nicht (in AP2.4 genau so erlebt).
+
+    LinphoneIncludeWrapper=false: den C#-Wrapper kompiliert nur Nipp.Core,
+    sonst gaebe es Linphone.Core in zwei Assemblies.
+  -->
+  <PropertyGroup>
+    <LinphoneIncludeWrapper>false</LinphoneIncludeWrapper>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)..\..\build\Linphone.Sdk.targets" />
+
+  <!--
+    <b>Alle Symbole, und zwar auch ins Ausgabeverzeichnis.</b>
+
+    Vorher standen hier neun einzelne Content-Zeilen ohne
+    CopyToOutputDirectory. Das genuegt fuer ein MSIX-Paket, aber nicht fuer
+    diese Entwicklungsmaschine, und der Unterschied hat die Symbole gekostet:
+
+      - Ein <b>packaged</b> Build legte die Dateien ins Paketlayout und liess
+        bin\...\win-x64\Assets\ <b>leer</b>. Genau dieses Verzeichnis ist
+        aber die Paketwurzel bei "Add-AppxPackage -Register" (docs/packaging.md)
+        — und damit fehlten dem laufenden nipp das Symbol im Infobereich, das
+        in der Titelleiste und die Logos des Startmenues gleichzeitig.
+      - Ein <b>unpackaged</b> Build (-p:WindowsPackageType=None) fuellte
+        Assets\, entfernte dafuer aber das AppxManifest.xml — danach liess
+        sich das Paket nicht mehr starten.
+
+    Beides zusammen heisst: wer die Loesung baut, nimmt dem gerade laufenden
+    Weg die Symbole weg. Aufgefallen ist es, als sie nach einem
+    "build Nipp.sln" verschwanden; vorher lagen sie nur deshalb dort, weil ein
+    frueherer unpackaged Build sie hinterlassen hatte und niemand aufraeumte.
+
+    Deshalb ein Sammeleintrag statt einer Liste — er nimmt auch die Symbole
+    mit, die vorher gar nicht darin standen: Tray.ico, nipp.png der
+    Titelleiste und die drei Logos ohne scale-Suffix.
+    Eine Liste, die beim naechsten Symbol wieder vergessen wird, ist keine
+    Loesung.
+
+    AppIcon.ico ist zusaetzlich ApplicationIcon (siehe oben) — das ist ein
+    anderer Mechanismus, der das Symbol in die EXE einbettet, und er ersetzt
+    diesen Eintrag nicht.
+  -->
+  <!--
+    Die Klaenge (Assets\Sounds\*.wav) gehen denselben Weg wie die Symbole, und
+    zwar aus demselben Grund: sie muessen sowohl im Paketlayout als auch im
+    Ausgabeverzeichnis liegen, weil packaged und unpackaged sich dort
+    gegenseitig abraeumen. Ein Content-Eintrag deckt beides ab — anders als
+    beim SDK, dessen Klaenge von aussen kommen und deshalb in
+    build\Linphone.Sdk.targets einen eigenen AppxPackagePayload-Eintrag
+    brauchen.
+
+    Erzeugt werden sie von tools\Build-Sounds.py, nicht von Hand.
+  -->
+  <ItemGroup>
+    <Content Include="Assets\**\*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\**\*.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\**\*.wav" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <!-- Erlaubt die MSIX-Werkzeuge, bevor das Windows-App-SDK-Paket wiederhergestellt ist -->
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)' != 'true' and '$(EnableMsixTooling)' == 'true'">
+    <ProjectCapability Include="Msix" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)' != 'true' and '$(EnableMsixTooling)' == 'true'">
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+
+  <!--
+    Publish-Eigenschaften. PublishTrimmed bleibt AUS, auch im Release:
+    Trimming und Reflection ueber den generierten SDK-Wrapper sind eine
+    bekannte Bruchstelle, und Paragraph 2 nennt keine Groessenanforderung,
+    die das Risiko rechtfertigen wuerde. Wenn das spaeter anders bewertet
+    wird, gehoert es in eine ADR.
+  -->
+  <PropertyGroup>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">true</PublishReadyToRun>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+</Project>

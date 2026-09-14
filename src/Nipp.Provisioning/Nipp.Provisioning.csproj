@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Kommandozeilen-Generator fuer Provisionierungsprofile (Paragraph 17,
+    AP8.5). Ein Profil je Kunde, keine Web-UI - so steht es in der
+    Spezifikation, und mehr braucht es auch nicht.
+
+    Verweist auf Nipp.Core, damit Generator und App dasselbe Schema
+    verwenden: was hier geschrieben wird, liest ProvisioningParser dort. Zwei
+    getrennte Vorstellungen vom Format waeren die sichere Quelle fuer
+    Profile, die sich nur auf einer Seite lesen lassen.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Nipp.Provisioning</RootNamespace>
+    <AssemblyName>nippprov</AssemblyName>
+
+    <!--
+      Kein Fenster, keine WinUI-Abhaengigkeit: das hier laeuft in einer
+      Administrator-Konsole, oft ueber eine Remotesitzung.
+    -->
+    <UseWinUI>false</UseWinUI>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nipp.Core\Nipp.Core.csproj" />
+  </ItemGroup>
+
+</Project>

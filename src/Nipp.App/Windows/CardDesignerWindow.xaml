@@ -1,0 +1,538 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="Nipp.App.Windows.CardDesignerWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cards="using:Nipp.App.Controls.Cards"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Nipp.Core.ViewModels"
+    mc:Ignorable="d">
+
+    <!--
+        Der Karten-Designer (K4, I9, ADR-032).
+
+        Ein eigenes Fenster, weil 400 Pixel keine Palette tragen. Die Karte
+        selbst bleibt trotzdem 400 Pixel breit; die Vorschau rechts ist deshalb
+        genau so breit und zeigt, was im Gespraech dasteht.
+
+        Dieses Fenster ist DUMM. Aller Zustand liegt in
+        CardDesignerViewModel im Kern: Nipp.App hat kein Testprojekt, und ein
+        Editor hat mehr Zustand als alles andere in nipp.
+    -->
+    <Grid x:Name="RootGrid" RowSpacing="0">
+
+        <!--
+            Strg+Z und Strg+Y standen seit K4 in den Kurzhinweisen der beiden
+            Knoepfe und gab es nicht. Ein versprochenes Tastenkuerzel, das
+            nichts tut, ist schlechter als keines.
+        -->
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator
+                Key="Z"
+                Invoked="OnUndoAccelerator"
+                Modifiers="Control" />
+            <KeyboardAccelerator
+                Key="Y"
+                Invoked="OnRedoAccelerator"
+                Modifiers="Control" />
+        </Grid.KeyboardAccelerators>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Kopf: Titel, Hinweis zur Art, Rueckgaengig -->
+        <Grid Padding="16,12,16,12" ColumnSpacing="{StaticResource NippGapSection}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Spacing="{StaticResource NippGapSmall}">
+                <TextBlock
+                    x:Name="TitleText"
+                    Style="{StaticResource SubtitleTextBlockStyle}" />
+                <TextBlock
+                    x:Name="KindNoteText"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel
+                Grid.Column="1"
+                VerticalAlignment="Top"
+                Orientation="Horizontal"
+                Spacing="{StaticResource NippGapSmall}">
+                <Button
+                    x:Name="UndoButton"
+                    AutomationProperties.Name="Rückgängig"
+                    Click="OnUndoClick"
+                    ToolTipService.ToolTip="Rückgängig (Strg+Z)">
+                    <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE7A7;" />
+                </Button>
+                <Button
+                    x:Name="RedoButton"
+                    AutomationProperties.Name="Wiederholen"
+                    Click="OnRedoClick"
+                    ToolTipService.ToolTip="Wiederholen (Strg+Y)">
+                    <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE7A6;" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Palette links, Karte in der Mitte, Eigenschaften rechts -->
+        <Grid Grid.Row="1" Padding="16,0,16,0" ColumnSpacing="{StaticResource NippGapSection}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+
+            <!--
+                Palette. Vier Zeilen und nicht drei: der Knopf „Ausgewähltes
+                Feld einfügen" stand mit VerticalAlignment="Bottom" in
+                derselben Zelle wie die Liste und verdeckte deren unterste
+                Einträge.
+            -->
+            <Grid RowSpacing="{StaticResource NippGapLarge}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                    Text="Felder" />
+
+                <!--
+                    Gruppiert ueber CollectionViewSource: die Palette hat
+                    vierzig Eintraege in fuenf Gruppen, und eine flache Liste
+                    davon ist in 240 Pixeln nicht zu ueberblicken. Die Quelle
+                    wird im Code-behind gesetzt (IsSourceGrouped), weil
+                    CollectionViewSource sich mit x:Bind nicht sinnvoll
+                    verdrahten laesst.
+                -->
+                <ListView
+                    x:Name="PaletteList"
+                    Grid.Row="1"
+                    DoubleTapped="OnPaletteDoubleTapped"
+                    SelectionMode="Single">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PaletteEntry">
+                            <StackPanel
+                                Padding="0,3,0,3"
+                                AutomationProperties.Name="{x:Bind AutomationName}"
+                                Spacing="0">
+                                <TextBlock
+                                    Text="{x:Bind Label}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind Detail}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+
+                    <ListView.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate x:DataType="vm:PaletteGroup">
+                                    <TextBlock
+                                        Margin="0,8,0,2"
+                                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                                        Text="{x:Bind Name}" />
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListView.GroupStyle>
+                </ListView>
+
+                <Button
+                    Grid.Row="2"
+                    HorizontalAlignment="Stretch"
+                    Click="OnAddSelectedFieldClick"
+                    Content="Ausgewähltes Feld einfügen" />
+
+                <StackPanel Grid.Row="3" Spacing="{StaticResource NippGapSmall}">
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="Weitere Bausteine" />
+
+                    <!--
+                        2×2 und keine Reihe: die Spalte ist 240 Pixel breit, die
+                        vier Knöpfe brauchen nebeneinander rund 300, und ein
+                        StackPanel bricht nicht um. Abgeschnitten wurden
+                        ausgerechnet „Linie" und „Abstand" — daraus wurde die
+                        Meldung, die beiden gingen nicht.
+                    -->
+                    <Grid ColumnSpacing="{StaticResource NippGapSmall}" RowSpacing="{StaticResource NippGapSmall}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Button
+                            HorizontalAlignment="Stretch"
+                            Click="OnAddTextClick"
+                            Content="Text" />
+                        <Button
+                            Grid.Column="1"
+                            HorizontalAlignment="Stretch"
+                            Click="OnAddBadgeClick"
+                            Content="Abzeichen" />
+                        <Button
+                            Grid.Row="1"
+                            HorizontalAlignment="Stretch"
+                            Click="OnAddDividerClick"
+                            Content="Linie" />
+                        <Button
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            HorizontalAlignment="Stretch"
+                            Click="OnAddSpacerClick"
+                            Content="Abstand"
+                            ToolTipService.ToolTip="Luft zwischen zwei Bereichen — die Grösse steht rechts" />
+                    </Grid>
+
+                    <Button
+                        HorizontalAlignment="Stretch"
+                        Click="OnAddRowClick"
+                        Content="Neue Zeile" />
+
+                    <!--
+                        Uebernehmen von einer anderen Karte (ADR-036). Kennung,
+                        Name und Art bleiben — sonst staenden zwei Karten mit
+                        derselben Kennung in der Datei, und der Benutzer bekaeme
+                        einen Befund fuer etwas, das er nicht getan hat.
+                    -->
+                    <DropDownButton
+                        x:Name="CopyFromButton"
+                        HorizontalAlignment="Stretch"
+                        Content="Von anderer Karte übernehmen …">
+                        <DropDownButton.Flyout>
+                            <MenuFlyout x:Name="CopyFromFlyout" />
+                        </DropDownButton.Flyout>
+                    </DropDownButton>
+                </StackPanel>
+            </Grid>
+
+            <!-- Die Karte: Baum links, Vorschau rechts daneben -->
+            <Grid Grid.Column="1" RowSpacing="{StaticResource NippGapLarge}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                    Text="Aufbau" />
+
+                <!--
+                    MinHeight, weil die Vorschau darunter in einer Auto-Zeile
+                    steht: bei einer langen Karte frisst sie sonst die ganze
+                    Hoehe, und der Aufbau — der Bereich, in dem gearbeitet wird
+                    — schrumpft gegen null.
+                -->
+                <ScrollViewer
+                    Grid.Row="1"
+                    MinHeight="160"
+                    Tapped="OnStructureTapped"
+                    KeyDown="OnStructureKeyDown"
+                    IsTabStop="True">
+                    <StackPanel x:Name="StructurePanel" Spacing="{StaticResource NippGapLarge}" />
+                </ScrollViewer>
+
+                <!--
+                    Die Vorschau rechnet mit einer Nummer. Sie stand fest auf
+                    der Beispielnummer; hier laesst sich eine eigene eintragen
+                    und dazu ein echter Abruf ausloesen — derselbe Weg wie der
+                    Testabruf in den Einstellungen, also mit derselben
+                    Herkunftsanzeige darunter.
+                -->
+                <Grid Grid.Row="2" ColumnSpacing="{StaticResource NippGapLarge}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        Text="Vorschau" />
+
+                    <TextBox
+                        x:Name="PreviewNumberBox"
+                        Grid.Column="1"
+                        AutomationProperties.Name="Rufnummer für die Vorschau"
+                        PlaceholderText="Rufnummer"
+                        TextChanged="OnPreviewNumberChanged" />
+
+                    <Button
+                        x:Name="LookupButton"
+                        Grid.Column="2"
+                        Click="OnRunLookupClick"
+                        Content="Abrufen"
+                        ToolTipService.ToolTip="Fragt die eingeschalteten Quellen zu dieser Nummer — wie der Testabruf in den Einstellungen" />
+
+                    <ProgressRing
+                        x:Name="LookupRing"
+                        Grid.Column="3"
+                        Width="20"
+                        Height="20"
+                        VerticalAlignment="Center"
+                        IsActive="False"
+                        Visibility="Collapsed" />
+
+                    <TextBlock
+                        x:Name="LookupResultText"
+                        Grid.Column="4"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        TextTrimming="CharacterEllipsis" />
+                </Grid>
+
+                <!--
+                    400 logische Pixel, genau die Breite des Fensters aus
+                    §20.1: eine Vorschau in anderer Breite waere keine. Der
+                    ScrollViewer darum deckelt, was eine lange Karte sonst dem
+                    Aufbau-Bereich wegnimmt.
+                -->
+                <ScrollViewer Grid.Row="3" MaxHeight="320" HorizontalAlignment="Left">
+                    <Border
+                        Width="400"
+                        Padding="12"
+                        HorizontalAlignment="Left"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{ThemeResource OverlayCornerRadius}">
+                        <StackPanel Spacing="{StaticResource NippGapMedium}">
+                            <cards:CardView x:Name="PreviewView" />
+
+                            <TextBlock
+                                x:Name="PreviewSourceText"
+                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- Eigenschaften des ausgewaehlten Bausteins -->
+            <ScrollViewer Grid.Column="2">
+                <StackPanel Spacing="{StaticResource NippGapLarge}">
+                    <TextBlock
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        Text="Eigenschaften" />
+
+                    <TextBlock
+                        x:Name="NoSelectionText"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="Nichts ausgewählt. Links ein Feld doppelt anklicken oder unten mit dem Knopf einfügen."
+                        TextWrapping="Wrap" />
+
+                    <StackPanel x:Name="PropertiesPanel" Spacing="{StaticResource NippGapLarge}" Visibility="Collapsed">
+                        <TextBox x:Name="LabelBox" Header="Beschriftung" TextChanged="OnLabelChanged" />
+
+                        <ComboBox
+                            x:Name="ValueModeBox"
+                            HorizontalAlignment="Stretch"
+                            Header="Wert"
+                            SelectionChanged="OnValueModeChanged" />
+
+                        <ComboBox
+                            x:Name="ValueFieldBox"
+                            HorizontalAlignment="Stretch"
+                            Header="Feld"
+                            SelectionChanged="OnValueFieldChanged" />
+
+                        <TextBox
+                            x:Name="ValueTextBox"
+                            AcceptsReturn="False"
+                            Header="Ausdruck"
+                            TextChanged="OnValueTextChanged" />
+
+                        <ComboBox
+                            x:Name="StyleBox"
+                            HorizontalAlignment="Stretch"
+                            Header="Darstellung"
+                            SelectionChanged="OnStyleChanged" />
+
+                        <ComboBox
+                            x:Name="VisibilityBox"
+                            HorizontalAlignment="Stretch"
+                            Header="Sichtbar"
+                            SelectionChanged="OnVisibilityChanged" />
+
+                        <TextBox
+                            x:Name="VisibleWhenBox"
+                            Header="Bedingung"
+                            TextChanged="OnVisibleWhenChanged" />
+
+                        <CheckBox
+                            x:Name="EmptyDashBox"
+                            Checked="OnEmptyTextChanged"
+                            Content="Bei leerem Wert einen Gedankenstrich zeigen"
+                            Unchecked="OnEmptyTextChanged" />
+
+                        <!--
+                            Abgeschaltet steht nur der Wert da, ohne Einzug —
+                            „Hans Muster" statt „Name: Hans Muster". Die
+                            Beschriftung bleibt trotzdem gefuellt: eine
+                            Sprachausgabe nennt sie weiter (§8.4).
+                        -->
+                        <CheckBox
+                            x:Name="ShowLabelBox"
+                            Checked="OnShowLabelChanged"
+                            Content="Beschriftung zeigen"
+                            Unchecked="OnShowLabelChanged" />
+
+                        <ComboBox
+                            x:Name="SpacerSizeBox"
+                            HorizontalAlignment="Stretch"
+                            Header="Grösse des Abstands"
+                            SelectionChanged="OnSpacerSizeChanged" />
+
+                        <TextBox x:Name="UrlBox" Header="Adresse" TextChanged="OnUrlChanged" />
+
+                        <TextBox
+                            x:Name="SourceIdBox"
+                            Header="Quelle"
+                            TextChanged="OnSourceIdChanged" />
+
+                    <!--
+                        Auch hier ein Raster statt einer Reihe: „Nebeneinander"
+                        ist breit, die Spalte ist 300 Pixel schmal — und
+                        hinausgedrueckt wuerde ausgerechnet „Entfernen".
+                    -->
+                    <Grid ColumnSpacing="{StaticResource NippGapSmall}" RowSpacing="{StaticResource NippGapSmall}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Button
+                                AutomationProperties.Name="Nach oben"
+                                Click="OnMoveUpClick"
+                                ToolTipService.ToolTip="Nach oben">
+                                <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE74A;" />
+                            </Button>
+                            <Button
+                                Grid.Column="1"
+                                AutomationProperties.Name="Nach unten"
+                                Click="OnMoveDownClick"
+                                ToolTipService.ToolTip="Nach unten">
+                                <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE74B;" />
+                            </Button>
+                            <Button
+                                Grid.Column="2"
+                                HorizontalAlignment="Stretch"
+                                Click="OnTogglePairedClick"
+                                Content="Nebeneinander" />
+
+                            <!--
+                                Mit Text und nicht nur als Symbol: das Loeschen
+                                war nie kaputt, es war nicht zu finden.
+                            -->
+                            <Button
+                                Grid.Row="1"
+                                Grid.ColumnSpan="3"
+                                HorizontalAlignment="Stretch"
+                                Click="OnRemoveClick"
+                                ToolTipService.ToolTip="Entfernen (Entf)">
+                                <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                                    <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE74D;" />
+                                    <TextBlock Text="Entfernen" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Fuss: Befunde und die drei Knoepfe -->
+        <StackPanel Grid.Row="2" Padding="16,8,16,12" Spacing="{StaticResource NippGapLarge}">
+            <InfoBar
+                x:Name="ProblemBar"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Error"
+                Title="Das lässt sich so nicht speichern" />
+
+            <Grid ColumnSpacing="{StaticResource NippGapLarge}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button
+                    x:Name="ResetButton"
+                    Click="OnResetClick"
+                    Content="Auf mitgelieferte Karte zurücksetzen" />
+
+                <!--
+                    Welche Speicherregel hier gilt (C12).
+
+                    <b>Der Designer ist die Ausnahme im Programm.</b> Auf der
+                    Einstellungsseite wirkt seit ADR-045 jede Aenderung sofort;
+                    hier gibt es Speichern und Verwerfen, weil ein Editor mit
+                    Rueckgaengig, Vorschau und zwanzig Bausteinen keine
+                    Einstellungsseite ist. Der Unterschied darf dann aber nicht
+                    vorausgesetzt werden — wer gelernt hat, dass Aenderungen
+                    sofort wirken, schliesst das Fenster, wenn er fertig ist.
+                -->
+                <TextBlock
+                    x:Name="UnsavedText"
+                    Grid.Column="1"
+                    Margin="12,0,12,0"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Text="Noch nicht gespeichert."
+                    TextTrimming="CharacterEllipsis"
+                    Visibility="Collapsed" />
+
+                <Button
+                    Grid.Column="2"
+                    Click="OnDiscardClick"
+                    Content="Verwerfen" />
+
+                <Button
+                    x:Name="SaveButton"
+                    Grid.Column="3"
+                    Click="OnSaveClick"
+                    Content="Speichern"
+                    Style="{StaticResource AccentButtonStyle}" />
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Window>

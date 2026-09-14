@@ -1,0 +1,690 @@
+﻿# Stand und Vorgeschichte
+
+Was zuletzt gebaut wurde, was am Gerät noch aussteht, und die Chronologie
+dahinter. **Von unten nach oben lesen, wenn man den Faden sucht.**
+
+Dieser Abschnitt stand bis zum 13.09.2026 in `CLAUDE.md` und ist von dort
+herausgelöst worden (W2.7): eine Datei mit den Regeln wächst nicht mit
+jedem Arbeitstag, eine mit dem Stand schon.
+
+Was am Gerät zu prüfen ist, steht vollständig in `docs/test-matrix.md`;
+die Tabelle hier fasst nur die Gruppen zusammen.
+
+---
+
+
+**Stand 14.09.2026, nachmittags.** Build ohne Warnungen, **1237
+Komponententests** und **34 Architekturtests** grün.
+
+**Zuletzt behoben: nipp stürzte im Gespräch ab** (**ADR-067**). Gemeldet als
+«während dem Call abgeschmiert», sieben Mal reproduziert — und der Auslöser war
+am Ende das **blosse Überfahren des Auflegen-Knopfes** mit der Maus.
+
+- **Der Fehler hinterliess nichts:** keine verwaltete Ausnahme, kein
+  `crash.txt`, keine Protokollzeile. Im Ereignisprotokoll stand `0xc000027b` in
+  `combase.dll` — eine WinRT-«stowed exception», genau die Sorte, für die
+  ADR-053 die drei Wälle aufgestellt hat. Sie greifen nicht, weil nie eine
+  verwaltete Ausnahme entsteht.
+- **Die Ursache war das Lightweight-Styling am Knopf**: sechs überschriebene
+  Zustands-Schlüssel in `Button.Resources`, eingeführt am 13.09.2026 mit
+  Befund D14, damit das Rot unter der Maus nicht verschwindet. Aufgelöst
+  werden sie genau beim Überfahren. **Alle drei Formen stürzten ab** — flach,
+  als Verweis und in `ThemeDictionaries`.
+- **Ausgeschlossen wurde der Reihe nach:** die Ziehvorschau vom selben Tag
+  (derselbe Absturz auf dem Stand davor), eine verwaltete Ausnahme
+  (`FirstChanceException` über alle Threads: kein Eintrag), die
+  Qualitätsanzeige im Sekundentakt (Sonde je Teilschritt: Runde vollständig
+  durchgelaufen), die Pinselform und der ToolTip.
+- **Die rote Rückmeldung ist erhalten**, nur anders gebaut: der Knopf ist
+  durchsichtig, die Farbe trägt ein Rahmen darin, die Abstufung macht dessen
+  Deckkraft.
+- **Zwei Lehren, die teurer waren als der Fix:** «funktioniert nicht» und
+  «funktioniert meistens» sehen am Fenster gleich aus — die erste Quote in
+  diesem Befund («jeder dritte Zug») stammte aus zwei Stichproben von sieben
+  und sechs und war zu hoch gegriffen. Und: *das einzige Ende mitten im
+  Gespräch in zwei Tagen* war wertlos als Aussage, weil es **auch das einzige
+  Gespräch** dieser beiden Tage war.
+
+**Ebenfalls am 14.09.2026: nipp beendete fremde Teams-Meetings — behoben
+(ADR-068).** Nicht der Ring war es, sondern der **Abschlussbericht beim
+Ablehnen**; die erste Diagnose hier behauptete den Ring und war falsch.
+
+- **Der gebaute Schutz versagte dreifach:** er prüfte die Fremdbelegung nur
+  beim Klingeln, `HookWatch.Fremdbelegung` erkennt ein Meeting gar nicht (das
+  Jabra meldet darin durchgehend «aufgelegt»), und `calls.Count > 0` machte
+  die Prüfung beim Klingeln ohnehin immer falsch.
+- **Vier Messungen vor dem ersten Codezeichen.** Die teuerste Antwort: ohne
+  Abschlussbericht **klingelt das Gerät weiter**, auch wenn der Anrufer
+  auflegt — der einfache Weg war damit tot. Die Audio-Sitzung dagegen zeigt
+  ein Meeting eindeutig, in Wiedergabe **und** Aufnahme, und kostet 3,2 bis
+  10,8 ms.
+- **Gebaut:** `AudioSessionWatch` über Core Audio (im Zweifel «frei», damit
+  ein Fehler an der Audio-Schnittstelle kein Headset ohne Lampen bedeutet),
+  das Gate prüft jetzt **jeden** Bericht, und das eigene Gespräch schlägt die
+  Fremdbelegung — wer annimmt, hat entschieden. Verschwiegene Berichte werden
+  auch nicht zurückgenommen; daran hängt `jeGemeldet`.
+- **Am Gerät geprüft:** T298, T299, T301. **Offen:** T300 — gefragt werden die
+  Standardgeräte, nicht das Headset. Solange beides dasselbe ist, stimmt es;
+  das ist eine Annahme und keine Messung. Und der Notausgang (eine Einstellung
+  «Signale ans Headset senden») ist noch nicht gebaut.
+
+---
+
+**Stand 14.09.2026.** Build ohne Warnungen, **1237 Komponententests** und
+**34 Architekturtests** grün. Zweig `review-umsetzung`.
+
+**Zuletzt gebaut: die Ziehvorschau** (`docs/plans/ZIEHVORSCHAU-PLAN.md`,
+**ADR-066**). Gewünscht war, beim Ziehen zu sehen, wo die Zeile landet — die
+anderen sollen ausweichen. Gemeldet war ausserdem, ein Gruppenwechsel sei nicht
+möglich.
+
+- **Der Gruppenwechsel war nicht kaputt.** 16 Züge, 15 mit Ergebnis, 14
+  Schreibvorgänge — ADR-065 trägt. Aber einer ging **stumm** verloren, und ein
+  Fehlschlag, der schweigt, macht aus «geht meistens» in der Wahrnehmung «geht
+  nicht». **Die erste Quote, die hier stand, war zu hoch gegriffen** («jeder
+  dritte Zug») — sie stammte aus zwei Stichproben von sieben und sechs Zügen,
+  in denen gewollte Abbrüche mitzählten.
+- **Die Sonde nannte den Grund:** *letztes Ziel Zeile, vor 703 ms*. Beim
+  Loslassen stand kein Ablegeziel unter dem Zeiger — zwischen den Zeilen lag
+  totes Gebiet. **Das Ablegeziel ist seit ADR-066 die Liste**, die die Stelle
+  aus der Zeigerposition rechnet. Damit erledigt sich auch der zweite Befund:
+  vier von fünf Drops kamen auf der *gezogenen* Zeile an, weil sie nach dem
+  ersten Vorschauschritt unter dem Zeiger liegt.
+- **Die Vorschau ist der Auftrag**, kein Bild davon: beim Loslassen wird nicht
+  mehr gerechnet, sondern geschrieben, was dasteht. Der Zustand liegt im Kern
+  (`TeamDragPreview`, 14 Tests) — der teuerste Fall ist der Abbruch, und der
+  muss die Ordnung **exakt** zurückstellen.
+- **Gegen das Zittern braucht ein Vorschauschritt eine Zeigerbewegung.** An der
+  Gruppengrenze sprang die Vorschau hin und her, in vier von sieben Zügen, 25
+  bis 50 ms zwischen Hin und Zurück — nicht wegen des Zeigers, der steht still,
+  sondern weil das Layout unter ihm wandert. Die Schwelle (6 Pixel) ist
+  **gewählt und nicht gemessen**: T293.
+- **Eine Regel, die es nur im Kommentar gab, gibt es jetzt:** im Sortiermodus
+  bleibt der Detailbereich zu. Der Kommentar an `IsTeamReorderMode` führte sie
+  seit ADR-042 als eine von dreien auf; geschlossen wurde er aber nur beim
+  Einschalten, ein Klick öffnete ihn wieder. **Zum vierten Mal ein Satz, den
+  niemand geprüft hatte.**
+- **Am Gerät geprüft (14.09.2026):** T292 bis T297 bestanden — schmal und
+  breit, Gruppenkopf, Abbruch mit Escape, dunkles Erscheinungsbild, und der
+  Auflegen-Knopf mehrfach überfahren. **Die Schwelle von 6 Pixeln gegen das
+  Zittern ist damit bewährt, nicht gemessen** (T293).
+
+---
+
+**Stand 13.09.2026.** Build ohne Warnungen, **1213 Komponententests** und
+**34 Architekturtests** grün. Zweig `review-umsetzung`, **gepusht und von der
+CI auf echter x64-Hardware bestätigt**, aber **nicht nach `main` gemergt** —
+`main` steht auf dem 06.09.2026. Was den Merge noch trennt, ist kein Code,
+sondern der Gerätetag: **252 der 282 Zeilen der Testmatrix haben kein
+Ergebnis.**
+
+**Zuletzt gebaut: der Plan für den Rest, und sein erster Schritt**
+(`docs/plans/BEWEIS-PLAN.md`). Der Plan deckt die beiden Posten ab, die den
+Merge trennen: **W2.8** (der Tag am Gerät) und **W2.1** (Tests für die
+SDK-Schicht). **A0 daraus ist umgesetzt.**
+
+- **Die Testmatrix trägt jetzt eine Spalte `Rüstzeug`** — S (Schreibtisch), P
+  (Anlage), H (Headset), F (frischer Rechner), W (Windows 10), X (echte
+  x64-Hardware). Der Aufwand dieser Matrix war nie die Zahl der Zeilen, sondern
+  das Umrüsten; wer sie von oben nach unten abarbeitet, steckt dreimal dasselbe
+  Headset um. **288 Zeilen gestempelt.**
+- **Und es zählte mehr, als es zählte.** **139 der 252 offenen Zeilen brauchen
+  gar kein Gerät** — geschätzt waren 110. Mehr als die Hälfte des Rückstands
+  ist am Schreibtisch abzuarbeiten, **bevor** jemand ein Gerät anfasst.
+- **Drei Zeilen waren überholt, und niemand hatte sie gestrichen:** T17, T205
+  und T232 — alle drei von ADR-062 und ADR-048 erledigt. Bei **T205** stand die
+  Streichung seit dem 12.09.2026 im Fliesstext über der Tabelle („T205 und
+  T206: beide sind überholt"); T206 war gestrichen, T205 nicht. **Vier weitere
+  Zeilen verlangten die Mailbox**, die es seit ADR-062 nicht mehr gibt (T154,
+  T193, T210, T213) — wer sie am Gerät geprüft hätte, hätte vier Fehlschläge
+  gemeldet, die keine sind.
+- **Zwei Zeilen waren als Tabelle kaputt** (T197 und die Testumgebung ganz oben:
+  aus einem Pfad war ein echter Zeilenumbruch geworden; T79 hatte eine Spalte zu
+  viel) — seit jeher, und niemandem aufgefallen.
+
+**Für Teil B (W2.1) weicht der Plan von der Massnahme ab und braucht dafür
+ADR-066:** keine `ISdkCore`-Fassade über achtzig Member, weil die Wrapper-Typen
+weder virtuelle Member noch Schnittstellen haben und die Fassade selbst
+ungeprüft bliebe. Stattdessen der Weg, den `RingbackWatch`, `HeadsetPolicy` und
+sieben weitere schon gegangen sind: die Entscheidung heraustrennen, das
+Ausführen am Gerät prüfen.
+
+**Davor gebaut: drei Meldungen aus dem Alltag** (`docs/plans/ALLTAG-PLAN-2.md`,
+**ADR-061** bis **ADR-063**). **T287 bis T289.**
+
+- **Die Vorschau im Karten-Designer zeigte nach einem echten Abruf weiter die
+  erfundenen Beispieldaten** (ADR-061). Die Ursache lag **nicht** im Zeichnen:
+  der Designer bekam die *Anzeigefassung* der Antwort — bei 8192 Zeichen
+  abgeschnitten —, der Leser warf, und der Fänger kehrte **still** zurück.
+  Weil der Zähler vor der Prüfung stand, meldete die Statuszeile trotzdem
+  Erfolg. **Derselbe Fehler stand ein zweites Mal auf der Einstellungsseite**,
+  und der Name `RawResponse` war die halbe Ursache.
+- **Der Mailbox-Reiter ist weg, und zwar ganz** (ADR-062). Drei Reiter statt
+  vier. Entfernt ist die ganze Kette bis in die SDK-Schicht und die
+  Provisionierung — der Reiter war der **einzige** Weg zu «Mailbox anrufen»
+  und die **einzige** Anzeige für wartende Nachrichten. **Eine Abweichung von
+  der Spezifikation**, an acht Stellen dort vermerkt.
+- **Eine Gliederungsebene weniger bei den Nebenstellen** (ADR-063). Der
+  äussere Aufklapper «Nebenstellen (10)» ist weg; «Team» und «Dienste» stehen
+  direkt da. Die Gruppen konnten das Klappen und Merken schon — zu tun war,
+  eine Ebene zu entfernen. **Die Falle dabei:** bei genau einer Gruppe wurde
+  gar kein Kopf gezeichnet.
+
+**Davor gebaut: Welle 2 der Standortbestimmung** — der Weg auf den
+Arbeitsplatz, zwei Absturzpfade und die Tokens. **ADR-055 bis ADR-059.**
+
+- **Ein Arbeitsplatz war vier Handgriffe weit weg, und einer stand nur in der
+  Dokumentation** (W2.3). `build\Install-Nipp.ps1` legt den
+  Auslieferungszustand ab und startet das Setup; ohne die Factory-Datei nimmt
+  ein Arbeitsplatz kein Kundenprofil entgegen, weil die Provisioning-Adresse
+  darin steht. **Wer das nicht wusste, suchte den Fehler beim Server.** Das
+  Skript prüft die Datei **vor** dem Kopieren und läuft mit `-Silent` als
+  Startskript.
+- **nipp läuft jetzt einmal, auch ohne Paketidentität** (W2.4). §10 verlangt
+  das, und `AppInstance` liefert es nur *mit* — ausgeliefert wird unpackaged,
+  der Normalfall im Feld war also der Fall ohne Schutz. Zwei Instanzen
+  verdrängen einander an der Anlage, schreiben `settings.json` gegeneinander
+  und melden dasselbe Kürzel zweimal an. **Am laufenden Programm bestätigt:**
+  ein zweiter Start mit `tel:999` reichte die Nummer weiter.
+- **«Nicht stören» ist ein stummer Klingelton auf Zeit** (W2.5, ADR-055) —
+  kein SIP-Zustand, keine Mitteilung an die Anlage, und **er überlebt keinen
+  Neustart**: ein Schalter, den man einschaltet und vergisst, nimmt Anrufe
+  entgegen, die niemand hört.
+- **Ein Schreibfehler ist eine Meldung, kein Absturz** (W2.2, ADR-057). Seit
+  ADR-045 schreibt jede Feldänderung sofort, und «Konto entfernen» lief aus
+  einem `async void` — ein Virenscanner, der die Datei kurz hielt, nahm den
+  Prozess mit. Dazu meldete der `ContactStore` aus dem Hintergrund an gebundene
+  Oberflächen, **derselbe Absturz wie beim `UpdateService` am 08.09.2026.**
+- **Die Tokens beschreiben, was gezeichnet wird** (W2.6, ADR-058). Die Skala
+  sagte 3/6/10/14, gezeichnet wurde ein zweites Raster aus Literalen —
+  einundfünfzig mal die 8 gegen **zwei** Verwendungen von `NippGapLarge`. Zwei
+  Eckradien waren von Fluent abgeschrieben, achtunddreissig Symbolgrössen
+  standen als Zahl da, und der Auflegen-Knopf hatte alle drei Zustände auf
+  demselben Pinsel. **Am gebauten Fenster nachgeprüft, nicht angenommen.**
+- **Die Dokumentation ist umgezogen** (W2.7). Dreizehn Pläne und Reviews
+  liegen unter `docs/plans/`, `CLAUDE.md` ist von **1554 auf unter 400 Zeilen**
+  zusammengezogen, und was Erfahrung ist statt Regel, steht in dieser Datei und
+  in `docs/lehren.md`.
+
+**Davor gebaut: Welle 1 der Standortbestimmung** — sieben Massnahmen,
+alle mit CI auf echter x64-Hardware bestätigt. **T263 bis T273.**
+
+- **Der Fokusklau kehrte im Rückfallpfad zurück.** Kommt keine
+  Benachrichtigung durch, holte das Fenster sich den Vordergrund, während der
+  Fokus auf «Annehmen» lag — **ADR-049 war damit auf genau den Arbeitsplätzen
+  neu gebaut, auf denen der Rückfall überhaupt greift.** Es erscheint jetzt
+  ohne Vordergrundwechsel; der Fokus in einem nicht aktiven Fenster bekommt
+  keine Tastendrücke, und beide Regeln stehen unverändert nebeneinander.
+- **Das Ergebnis einer Weiterleitung war unsichtbar.**
+  `OnTransferStateChanged` war nicht abonniert, und «übergeben» stand im
+  Protokoll, **bevor die Anlage geantwortet hatte**. Ein 403 auf den REFER
+  liess das Gespräch je nach Anlage gehalten stehen, ohne ein Wort.
+- **Acht stille Lesezugriffe aufs SDK** gaben einen Ersatzwert zurück, ohne
+  eine Zeile. Jede bei jedem Pump-Durchlauf zu protokollieren wäre Rauschen —
+  `QuietFailures` meldet **einmal je Stelle und Sitzung**.
+- **Meldungen, die sagen was zu tun ist:** ein Klick auf den Toast-Körper tat
+  nichts, der Weg von der gescheiterten Anmeldung zum Passwortfeld kostete
+  vier Schritte, dreizehn Stellen zeigten einen rohen Ausnahmetext, und das
+  erste Schliessen in den Infobereich geschah wortlos.
+- **`TrayDark.ico` und `TrayLight.ico` hatten dieselbe Prüfsumme**,
+  `nipp-dark` und `nipp-light` auch. Die Wahl nach Erscheinungsbild hat seit
+  dem Logowechsel nie etwas bewirkt. Dazu vier WinUI-Pinsel, die dem
+  **System**thema folgten statt der Wahl des Benutzers, und ein Warnton mit
+  4,14:1 gegen Mica.
+- **Der Rückbau beim Deinstallieren stand im Plan als erledigt und war nicht
+  angemeldet** — das Muster «gebaut, nicht angeschlossen», **zum sechsten
+  Mal**. Und die Update-Prüfung lief nur beim Start, obwohl nipp im
+  Infobereich wochenlang durchläuft.
+- **Zwei Anführungszeichenpaare, «Unverschluesselt zulassen», drei
+  Dauerformate.** `UserTextTests` hält die Regeln jetzt fest — über den
+  sichtbaren Text, nicht über ganze Zeilen: der erste Anlauf meldete zwei
+  Dutzend Kommentare und Wörter wie «zuerst».
+
+**Davor gebaut: Welle 0 der Standortbestimmung** (`docs/plans/REVIEW-2026-09-12.md`,
+`docs/plans/WELLE-0-PLAN.md`, **ADR-053** und **ADR-054**, dazu Nachträge zu **ADR-019**
+und **ADR-022**). Fünf Schritte, die vor jeder weiteren Entwicklung stehen
+mussten:
+
+- **Die Ausnahmegrenze** (ADR-053). Drei Wege, auf denen eine Ausnahme nipp
+  beendete, und keiner war Absicht: die SDK-Callbacks liefen ungeschützt an
+  acht Abonnenten, **`LinphoneException` wurde im ganzen `src/` nirgends
+  gefangen**, und fünf `async void`-Behandler hatten kein `try`. «Stumm»
+  drücken, während die Gegenseite auflegt, war ein Absturz. Dazu
+  `CallHistoryStore` **ohne einen einzigen `catch`** — eine kaputte
+  `history.db` hiess: nipp startet nicht.
+- **Der SIP-Trace wird maskiert** (ADR-022, Nachtrag). Auf Debug standen im
+  Protokoll dieser Maschine **714 Zeilen mit Digest-Kopfzeilen und 4 282 mit
+  Rufnummern**. Entschieden: der Support darf Debug einschalten lassen, also
+  wird maskiert. Der Preis steht in der ADR — eine dreistellige Nebenstelle
+  verschwindet ganz.
+- **Der Benutzer gewinnt** (ADR-054). Das Profil überschrieb bei **jedem
+  Start** alles, was es nannte; `IsLocked` kam in `ProvisioningService` nicht
+  vor, während die Dokumentation das Gegenteil zusagte.
+  `NippSettings.UserOverrides` schliesst das, eingetragen an **einer** Stelle.
+- **Der SIP-Port kommt an** (ADR-019, Nachtrag). Feld, Eingabe,
+  Profilschlüssel, Validator und Neustart-Hinweis waren da —
+  **`core.Transports` kam im ganzen Telefonie-Ordner nicht vor.** ADR-019 hatte
+  genau diese Einstellung ins Profil verwiesen und behauptet, sie sei
+  umgesetzt. **Das Muster «gebaut, nicht angeschlossen» zum fünften Mal.**
+- **Die Klammer-Null.** `+41 (0)79 123 45 67` — die Schreibweise aus Outlook
+  und jeder zweiten Signatur — wurde als `+410791234567` gewählt, ohne
+  Fehlermeldung.
+
+**Zwei Befunde kamen erst durch die Tests heraus**, nicht durchs Nachdenken:
+der Verbindungspool von SQLite hielt die kaputte `history.db` offen, sodass der
+Zug zur Seite zeitabhängig scheiterte (der Test lief einzeln grün und im vollen
+Lauf rot); und im Maskierungsmuster stand ein **Backspace-Zeichen statt einer
+Wortgrenze** — das Muster passte auf nichts, und nur die Ausgabe im Testlauf
+hat es gezeigt.
+
+**Davor gebaut: die Breite gehört dem Fenster** (**ADR-052**, **T251 bis
+T254**). Drei Meldungen aus dem Alltag, und zwei davon waren dieselbe Ursache:
+
+- **Die Deckelung ist weg.** Zwischen 480 und 960 Pixeln stand der Inhalt als
+  schmaler Block in der Mitte, links und rechts leerer Rand — das war ADR-046
+  und ist zurückgenommen. **Die zerfallende Zeile ist damit ein bewusst
+  getragener Preis**, kein übersehener Fehler; die Milderung steht in ADR-052.
+- **Die Kacheln standen untereinander, nicht zu wenige nebeneinander.** Das
+  `ItemsWrapGrid` lag im `GroupStyle.Panel` — **und das lesen die
+  virtualisierenden Panels gar nicht.** Gezeichnet hat das `ItemsStackPanel`
+  daneben: eine Kachel je Reihe, über die volle Breite gestreckt. Der Kommentar
+  daneben behauptete seit ADR-047 das Gegenteil und war die Begründung, die
+  Stelle nicht anzufassen. **Am gebauten Fenster gesehen, nicht im Code.**
+- **Und 468 Pixel blieben auf einem 1920er Fenster tot:** zwei Sternspalten,
+  beide mit Höchstbreite, geben den gekürzten Anteil nicht weiter. Die linke
+  Spalte ist jetzt **absolut** 480 breit, die rechte nimmt den Rest. Die
+  Umschaltleiste steht breit nur noch unter der linken Spalte, der
+  Kachelbereich reicht daneben bis an den unteren Rand.
+
+**Davor gebaut: das zweite UX-Review** (`docs/plans/UX-REVIEW-2.md`, **ADR-049** bis
+**ADR-051**). Zwanzig Befunde, **achtzehn umgesetzt**, zwei begründet offen.
+**T222 bis T250.**
+
+- **Phase 1 — was ein Fehlgriff kosten darf** (ADR-049). Der Karten-Designer
+  verlor die Arbeit beim Schliessen über das Kreuz, **lautlos**: er führte
+  `HasUnsavedChanges` und las es an einer einzigen Stelle — während der
+  Kommentar in `Show` seit jeher das Gegenteil behauptete. **Das Fenster sprang
+  beim Klingeln nach vorn, mit dem Fokus auf «Annehmen»** — zwei je für sich
+  richtige Entscheidungen, zusammen ein Anruf, den die nächste Leertaste
+  entgegennahm. Die Aufnahme startete mit einem Klick, zwei Spalten neben
+  «Stumm». **Enter auf einem Namen wählte den Namen.** Drei Knöpfe taten
+  stillschweigend nichts. **T222 bis T230.**
+- **Phase 2 — der Alltag** (ADR-050). Die Wähltastatur ist **standardmässig
+  zu**: sie kostete auf 400 × 660 rund 200 der 450 verfügbaren Pixel, und die
+  Kontaktliste zeigt jetzt zehn Zeilen statt fünf. Im Gespräch gibt es
+  Tastenkürzel, und **ein zweites systemweites Kürzel schaltet stumm, ohne nipp
+  nach vorn zu holen** (weitet §22.5). «Mailboxnummer eintragen» landet im
+  Feld statt in der Gruppe. Escape und Alt+Links gehen zurück. **T231 bis
+  T240.**
+- **Phase 3 — die Struktur** (ADR-051). **Eine Liste je Eingabeart:** eine
+  Nummer zeigt die Vorschlagsliste, ein Name die Trefferliste — dieselbe Regel,
+  die seit Phase 1 die Eingabetaste trägt. Die **Anruferkarte** ist eine Gruppe
+  erster Ebene und per Rechtsklick aus dem Gespräch erreichbar; die Quellen
+  stehen unter «Für Administratoren». Das **Kachelraster filtert mit**. **T241
+  bis T250.**
+
+**Offen, beide mit Grund:** **C16** (Mailbox in der Navigation) trägt einen
+Widerspruch — Fassung A versteckt die Fläche, auf der der Knopf steht, den C8
+gerade repariert hat. **C15** («Nicht stören») ist die einzige neue Fähigkeit
+der Runde und wartet auf einen Entscheid.
+
+**Und ein Alltagsbefund vom Start der gebauten Fassung, den keine Testzeile
+abdeckt:** `Ctrl+Shift+A` — das vorgegebene systemweite Kürzel — ist **auf
+dieser Maschine von einer anderen Anwendung belegt** (Windows-Fehler 1408). Der
+globale Hotkey wirkt hier also nicht, bis jemand in den Einstellungen ein
+anderes einträgt. Die Meldung dazu ist richtig und sagt, was zu tun ist; sie
+steht nur im Protokoll und in den Einstellungen, nicht im Blickfeld.
+
+**Davor gebaut: das breite Fenster** (`docs/plans/BREITBILD-PLAN.md`, **§23**,
+**ADR-047** und **ADR-048**). Ab **960 logischen Pixeln** stehen zwei Spalten:
+links Konto, Nummernfeld, Wähltastatur und der gewählte Bereich, rechts die
+**Nebenstellen als Kacheln**, nach Gruppen gegliedert und mit allem darauf, was
+die Zeile erst nach einem Klick zeigt. Die Umschaltleiste steuert die linke
+Spalte; die Kacheln stehen unabhängig davon. **Und ein angeklickter Kontakt
+klappt wieder in der Zeile auf** — in allen drei Listen, unabhängig von der
+Breite. **T211 bis T221.**
+
+- **Die Deckelung aus ADR-046 wandert, sie verschwindet nicht:** breit gilt sie
+  für die linke Spalte. Eine Kontaktzeile ist nie breiter als im schmalen
+  Fenster. — **Einen Tag später mit ADR-052 zurückgenommen:** sie verschwindet
+  doch, und die linke Spalte ist fest statt gedeckelt.
+- **Das Umsortieren zwischen Gruppen übersteht den Umbau ohne eine Zeile
+  Änderung.** `TeamLayout.From` liest die Ordnung aus dem Zustand der
+  Sammlungen und nicht aus dem Ziehereignis (ADR-042) — das gilt für ein
+  `GridView` wörtlich gleich. Dass das so ist, war beim Schreiben von ADR-042
+  kein Ziel; es fällt ab, weil die Antwort dort nicht am Steuerelement hing.
+- **Der Einwand, wegen dem ADR-042 den Detailbereich aus der Zeile genommen
+  hatte, ist ausgeräumt statt umgangen:** `x:Load` erzeugt den Teilbaum erst
+  beim Aufklappen. Geprüft ist der erzeugte Code (`FindName` / `UnloadObject`),
+  **die Messung am Gerät steht aus: T220.**
+
+**Der Nebenbefund, und er wäre sonst erst im Alltag aufgefallen: ein
+maximiertes Fenster kam nicht maximiert zurück.** `WindowPlacement.Capture`
+schrieb Position und Grösse, nicht den Zustand des Presenters, und
+`TryApplyRemembered` klemmt zusätzlich auf 92 Prozent des Arbeitsbereichs — wer
+nipp maximiert schloss, fand es als beinahe volles Fenster mit Rand ringsum
+wieder. Solange das schmale Fenster der Normalfall war, war das eine
+Kleinigkeit; wenn Vollbild der Anlass für ein ganzes Layout ist, ist es einer.
+**T221.**
+
+**Davor gebaut: die Bedienbarkeit, in drei Phasen** (`docs/plans/UX-REVIEW.md`,
+**ADR-044 bis ADR-046**). Ein UX-Review der ganzen Oberfläche hat
+fünfundzwanzig Befunde ergeben; umgesetzt sind vierundzwanzig, einer ist
+begründet zurückgestellt.
+
+- **Phase 1 — die scharfen Kanten** (ADR-044). Ein Wort je Zustand statt drei
+  beziehungsweise vier. Die **Kontaktliste ist ohne Maus bedienbar** — die
+  Kontextmenüs hingen am Zelleninhalt, und Menütaste und Umschalt+F10 griffen
+  ins Leere, während der Kommentar daneben seit ADR-042 das Gegenteil
+  behauptete. Ein Statuston färbt Schrift statt Fläche (im Dunkeln stand fast
+  weisser Text auf Gelb, **1,4:1**). **Enter im Weiterleitungsfeld gab das
+  Gespräch bis dahin sofort und unwiderruflich ab.** Der Fokus liegt beim
+  Klingeln auf „Annehmen". **T185 bis T193.**
+- **Phase 2 — der Weg hinein** (ADR-045). **Fünf Speicherregeln werden eine:**
+  ein Konto wurde beim Klick geschrieben, eine Nebenstelle nicht — sie erschien
+  in der Liste und war beim Verlassen der Seite lautlos weg. Der
+  „Speichern"-Knopf ist entfallen. Jeder Hinweis führt jetzt dorthin, wohin er
+  verweist (es gab **null** `InfoBar.ActionButton` im ganzen Programm), der
+  Erststart klappt die Kontogruppe von selbst auf, und eine SIP-Adresse im
+  Domainfeld fällt sofort auf statt nach zwölf Sekunden. **T194 bis T201.**
+- **Phase 3 — die Struktur** (ADR-046). Zwei Ebenen in den Einstellungen (114
+  Eingabeelemente standen auf einer), **ein Suchfeld statt zwei**, **ein
+  Detailbereich statt zwei**, die Inhaltsbreite gedeckelt (gemessen stand das
+  Fenster auf **1023 Pixeln**), das Wiedergabegerät im Gespräch und im
+  Infobereich, Präsenz und Anrufergebnis in der Sprachausgabe, Tastenkürzel.
+  **T202 bis T210.** — **Zwei Punkte davon sind einen Tag später anders
+  entschieden worden:** der Detailbereich steht wieder in der Zeile (ADR-048),
+  und die Deckelung gilt je Spalte statt fürs Fenster (ADR-047). Die Regel
+  dahinter — *ein* Ort für alle Listen, *eine* Zeilenbreite — ist in beiden
+  Fällen dieselbe geblieben. **Die gedeckelte Breite ist inzwischen ganz
+  weg** (ADR-052); der Befund dahinter bleibt richtig und ist ein bewusst
+  getragener Preis.
+
+**Der Befund, der über die drei hinausgeht:** `App.SdkStatus` wurde beim Start
+gesetzt, als öffentliche Eigenschaft angeboten — und von **keiner Ansicht
+gelesen**. Eine unvollständige Installation sah dadurch aus wie „noch kein
+Konto eingerichtet". **Dasselbe Muster wie `CardKind.History`,
+`IntegrationConfig.cards` und `ClipResolver.DescribeCaller` — zum vierten
+Mal.**
+
+**Bewusst zurückgestellt: B20** — eine geführte Feldzuordnung statt des
+JSON-Textfelds. Sie lohnt erst, wenn jemand eine Quelle **ohne** Vorlage
+anbinden soll; solange Vorlagen importiert werden, trägt die kurze Fassung.
+
+**Davor gebaut: fünf Meldungen aus dem ersten Tag mit den Gruppen, und eine
+davon war T134.**
+
+- **„Beenden" beendet jetzt wirklich** (Etappe E). `Application.Exit()` lief
+  auf dem Thread des Infobereich-Symbols und ist dort wirkungslos. Vollständig
+  in `CLAUDE.md` unter „Bauen auf dieser Maschine"; **T134**.
+- **Ziehen zwischen Gruppen** (Etappen F und G, **ADR-042**). Dahinter lagen
+  **zwei Fehler übereinander**: der Ziehvorgang schrieb die Gruppe nirgends,
+  und die Kennung einer Nebenstelle enthielt ihren **Index** — deshalb schlug
+  schon der zweite Zug fehl, **ohne Fehlermeldung und ohne Protokollzeile**,
+  während die Anzeige ihn zeigte. Dazu der Detailbereich **in der Zeile** (nur
+  im Team), ein Kontextmenü „In Gruppe verschieben" für den Weg ohne Maus, und
+  eine neue Gruppe erscheint **ohne Neustart**. **T175 bis T180.**
+- **Der Name bei ausgehenden Anrufen** (Etappe H, **ADR-043**). Der Befund
+  steckte in einem Namen: `CallInfo.DisplayLabel` war der einzige
+  richtungsneutrale „Name" im System und schaute **nie auf Kontakte**. Bei
+  eingehenden Anrufen kaschierte das der Anzeigename der Anlage. Es gibt jetzt
+  **einen** `CallPartyResolver` mit zwei Fragen — `NameOf` (Name oder nichts)
+  und `Describe` (nie leer) —, und `DisplayLabel` ist gelöscht. **T181 bis
+  T184.**
+
+**Der Befund, der über diese vier hinausgeht:** `ClipResolver.DescribeCaller`
+war als „die eine Stelle für alle" gebaut und hatte im ganzen `src/`
+**keinen einzigen Aufrufer**, während dieselbe Regel dreimal ausgeschrieben
+danebenstand. **Eine Fähigkeit zu bauen heisst nicht, sie anzuschliessen** —
+dasselbe Muster wie `CardKind.History` und wie `IntegrationConfig.cards`, zum
+dritten Mal.
+
+**Davor gebaut: der Quelltext wird offengelegt** (Etappe B, **ADR-040**).
+nipp steht unter der **AGPLv3** — `LICENSE` und `NOTICE` liegen im Repo, und
+damit ist die Frage beantwortet, die seit dem 04.09.2026 jede Abgabe ausser
+Haus sperrte. Möglich wurde das, weil die beiden bv2-eigenen Systeme den
+Quelltext verlassen haben: eine **Anbietervorlage** ist jetzt **eine** Datei,
+die importiert wird (`ConnectorLibrary`, `ConnectorTemplateReader`), und die
+beiden liegen in einem privaten Vorlagen-Repo. **Mitgeliefert wird nur noch
+„Eigene REST-API".** Die beiden Zusagen des Katalogs sind dabei vom Test in den
+Leser gewandert: eine Vorlage kommt nie eingeschaltet herein, und eine mit
+einem Zugangsschlüssel darin wird **abgelehnt** — System.Text.Json schluckt ein
+unbekanntes `token` sonst still. **Nichts davon ist am Gerät abgenommen: T169
+bis T174.**
+
+**Und ein Befund, der nichts mit den Systemnamen zu tun hatte:** im Repo standen
+**echte Kundendaten** — eine als „echte Antwort" deklarierte
+Gesprächszusammenfassung mit Klarnamen, Firma und Rufnummer, dazu Klarnamen in
+der Testmatrix und in zwei Toast-Testdateien. Alles durch Musternamen ersetzt.
+`PublicRepositoryTests` hält es fest.
+
+**Davor gebaut: die Team-Kontakte** (Etappe C, **ADR-041**) — eine
+**Handynummer** am Kollegen, ein **Detailbereich** unter der Liste mit Präsenz
+und jeder Nummer einzeln wählbar, und **eigene Gruppen** neben „Team". Das
+meiste davon war gebaut und nicht angeschlossen: `ContactNumberKind.Mobile`,
+`ContactRow.Choices` und `CallNumberCommand` gibt es längst, und `ClipResolver`
+läuft beim eingehenden Anruf über **alle** Nummern — die Lücke war eine Zeile in
+`TeamContactSource`, die genau eine Nummer baute. **Und sie wog schwerer, als
+sie klang:** auf dem neuen Outlook gibt es kein COM (ADR-018), also war eine
+Handynummer eines Kollegen bisher nirgends auflösbar. Gruppen stehen als eigene
+Liste in den Einstellungen, gezeichnet wird **eine** gruppierte ListView statt N
+Expander, und der Detailbereich hängt an der Auswahl. **Nichts davon ist am
+Gerät abgenommen: T160 bis T168.**
+
+**Davor gebaut: der Toast bekennt Farbe, und der Karten-Designer stolpert
+nicht mehr** (Etappen A und D des Plans vom 10.09.2026). Der Toast setzt
+„Annehmen" grün und „Ablehnen" rot über `AppNotificationButtonStyle`, mit
+Fähigkeitsprüfung, weil im Feld Windows-10-Arbeitsplätze stehen. Im Designer
+lagen **zwei Knopfgruppen über beziehungsweise ausserhalb ihrer Fläche** —
+abgeschnitten wurden ausgerechnet „Linie" und „Abstand", und genau daraus wurde
+die Meldung, die beiden liessen sich nicht löschen. **Löschen konnte der Kern
+immer** (`RemoveSelected` prüft keinen Feldtyp, ein Test belegt es seit K4); es
+war ein Auffindbarkeitsfehler, und es gibt jetzt vier Wege dorthin. Dazu rechnet
+die Vorschau mit einer **eingegebenen Nummer samt echtem Abruf** — den Parameter
+nahm `BuildSnapshot` von Anfang an, nur verdrahtete der Designer ihn fest.
+**Nichts davon ist am Gerät abgenommen: T154 bis T159.**
+
+**Davor gebaut: zwei Meldungen aus dem Alltag, beide am Protokoll
+aufgeklärt.** Erstens „ein Anruf auf nipp wirft mich aus dem Teams-Meeting" —
+Ursache ist der Ring-Report an ein HID-Gerät, das sich nipp mit Teams teilt;
+Reports gehen jetzt nur bei eigenem Anlass hinaus (`HeadsetSignalGate`, ADR-028
+Nachtrag 4). Zweitens „beim Wählen höre ich einen nipp-eigenen Rufton statt den
+der Anlage" — nipp entschied nach 800 ms auf einem Sekundenmittel, das noch auf
+0 stand, und legte sich 168 ms über den Anfang des Anlagentons (Nachtrag zu
+ADR-029). **Beides ist am Gerät noch nicht abgenommen: T143 bis T153.**
+
+**Am Gerät abgenommen (Engage 75, 09.09.2026):** Annehmen mit der Taste
+(**T80**), Annehmen durch Herausnehmen aus der Ladeschale (**T80b**), Auflegen
+mit der Taste (**T79**) und ein Gespräch, das stehen bleibt (**T141**).
+**Für Link 400 und PRO 9470 offen** — der Engage 75 hat gerade gezeigt, wie
+unterschiedlich sich diese Geräte verhalten.
+
+**Am 09.09.2026 repariert: eingehende Anrufe liessen sich nicht annehmen.** Der
+Fehler war so gross wie einfach: nipp legte 10 ms nach jedem Annehmen wieder
+auf, und bei ausgehenden Anrufen 331 ms nach dem Verbinden. Ursache war das
+Nachziehen des Gabelzustands am Headset — es schrieb in dasselbe Feld, aus dem
+der Lese-Thread seine Flanken ableitet, und erfand damit Tastendrücke. Die
+Bedeutung eines Drucks hängt jetzt am Anrufzustand und nicht mehr am Gerät;
+damit ist auch **T82** strukturell gelöst statt geflickt. Vollständig im
+**Nachtrag zu ADR-028**; `docs/lehren.md` unter „Windows-Integration".
+
+**Es brauchte drei Anläufe, und jeder wurde erst durch die Messung möglich.**
+`HookSwitch` ist an diesem Gerät kein Tastendruck, sondern ein Zustand, den das
+Gerät mitverhandelt — solange ein eigener Report unterwegs ist, gilt jede
+Gabelmeldung deshalb als Antwort. Und die Reports brauchten **10,9 bis 83,2
+Sekunden**, weil `HidD_SetOutputReport` über die Control-Pipe hängt; über
+`WriteFile` sind es **3 ms**. Daran hingen drei Alltagsmeldungen auf einmal:
+„das Headset läutet weiter, obwohl ich den anderen höre", „extrem verzögert"
+und „aus der Ladeschale nehmen tut nichts" — Letzteres, weil das Gerät nie
+rechtzeitig erfuhr, dass es klingelt.
+
+**Der Befund daran, und er ist der teuerste bisher:** über empfangene
+HID-Reports stand **nie eine Zeile im Protokoll**. Zwei Tage lag der Fehler im
+Log ohne Spur, und „die Taste tut nichts" war nicht von „hier kommt gar nichts
+an" zu unterscheiden — **dieselbe Lücke wie beim Symbol im Infobereich, zum
+zweiten Mal.** Dazu: **T79 (Auflegen) war bestanden und belegte nichts.** In
+keinem Protokoll dieses Projekts steht je „Annehmen am Headset gedrueckt"; die
+Taste traf zufällig eine der beiden Richtungen. T79 ist zurückgenommen, T80 bis
+T84 sind je Gerät neu zu prüfen (drei sind im Alltag), und
+`tools\Test-Headset.ps1` wertet aus, was das Gerät wirklich schickt.
+
+**Davor gebaut: Installer und Update-Verteilung** (R0 bis R8) — ein
+Velopack-Setup statt MSIX (**ADR-038**), Updates über GitHub Releases mit den
+Kanälen stable und beta, beim Start wird **gefragt und nicht geladen**
+(**ADR-039**). Vollständig in **`docs/plans/RELEASE-PLAN.md`**, Bedienung in
+`docs/updates.md`.
+
+**Der Befund daran, und er ist wieder derselbe:** beim ersten
+`dotnet publish` lagen 229 MB Laufzeit im Ausgabeverzeichnis und **keine
+einzige Linphone-DLL**. `Linphone.Sdk.targets` kopierte die native Kette an
+`Build` (nach `$(OutDir)`) und für MSIX ins Paketlayout — publish sammelt aber
+seine eigene Dateiliste und kannte beides nicht. Zwei Wege waren gebaut, der
+dritte fehlte, und **nichts hat es gemeldet**: der Build war grün, das Ergebnis
+startklar aussehend. Aufgefallen wäre es erst auf dem Zielrechner, mit der
+Meldung aus §14.2, die nicht sagt, welche Datei fehlt. Deshalb prüft
+`Release-Nipp.ps1` das fertige Verzeichnis noch einmal nach — **ein Target, das
+lautlos nichts tut, sieht wie ein Erfolg aus.**
+
+**Die Lizenzfrage ist beantwortet: AGPLv3** (11.09.2026, **ADR-040**).
+`LICENSE` und `NOTICE` liegen im Repo, `docs/licensing.md` ist umgeschrieben.
+Damit ist der Posten weg, der seit dem 04.09.2026 jede Abgabe ausser Haus
+gesperrt hat.
+
+**Das Repo selbst ist aber noch privat** — vollzogen ist die Wahl, nicht der
+Schritt. Solange es privat ist, braucht die Update-Prüfung weiterhin ein Token
+aus dem Provisioning. Was bis zum Öffentlichmachen fehlt, steht als **R10** in
+`docs/plans/RELEASE-PLAN.md`: der Scan über **alle** Commits, der SDK-Quelltext als
+Spiegel und der Repo-Wechsel selbst. **Achtung beim Wechsel:**
+`VelopackUpdateGateway.RepositoryUrl` ist eine Konstante im Code (dazu
+`build/Release-Nipp.ps1`) — ein Repo unter neuem Namen heisst, dass jeder
+installierte Arbeitsplatz weiter im alten sucht.
+
+**Davor gebaut: Anrufliste und Designer** (L0 bis L6) — ein verpasster Anruf
+gilt als gesehen, sobald er angeklickt wurde (**ADR-035**, Schemafassung 2 der
+`history.db`), der Kontextbereich unter der Liste ist die **vierte Kartenart**
+und klappt auf (**ADR-036**), und der Designer kennt Abstand, ausblendbare
+Beschriftung und „von anderer Karte übernehmen" (**ADR-037**). Vollständig in
+**`docs/plans/ANRUFLISTE-PLAN.md`**.
+
+**Der Befund daran, und es ist derselbe wie im Plan davor:** `CardKind.History`
+stand seit I4 im Modell, mit dem Kommentar „noch nicht verwendet" — der
+Kontextbereich baute seine Zeilen selbst und beschriftete sie maschinell aus dem
+Feldnamen. Auf der Gesprächskarte war „Letzte arbeit zeile" ein Fehler, hier war
+es der Normalfall. **Ein Test hätte es finden können und zählte stattdessen mit:**
+`Die_Kartenuebersicht_nennt_alle_drei_Arten` war grün, weil er drei erwartete.
+
+**Davor gebaut: Einrichtung und Karten** (§21.6, K0 bis K6) — der Katalog
+„Quelle hinzufügen" mit bv2-Einträgen als *intern bv2* gekennzeichnet
+(**ADR-033**), die Quellen-Oberfläche als ein Ort statt drei Aufklapper, ein
+Feldkatalog, der Karten-Designer als eigenes Fenster (**ADR-032**) und der
+Toast als Kartenart (**ADR-034**). Vollständig in **`docs/plans/EINRICHTUNG-PLAN.md`**, mit
+Umsetzungsstand ganz vorn.
+
+**Der wichtigste Befund daran:** der Wunsch „ich möchte die Werte selber
+anordnen" traf keine schlechte Bedienung, sondern eine **Lücke**.
+`IntegrationConfig` hatte kein `cards`, obwohl `docs/plans/INTEGRATION-PLAN.md` D.2 die
+Datei genau so beschreibt und `CardLayoutEngine` jede Karte übersetzen konnte.
+Eine eigene Karte war nicht schwer einzurichten, sondern unmöglich. **Wer hier
+eine Fähigkeit als „gebaut" liest, prüft, ob sie auch angeschlossen ist.**
+
+### Am Gerät ist nichts davon abgenommen
+
+Und nicht nur davon: **261 von 284 Zeilen der Testmatrix haben kein Ergebnis.**
+Das ist der grösste offene Posten des Projekts, nicht der Code — und **die Zahl
+wächst schneller als sie schrumpft**: seit dem 09.09.2026 sind 133 Zeilen
+dazugekommen und zwei abgehakt worden. (Zwei sind überholt und gestrichen:
+T206 und T242.)
+
+| Gruppe | Was |
+|---|---|
+| **T274–T283** | **Welle 2 der Standortbestimmung** (13.09.2026, ADR-055 bis ADR-059). Wichtigste: **T275** (nipp zweimal starten, dann mit einer Nummer in der Kommandozeile — die zweite Instanz muss sich beenden und die Nummer weiterreichen), **T278/T279** (ein Arbeitsplatz in einem Befehl, einmal von Hand und einmal als Startskript — der Weg, der beim Kunden zählt), **T280** (die `settings.json` sperren und ein Konto entfernen: bis zum 13.09. nahm dieser Klick den Prozess mit), **T274** («Nicht stören» — es darf nicht klingeln, aber der Toast muss kommen) und **T282** (die Optik nach der Token-Umstellung, in beiden Themen und bei 150 Prozent Textskalierung) |
+| **T263–T273** | **Welle 1 der Standortbestimmung** (13.09.2026). Wichtigste: **T263** (in Word tippen, anrufen lassen — mit **abgeschalteten** Benachrichtigungen: das Fenster darf den Fokus nicht nehmen), **T264** (blind an eine Nummer weiterleiten, die es nicht gibt), **T269** (das Infobereich-Symbol auf heller **und** dunkler Taskleiste — die offene Frage: es gibt nur noch eine Datei), **T270/T271** (dunkles Thema bei hellem Windows, Kontrastmodus im Betrieb) und **T272** (deinstallieren und die Registrierung prüfen) |
+| **T255–T262** | **Welle 0 der Standortbestimmung** (13.09.2026, ADR-053, ADR-054, Nachträge zu ADR-019 und ADR-022). Wichtigste: **T261** (im Gespräch «Halten» drücken, während die Gegenseite auflegt — bis zum 13.09. ein Absturz), **T255** (Debug einschalten und das Protokoll durchsuchen: keine Rufnummer, keine Digest-Antwort), **T257/T258** (der Handwert überlebt das Profil, und die alte Datei wandert richtig), **T259** (der SIP-Port kommt endlich an) und **T262** (kaputte `history.db` — nipp muss starten). **Vorher `history.db` und `settings.json` kopieren** |
+| **T251–T254** | **Die Breite gehört dem Fenster** (12.09.2026, ADR-052). Wichtigste: **T252** (auf einem maximierten Fenster darf rechts kein toter Streifen bleiben, und es stehen sechs bis sieben Kacheln je Reihe) und **T254** (vierzig Nebenstellen, Tab-Wechsel — die Virtualisierung nach dem Panelwechsel; der Fehler wäre ein Ruckeln). **T206 und T242 sind überholt** — die Deckelung ist weg (T251), die Kachelspalte ungedeckelt (T252) |
+| **T222–T250** | **Das zweite UX-Review** (12.09.2026, ADR-049 bis ADR-051). Wichtigste: **T223** (in Word tippen, anrufen lassen — das Fenster darf den Fokus nicht mehr nehmen, und die Leertaste darf den Anruf nicht annehmen), **T222** (Designer über das Kreuz schliessen — bis dahin ging die Arbeit lautlos verloren), **T225** (die Aufnahme fragt), **T227** (Enter auf einem Namen wählt nicht mehr), **T246/T247** (eine Liste je Eingabeart) und **T249** (im Sortiermodus tippen: der Modus muss ausgehen, sonst verlöre die gespeicherte Reihenfolge die ausgefilterten Einträge) |
+| **T211–T221** | **Das breite Fenster** (12.09.2026, ADR-047, ADR-048). Wichtigste: **T214** (zweimal hintereinander eine Kachel in eine andere Gruppe ziehen — die Gegenprobe zu T176, jetzt im Raster), **T215** (vierzig Nebenstellen, Tab-Wechsel: die Virtualisierung des gruppierten Rasters, und der Fehler wäre ein Ruckeln), **T220** (137 Outlook-Kontakte auf- und zuklappen — die Messung zu `x:Load`) und **T211/T212** (der Umbau passiert einmal, nicht bei jedem Pixel). **T205 und T206 sind überholt** — der Detailbereich steht jetzt in der Zeile (T219), und die Deckelung ist seit ADR-052 ganz weg (T251) |
+| **T202–T210** | **Struktur** (12.09.2026, ADR-046). Wichtigste: **T203/T204** (die zusammengeführte Suche, und die Gegenprobe mit getrenntem Netz: die lokalen Treffer müssen sofort kommen) und **T207/T208** (das Wiedergabegerät im Gespräch und im Infobereich). **T205 und T206 nicht mehr prüfen** — sie verlangen den Detailbereich unter der Liste und 480 Pixel fürs ganze Fenster; beides gilt seit ADR-047/ADR-048 anders (T219, T211) |
+| **T194–T201** | **Speichermodell und Erststart** (12.09.2026, ADR-045). Wichtigste: **T194** (eine Nebenstelle anlegen und sofort zurück — bis zum 12.09.2026 war sie **lautlos weg**; denselben Test für Gruppe, Audiogerät und Codec-Reihenfolge), **T197** (der Weg vom ersten Start zum ersten Konto) und **T200** (eine DLL entfernen: es muss nach kaputter Installation aussehen, nicht nach „kein Konto") |
+| **T185–T193** | **Bedienbarkeit** (12.09.2026, ADR-044). Wichtigste: **T188** (Enter im Weiterleitungsfeld darf das Gespräch **nicht mehr** abgeben — der gefährlichste Fall der ganzen Liste), **T185** (Kontextmenü mit der Menütaste; ohne Maus war die Kontaktliste nicht bedienbar) und **T187** (der Chip „unverschlüsselt" im dunklen Erscheinungsbild) |
+| **T175–T184** | **Kontaktliste und der Name beim Hinauswählen** (12.09.2026, ADR-042, ADR-043). Wichtigste: **T176** (zweimal hintereinander ziehen — der Zug, der bis dahin **stumm** verlorenging), **T182** (der Name eines Fremdsystems trifft nach dem letzten Zustandswechsel ein und muss an allen vier Stellen nachkommen, ohne die Ansicht viermal neu zu zeichnen), **T178** (eine neue Gruppe ohne Neustart) und **T180** (kein Ruckeln — die Team-Vorlage ist um den Detailbereich gewachsen). Dazu **T134**: „Beenden" beendet wirklich, **und `beenden.txt` ansehen** — keine Wächterzeile mehr |
+| **T169–T174** | **Anbietervorlagen und der Weg danach** (11.09.2026, ADR-040). Wichtigste: **T172** (eine Vorlage mit einem Token darin wird abgelehnt — die Zusage, auf der der ganze Weg steht), **T169** (importieren, Quelle anlegen, Token, Testabruf, einschalten) und **T174** (frischer Klon ohne SDK baut durch — die Gegenprobe zum Öffentlichmachen) |
+| **T160–T168** | **Team-Kontakte: Mobilnummer, Detailbereich, Gruppen** (11.09.2026, ADR-041). Wichtigste: **T163** (vier Gruppen und 137 Outlook-Kontakte, Tab-Wechsel — **kein Ruckeln**; die Gegenprobe zur Virtualisierung, und der Fehler wäre kein Absturz), **T162** (eine zweite Nummer darf kein zweites SUBSCRIBE kosten, §14.8), **T161** (ein Anruf von der Handynummer zeigt den Kollegen) und **T168** (eine `settings.json` von vorher — **vorher kopieren**) |
+| **T154–T159** | **Toast-Farben und Karten-Designer** (11.09.2026). Wichtigste: **T158** (Vorschau mit echtem Abruf — dabei prüfen, dass **keine Rufnummer im Protokoll** landet), **T159** (Designer offen während eines Gesprächs, dabei abrufen — er teilt sich den Thread mit `Core.Iterate()`; das ist T99 in neuer Lage) und **T155** (der Toast auf einem Windows-10-Arbeitsplatz: die Farben dürfen fehlen, ein Absturz nicht) |
+| **T143–T153** | **Der Rufton beim Wählen und die Koexistenz am Headset** (10.09.2026). Wichtigste: **T147** (ein Teams-Meeting endet, sobald es auf nipp klingelt — die gemeldete Störung; **auch mit Notebook-Audio prüfen**), **T150** (ob die Erkennung einer Fremdbelegung überhaupt etwas sieht — sie liest einen gehaltenen Gabelzustand, und ob ein Gerät einen führt, steht in seinem Report-Deskriptor), **T143** (kein Fremdton am Anfang des Anlagentons) und **T153** (die Gegenprobe: die Reparatur darf T80b nicht kosten) |
+| **T120–T134** | **Installer und Updates.** Wichtigste: **T120** (Installation auf einem Rechner ohne .NET und ohne App SDK — die Zusage von self-contained), **T122** (`tel:`-Link nach einem Update; zeigt der Registrierungseintrag in `current\`, ist ab dem ersten Update Schluss), **T131** (Toasts — die Voraussetzung, wegen der überhaupt unpackaged ausgeliefert wird), **T134** („Beenden“ beendet wirklich; hängt der Prozess, scheitert jedes Update). **Vor T124 `history.db` kopieren** |
+| **T111–T119** | Anrufliste und Designer. Wichtigste: **T112** (der „gesehen"-Zustand überlebt einen Neustart — im Arbeitsspeicher hätte alles davor auch funktioniert), **T113** (der Bereich wächst, und die Liste behält ihre Virtualisierung — **mit Tab-Wechsel** prüfen), **T116** (kaputte Karte kostet nur sich selbst). **Vorher `history.db` kopieren**: Fassung 2 ist ihre erste Wanderung |
+| **T98–T110** | Katalog, Designer, Toast-Karte, packaged. Wichtigste: **T99** (Designer während eines Gesprächs — er läuft auf dem Thread, der alle 20 ms `Core.Iterate()` bedient), **T104** (kaputte Karte darf nur sich selbst kosten), **T105** (Toast-Karte, dabei T90–T92 mitfahren) |
+| **T90–T97** | Toast mit Kontext, Klingelton, Info-Bereich, Anpinnen, Infobereich-Symbol. T96 bestanden |
+| **T78a–c, T80–T86** | Headset. Wichtigster: **T82** — Gespräch in der Oberfläche beenden, dann die Taste beim nächsten Anruf. Ist der Gabelzustand nicht nachgezogen, ist ab da jeder zweite Druck falsch |
+| **T40–T59** | Die Integrationen. Besonders T46 (Virtualisierung im Kontakte-Tab) und T51/T52/T57 (beide Quellen aus, Netz getrennt, Protokoll ohne Rufnummern) |
+| **T02–T37, T67–T76** | Netz, Registrierung, Oberfläche. Substanziell: **T03 (TLS)** — §9.2 gibt TLS als Standard vor, das Konto läuft über UDP, die Prüfung ist eingebaut und ungeprüft |
+
+**Nicht gebaut, mit Absicht:** **T101** — Ziehen aus der Palette im Designer.
+Eingefügt wird über Doppelklick und Knopf.
+
+**Offen mit Befund:** **T110** — packaged bekommt keine Toasts. Die beiden
+Manifest-Erweiterungen fehlten und sind nachgetragen; der Fehler wanderte von
+`0x80004005` auf `0x80070490`, und die Benachrichtigungsplattform registriert
+nipp jetzt erfolgreich. Nötig war es also, ausreichend nicht. Details im
+Nachtrag zu ADR-008. **Bis das geht, wird unpackaged ausgeliefert.**
+
+### Von aussen abhängig
+
+- **AP0.5 / AP9.2** Zertifikat — Beschaffung dauert Wochen, früh anstossen.
+  **Seit dem 07.09.2026 abends der einzige echte Blocker vor einer Abgabe
+  ausser Haus**: das Setup ist unsigniert, SmartScreen hält den ersten Start
+  auf (T130). Intern einmal wegzuklicken, beim Kunden nicht
+- ~~**AP9.3** Update-Prüfung~~ **erledigt am 07.09.2026** (ADR-039): GitHub
+  Releases, Kanäle stable/beta, Prüfung beim Start. `docs/updates.md`
+- ~~**AP9.6** Lizenz~~ **erledigt am 11.09.2026** (ADR-040): AGPLv3, der
+  Quelltext wird offengelegt. Offen bleibt nur der Repo-Wechsel selbst —
+  **das ist keine Lizenzfrage mehr, sondern Handarbeit** (`docs/plans/RELEASE-PLAN.md` R10)
+- **AP7.8, T38, AP9.5** — brauchen x64-Hardware. **Es gibt keine** (ADR-001,
+  entschieden am 07.09.2026): damit sind die vier nichtfunktionalen Ziele aus
+  §2 ungemessen, das M1-Gate unter Emulation abgenommen und der Jitter-Befund
+  aus ADR-006 ein unbestätigter Verdacht. Bewusst getragen, **fällig vor der
+  ersten Kundenabgabe** — und es braucht kein eigenes Gerät, nur einmal Zugang
+  zu einem
+
+Dazu ein Test, den nur Dominic machen kann: eine Team-Nebenstelle anrufen
+lassen und schauen, ob die Lampe auf „im Gespräch" springt („klingelt" kennt
+das SDK über `presence` nicht, siehe docs/blf-pruefung.md).
+
+### Vorgeschichte
+
+Was wann passiert ist, und wo es vollständig steht. **Von unten nach oben
+lesen, wenn man den Faden sucht.**
+
+| Wann | Was | Wo |
+|---|---|---|
+| 13.09. | **Welle 1** — Fokus beim Klingeln, Ergebnis der Weiterleitung, Meldungen mit Handlung, Symbole und Farben, der Betriebsrand, die Textregeln | **docs/plans/REVIEW-2026-09-12.md** Welle 1, `docs/test-matrix.md` T263–T273 |
+| 13.09. | **Welle 0 der Standortbestimmung** — die Ausnahmegrenze, der maskierte SIP-Trace, «der Benutzer gewinnt», der SIP-Port, die Klammer-Null | **docs/plans/REVIEW-2026-09-12.md**, **docs/plans/WELLE-0-PLAN.md**, **ADR-053**, **ADR-054**, `docs/test-matrix.md` T255–T262 |
+| 12.09. | **Standortbestimmung** — fünf Achsen, 83 Befunde mit Datei und Zeile, 16 davon hoch, keiner blockierend | **docs/plans/REVIEW-2026-09-12.md** |
+| 12.09. | **Die Breite gehört dem Fenster** — die Deckelung fällt, die linke Spalte wird fest, die Kacheln stehen endlich nebeneinander (`GroupStyle.Panel` war wirkungslos) | **ADR-052**, `docs/test-matrix.md` T251–T254 |
+| 13.09. abends | **Zweites UX-Review** — was ein Fehlgriff kosten darf, der Alltag, die Struktur. Achtzehn von zwanzig Befunden umgesetzt | **docs/plans/UX-REVIEW-2.md**, **ADR-049** bis **ADR-051**, `docs/test-matrix.md` T222–T250 |
+| 13.09. | **Das breite Fenster** — zwei Spalten ab 960 Pixeln, die Nebenstellen als Kacheln, der Detailbereich wieder in der Zeile; dazu ein maximiertes Fenster, das maximiert zurückkommt | **docs/plans/BREITBILD-PLAN.md**, **§23**, **ADR-047**, **ADR-048**, `docs/test-matrix.md` T211–T221 |
+| 12.09. abends | **Die Bedienbarkeit, in drei Phasen** — ein Wort je Zustand und die Liste ohne Maus; ein Speichermodell statt fünf und ein Erststart mit Einstieg; zwei Ebenen in den Einstellungen, ein Suchfeld, ein Detailbereich, eine gedeckelte Breite | **docs/plans/UX-REVIEW.md**, **ADR-044** bis **ADR-046**, `docs/test-matrix.md` T185–T210 |
+| 12.09. | **„Beenden" beendete nicht** (T134, Ursache gefunden), **Ziehen zwischen Gruppen** und der Detailbereich in der Zeile, **der Name bei ausgehenden Anrufen** | **ADR-042**, **ADR-043**, `docs/test-matrix.md` T175–T184 |
+| 11.09. | **Der Quelltext wird offengelegt (B)** — AGPLv3, `LICENSE` und `NOTICE`; die beiden bv2-eigenen Anbieter verlassen den Quelltext und kommen als importierbare Vorlagendatei zurück. Echte Kundendaten aus Tests und Doku entfernt | **ADR-040**, `docs/licensing.md`, `docs/test-matrix.md` T169–T174 |
+| 11.09. | **Team-Kontakte (C)** — Handynummer, Detailbereich unter der Liste, eigene Gruppen. Das meiste war gebaut und nicht angeschlossen; die Gruppen brachten die Invariante mit, ohne die ein Ziehvorgang eine Reihenfolge zurückschreibt, die niemand hergestellt hat | **ADR-041**, `docs/test-matrix.md` T160–T168 |
+| 11.09. | **Toast-Farben (A) und der Karten-Designer (D)** — grün/rot mit Fähigkeitsprüfung; im Designer lag ein Knopf über der Palette und vier Knöpfe ausserhalb ihrer Spalte, das Löschen war unauffindbar statt kaputt, und die Vorschau rechnet jetzt mit einer eingegebenen Nummer | `docs/test-matrix.md` T154–T159, Plan vom 10.09.2026 |
+| 10.09. | **Ein Anruf auf nipp warf den Benutzer aus dem Teams-Meeting** (Reports nur noch bei eigenem Anlass) und **der Rufton beim Wählen war der eigene statt der der Anlage** (blind entschieden auf einem Sekundenmittel) | ADR-028 **Nachtrag 4**, Nachtrag zu **ADR-029**, `docs/test-matrix.md` T143–T153 |
+| 09.09. | **Eingehende Anrufe waren nicht annehmbar** — das Nachziehen des Gabelzustands erfand Tastendrücke und legte auf. Bedeutung der Taste jetzt am Anrufzustand, HID-Reports im Protokoll, T82 mit gelöst | Nachtrag zu **ADR-028**, `tools\Test-Headset.ps1` |
+| 08.09. | Netzwechsel (entprellt und doch veraltet), der eigene Rufton am Gerät bestätigt, Absturz bei der Update-Prüfung (Ereignis vom falschen Thread) | `docs/lehren.md`, `docs/test-matrix.md` T135–T140 |
+| 07.09. abends | **Installer und Updates** (R0–R8): Velopack statt MSIX, GitHub-Kanäle stable/beta, Prüfung beim Start | `docs/plans/RELEASE-PLAN.md`, `docs/updates.md` |
+| 07.09. abends | **Anrufliste und Designer** (L0–L6): gesehen/ungesehen, die Karte in der Anrufliste, Abstand und Beschriftung | `docs/plans/ANRUFLISTE-PLAN.md` |
+| 07.09. abends | ADR-001, ADR-004 und ADR-006 entschieden beziehungsweise nachgetragen; zwei standen drei Tage falsch auf „offen" | `docs/decisions.md` |
+| 07.09. nachmittags | **Einrichtung und Karten** (K0–K6) | `docs/plans/EINRICHTUNG-PLAN.md` |
+| 07.09. 14:10 | Der Weg zurück ins Fenster war zu — Doppelklick auf das Infobereich-Symbol öffnete nicht mehr. Zwei Ursachen, beide gemessen; **T96 bestanden** | `docs/lehren.md`, „Windows-Integration" |
+| 07.09. mittags | Fünf Wünsche aus dem Alltag: Toast mit Anruferkontext, Rufton beim Wählen, wählbarer Klingelton, Info-Bereich, Logo beim Anheften | ADR-029 bis ADR-031, `docs/packaging.md` |
+| 07.09. vormittags | Headset-Tasten und das Freizeichen. Auflegen bestätigt (T79) | §22.5, ADR-028 |
+| 07.09. morgens | **T06 bestanden** — ein eingehender Anruf holt die Gesprächsansicht auch bei verstecktem Fenster. Damit ist der Blocker widerlegt, an dem seit dem 05.09. alles hing | `docs/test-matrix.md` |
+| 06.09. abends | Beide Quellen angebunden und am Gerät bestätigt: Kontaktsuche, Anruferkontext, Karte | `docs/integrations/` |
+| 06.09. | Gesamtprüfung der Anwendung. Der Befund: ein Blocker in acht Zeilen — `MainWindow` meldete bei jedem Klick aufs Fensterkreuz alle Abonnements ab, obwohl `App` das Fenster nur versteckt | **`docs/plans/GESAMT-REVIEW.md`** |
+| 06.09. | Integrationsplattform **I0 bis I8**, dazu **I9 und I12 vorgezogen** — 50 Dateien unter `Services/Integrations/`: eigene Konfigurationsdatei mit Store und Validator, Geheimnisse über den bestehenden `SecretStore` mit Präfix `integration:`, HTTP mit Zeit- und Grössengrenze und Schutzschalter, JSONPath-Mapping, eine eingeschränkte Ausdruckssprache, Kontaktsuche über mehrere Quellen, Anruferkontext, Karten samt Feldkatalog, Anbietervorlagen samt Import. Verwaltung, Designer und Verteilung stehen in den Einstellungen. **Zwei Quellen laufen seit dem 06.09.2026 am Gerät** — ein CRM und ein Gesprächsjournal, mit echten Daten bestätigt (aus `CLAUDE.md` hierher gezogen am 13.09.2026: eine Regeldatei führt keinen Umsetzungsstand) | `docs/plans/INTEGRATION-PLAN.md` |
+| 05.09. | Erster Tag im Alltag, sechs Befunde | `docs/plans/ALLTAG-PLAN.md` |
+| 05.09. nachts | Review der Umsetzung, §7 fand noch acht Fehler | `docs/plans/REVIEW.md` |
+| 04.09. | P0 bis P9, M1-Gate, SDK-Beschaffung | `docs/plans/IMPLEMENTATION-PLAN.md` |
+
+**`ABNAHME-ALLTAG.md`** ist der Einstieg für einen Tag mit dem Gerät: was schon
+bestanden hat, woran im Alltag zu denken ist, und was heute nicht funktioniert.

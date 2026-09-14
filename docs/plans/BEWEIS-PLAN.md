@@ -1,0 +1,448 @@
+﻿# Der Beweis — Gerätetag und Tests für die SDK-Schicht
+
+**Angelegt am 13.09.2026.** Auftrag von Dominic: ein Plan für die beiden
+Posten, die den Merge nach `main` trennen — **W2.8** (der Tag am Gerät) und
+**W2.1** (Tests für die SDK-Schicht).
+
+Bezug: `docs/plans/REVIEW-2026-09-12.md` (Befund 4 und die Massnahmen W2.1 und
+W2.8), `docs/test-matrix.md`, `docs/plans/RELEASE-PLAN.md` R9, ADR-001, ADR-053.
+
+**Stand:** **A0 ist umgesetzt** (13.09.2026) — die Matrix trägt die Spalte
+`Rüstzeug`, die Zahlen unten sind gezählt statt geschätzt. Alles andere ist offen.
+
+> **Der Satz aus der Standortbestimmung, um den es hier geht:** „Was das
+> Projekt vor allem braucht, ist nicht mehr Fähigkeit, sondern Beweis."
+> Es liegt kein Code zwischen `review-umsetzung` und `main` — es liegen
+> **252 Zeilen der Testmatrix ohne Ergebnis** dazwischen (255 waren es, bis A0
+> drei überholte gestrichen hat).
+
+---
+
+## Die Reihenfolge, und warum sie so ist
+
+**Erst der Gerätetag, dann die Tests.** W2.1 fasst 3 007 Zeilen an, die am
+Gerät laufen und die dort **noch nie gemessen wurden**. Wer sie vorher umbaut,
+weiss hinterher bei jedem Befund nicht, ob er alt ist oder gerade entstanden.
+Der Gerätetag ist der Nullpunkt, gegen den Teil B sich prüfen lässt.
+
+**Eine Ausnahme, und sie ist gross:** von den 252 offenen Zeilen brauchen
+**139 weder die Anlage noch ein Headset noch einen zweiten Rechner** —
+Oberfläche, Einstellungen, Karten-Designer, Layout, Tastatur, Erscheinungsbild
+und die Wanderungen der Konfigurationsdateien. Die gehören **vor** den
+Gerätetag und **an diese Maschine**: jeder Befund, der erst am Gerät auffällt,
+kostet dort eine Stunde statt fünf Minuten.
+
+```
+A0 Rüstzeug eintragen → A1 Schreibtisch-Runde → A2 Anlage → A3 Headsets
+   (erledigt)             (139 Zeilen)            (72)        (20)
+                                                       │
+                    A4 frischer Rechner → A5 Windows 10 → A6 x64
+                         (16)                (4)             (1)
+                                                       │
+                                              B0 … B9  (W2.1)
+```
+
+---
+
+# Teil A — Der Gerätetag (W2.8, R9)
+
+## A0 — Rüstzeug eintragen · **umgesetzt am 13.09.2026**
+
+**Das Problem des Gerätetags ist nicht die Zahl der Zeilen, sondern das
+Umrüsten.** Wer die Matrix von oben nach unten abarbeitet, steckt dreimal
+dasselbe Headset um und fährt zweimal den Windows-10-Rechner hoch.
+
+`docs/test-matrix.md` trägt jetzt **eine Spalte** — `Rüstzeug` — mit einem Code
+je Zeile. Mehrfachnennung ist erlaubt (`P+H`), die **teuerste** Angabe bestimmt
+die Runde. **288 Zeilen gestempelt, keine offen geblieben.**
+
+| Code | Bedeutung | geschätzt | **gezählt (offen)** | Runde |
+|---|---|---|---|---|
+| **S** | Schreibtisch: diese Maschine, kein Anruf, kein Gerät | ~110 | **139** | A1 |
+| **P** | Anlage (Test-Trunk), Anrufe, kein Headset nötig | ~70 | **71** (+1 `S+P`) | A2 |
+| **P+H** / **H** | Headset — Engage 75 / Link 400 / PRO 9470 | ~25 | **17 + 3** | A3 |
+| **F** | frischer Rechner (Installation, Update, Deinstallation) | ~20 | **14** (+2 `F+P`) | A4 |
+| **W** | Windows-10-Arbeitsplatz | ~8 | **4** | A5 |
+| **X** | echte x64-Hardware (ADR-001) | 4 | **1** Zeile (T38) | A6 |
+| | | | **252 offen von 282** | |
+
+**Die Schätzung lag in der richtigen Richtung, aber zu tief, und zwar zugunsten
+der Sache:** **139 statt 110** der offenen Zeilen brauchen weder Anlage noch
+Headset noch einen zweiten Rechner. Mehr als die Hälfte des Rückstands ist am
+Schreibtisch abzuarbeiten.
+
+**Was das Zählen sonst noch gefunden hat — und das war der eigentliche Ertrag:**
+
+- **Drei Zeilen waren überholt und niemand hatte sie gestrichen:** T17 (Mailbox
+  und MWI), T205 (Detailbereich unter der Liste) und T232 (Mailboxnummer
+  eintragen). Bei T205 stand die Streichung seit dem 12.09.2026 sogar im
+  Fliesstext über der Tabelle („T205 und T206: beide sind überholt") — T206 war
+  gestrichen, T205 nicht. Damit sind aus 255 offenen Zeilen **252** geworden,
+  ohne dass jemand etwas geprüft hätte.
+- **Vier weitere Zeilen verlangten etwas, das ADR-062 entfernt hat** — T154 (ein
+  dritter Toast-Knopf «Mailbox»), T193 («1 neue Nachricht»), T210 (`Strg+4`) und
+  T213 (der Mailbox-Bereich in der Umschaltleiste). Sie sind korrigiert, nicht
+  gestrichen: der Rest ihrer Erwartung gilt weiter. **Wer sie vorher am Gerät
+  geprüft hätte, hätte vier Fehlschläge gemeldet, die keine sind.**
+- **Zwei Zeilen waren als Tabelle kaputt:** in T197 und in der Testumgebung ganz
+  oben war aus einem Pfad mit `\nipp` ein echter Zeilenumbruch geworden — beide
+  rendern seit jeher als abgebrochene Zeile. T79 trug **eine Spalte zu viel**.
+  Behoben.
+
+**Damit ist beantwortet, was vorher eine Vermutung war:** „ein Arbeitstag am
+Gerät" sind in Wahrheit **72 Zeilen an der Anlage, 20 an den Headsets, 16 auf
+einem frischen Rechner und 4 auf Windows 10** — und 139, die gar kein Gerät
+brauchen.
+
+## A1 — Die Schreibtisch-Runde · ~2 Tage · an dieser Maschine
+
+Alle Zeilen mit **S**, nach Rüstzeug geordnet und nicht nach Nummer:
+
+| Block | Zeilen (Auswahl) | Vorbereitung |
+|---|---|---|
+| **Wanderungen der Dateien** | T168, T197, T231, T257, T258, T262, T280 | **`settings.json`, `integrations.json` und `history.db` kopieren, bevor irgendetwas davon läuft** |
+| **Einstellungen und Provisionierung** | T194–T201, T202, T243, T245, T259, T286 | `nippprov` zur Hand, ein Profil mit gesperrtem und ungesperrtem Pfad |
+| **Karten-Designer** | T100–T104, T107, T108, T119, T156–T158, T283, T288 | eine Quelle eingerichtet; für T288 eine Antwort **über 8 KB** |
+| **Anrufliste ohne Anlage** | T111–T115 | verpasste Anrufe von Hand in `history.db` schreiben (steht so in der Matrix) |
+| **Layout und Breite** | T211–T221, T251–T254, T287, T290, T291 | vierzig Nebenstellen in vier Gruppen, 137 Outlook-Kontakte |
+| **Tastatur und Sprachausgabe** | T185–T193, T209, T210, T217, T218, T233–T237, T239 | Sprachausgabe von Windows |
+| **Erscheinungsbild und Kontrast** | T74, T75, T94, T269–T271, T282 | hell/dunkel, 100 % und 150 %, Kontrastmodus **im laufenden Betrieb** |
+| **Import und Vorlagen** | T169–T173, T201 | eine Vorlage aus dem privaten Vorlagen-Repo, dazu eine **mit Token darin** — sie muss abgelehnt werden |
+| **Frischer Klon** | T174 | zweites Verzeichnis, SDK nach `docs/sdk-setup.md` |
+
+**Regel für die Runde:** Ein Fehlschlag wird **eingetragen und liegen
+gelassen**, nicht sofort behoben. Wer mitten in der Runde repariert, prüft die
+restlichen Zeilen gegen einen anderen Build als die vorherigen. Reparaturen
+kommen gesammelt nach A1; danach laufen die betroffenen Zeilen erneut.
+
+**Fertig, wenn:** jede S-Zeile ein Ergebnis, ein Datum und einen Build trägt.
+
+## A2 — Der Tag an der Anlage · 1 Tag · Test-Trunk
+
+**Nur der Test-Trunk auf der Test-PBX. Nie ein Kundentenant** (§13). Vorher
+sicherstellen, dass dieselben Zugangsdaten **nicht gleichzeitig** auf einem
+Tischtelefon registriert sind (§14.11).
+
+Nach Aufbau geordnet, nicht nach Nummer:
+
+1. **Die Grundkette** — T02, T03 (TCP und TLS), dann T04–T09 als Durchlauf.
+   **Diese sechs sind der Prüfstein, den Teil B nach jeder Etappe wiederholt** —
+   deshalb hier einmal sauber und mit Protokoll auf Debug.
+2. **Die Absturzpfade aus Welle 0** — T261 (Halten, Stumm, Auflegen und DTMF im
+   Moment des Auflegens, mehrere Anläufe), T264 (Weiterleitung an eine Nummer,
+   die es nicht gibt), T68.
+3. **Die Maskierung** — T255 und T256 **im selben Durchlauf** wie Punkt 1:
+   Debug an, anmelden, anrufen, dann die Datei durchsuchen und die
+   Prozessorlast gegenlesen. T57 und T70 fahren mit.
+4. **Rufton und Early Media** — T142–T146, mit `tools\Test-Ton.ps1`.
+5. **Anruferkontext und Karten** — T48–T57, T90–T92, T181–T184, T244, T246.
+6. **Besetztlampenfeld und Präsenz** — T27, T162, mit `tools\Test-Blf.ps1`.
+7. **Netz** — T284, T285, T135, T136, T52, T128.
+8. **Das Lange zum Schluss** — T34 (acht Stunden, fünfzig Anrufe) läuft
+   **nebenher**, ab Punkt 1, und wird am Ende des Tages abgelesen.
+
+**Fertig, wenn:** die P-Zeilen ein Ergebnis haben und T04–T09 als
+Referenzdurchlauf im Protokoll stehen, auf den Teil B sich berufen kann.
+
+## A3 — Die Headset-Runde · ½ Tag · Engage 75, Link 400, PRO 9470
+
+**Je Gerät dieselbe Kette**, nicht je Testfall alle drei Geräte — das Umstecken
+ist der Aufwand:
+
+T78a, T78c, T81–T86, T15, T14, T207, T265, T276, T152.
+
+Dazu die Teams-Gegenprobe **mit angeschlossenem Headset**: T147–T151, T153.
+**T150 ist die wichtigste** — sieht die Erkennung einer Fremdbelegung nichts,
+trägt allein die Regel „keine Berichte ohne Anlass" (ADR-028 Nachtrag 4), und
+das gehört dann so in die Matrix geschrieben.
+
+**Fertig, wenn:** jede H-Zeile ein Ergebnis **je Gerät** trägt. Ein Gerät, das
+nicht zur Verfügung steht, bekommt „nicht geprüft — Gerät fehlt" und **kein
+leeres Feld**; ein leeres Feld ist später nicht von „noch nicht dran" zu
+unterscheiden.
+
+## A4 — Der frische Rechner · ½ Tag · R9
+
+Windows 11 ohne .NET 8 und ohne Windows App SDK.
+
+T120–T134, T140, T272, T273, T278, T279, T275.
+
+**Drei davon entscheiden über die Auslieferungsform:** T120 (ohne Laufzeit —
+die Zusage von self-contained), T122 (`tel:` **nach** einem Update; zeigt der
+Registrierungseintrag in den `current`-Ordner, ist ab dem ersten Update
+Schluss) und T131 (Toasts — der Grund, aus dem überhaupt unpackaged
+ausgeliefert wird).
+
+**T134 ist die Abnahme der Korrektur vom 12.09.2026** („Beenden" beendete
+nicht): im **Task-Manager** auf `Nipp.App` prüfen, nicht auf das Symbol im
+Infobereich.
+
+**Vor T124 eine Kopie von `history.db` anlegen.**
+
+## A5 — Windows 10 · 2 Stunden
+
+T35, T36, T37, T155, T224. **Vor der Freigabe zwingend** — sie decken das
+Restrisiko von ADR-003 ab, und T224 ist der Rückfallpfad ohne Toasts, in dem
+der Fokusklau aus W1.1 überhaupt greift.
+
+## A6 — Die x64-Stunde · 1 Nachmittag · ADR-001
+
+**T38** (Jitter und WASAPI-Puffer), **AP7.8** (die vier nichtfunktionalen Ziele
+aus §2), **AP9.5** und das **M1-Gate** in seiner Beweiskraft.
+
+Es braucht kein eigenes Gerät: ein Kundenrechner bei einer Installation oder
+ein Testrechner genügt. **Wer einmal Zugang zu echter x64-Hardware hat, hängt
+A4 und A5 an denselben Termin** — dann ist der frische Rechner gleichzeitig der
+x64-Rechner, und drei Runden werden zu einer.
+
+## Wie ein Ergebnis eingetragen wird
+
+Drei Spalten stehen schon da: `Ergebnis`, `Datum`, `Build`. Dazu:
+
+- **„bestanden"** allein genügt nur, wenn die Erwartung genau eingetroffen ist.
+  Sonst der **beobachtete** Zustand in einem Satz — so wie T28 und T34 es heute
+  vormachen („bestanden für Toast und Anrufliste. **Nicht** in der
+  Gesprächsansicht: dort stand 151").
+- **Ein Fehlschlag wird zur Zeile in einem Befundabschnitt am Ende der Matrix**,
+  mit Datei und Vermutung — **und mit „vermutlich", solange nichts gemessen
+  ist** (W2.7, Befund A8).
+- **Keine Rufnummer, kein Name** in den Ergebnissen (§21.2).
+
+## Abbruchkriterien
+
+Der Merge nach `main` wartet, wenn eine dieser Zeilen **nicht** besteht:
+T120, T122, T131 (Auslieferungsform), T35–T37 (Windows 10), T255 (Maskierung),
+T261 (Absturz im Gespräch), T04–T09 (die Grundkette).
+
+Alles andere ist ein Befund und kein Halt.
+
+---
+
+# Teil B — Tests für die SDK-Schicht (W2.1)
+
+## Der Stand, gemessen
+
+| Datei | Zeilen | Tests |
+|---|---|---|
+| `SipService.cs` | 3 007 | **keine** |
+| `SipEventBridge.cs` | 338 | **keine** |
+| `SettingsApplier.cs` | 499 | **keine** |
+| `Hid/HidTelephonyDevice.cs` | 1 062 | **keine** |
+| `HeadsetCallControl.cs` | 684 | **keine** |
+
+Kein Komponententest berührt eine dieser Klassen. Die vier Architekturtests,
+die ihre Namen nennen, prüfen Grenzen, nicht Verhalten.
+
+## B0 — Was „testbar" hier heisst · braucht einen ADR (ADR-066)
+
+**Die Massnahme W2.1 schlägt eine `ISdkCore`-Fassade vor. Dieser Plan weicht
+davon ab, und das gehört in einen ADR.**
+
+**Warum die Fassade allein nicht trägt:** `SipService` berührt **46
+Core-Member**, dazu zehn an `Call` und weitere an `Account`, `Friend`,
+`FriendList`, `AuthInfo`, `Player`, `CallParams` und `Address`. Alle diese
+Typen sind im C#-Wrapper **gewöhnliche Klassen ohne virtuelle Member und ohne
+Schnittstelle** — es gibt nichts zum Überschreiben. Eine Fassade müsste also
+**jeden einzelnen** dieser Member nachbauen: rund achtzig Durchreichungen, und
+sie wäre selbst ungetestet, weil sie genau die Schicht ist, die niemand fahren
+kann. Der Beweis wäre um eine Schicht verschoben, nicht erbracht.
+
+**Was stattdessen gilt — und dieses Haus macht es bereits vor:**
+`RingbackWatch`, `TransferOutcomes`, `TransportPorts`, `DoNotDisturb`,
+`SipErrorCatalog`, `ToneCardChooser`, `HeadsetPolicy`, `HeadsetSignalGate` und
+`HookWatch` sind **herausgetrennte Entscheidungen ohne SDK-Typ**, jede mit
+Tests. Nicht eine davon brauchte eine Fassade.
+
+> **Die Regel:** Was das SDK **liest**, wird an **einer** Stelle in eine eigene
+> Momentaufnahme übersetzt. Was daraus **folgt**, entscheidet eine reine Klasse
+> ohne SDK-Typ. Was das SDK **tut**, bleibt in `SipService` und wird weiterhin
+> am Gerät geprüft.
+
+Damit bleibt ein ungetesteter Rest — **die Ausführung** —, und der ist genau
+der Teil, für den es Teil A gibt. Der ADR sagt das ausdrücklich, damit niemand
+später „SipService ist getestet" liest und mehr hineindeutet, als dasteht.
+
+## B1 — Die Zustandsmaschine der Anrufe · die grösste Etappe
+
+**Heute:** `OnBridgeCallStateChanged` (`SipService.cs:1782`–`1946`) mischt vier
+Dinge — SDK lesen, entscheiden, protokollieren, melden. Darin stecken die
+Regeln, die dieses Projekt teuer bezahlt hat und die heute nur als Kommentar
+dastehen:
+
+- ein neuer Anruf hat **keinen** Vorzustand — sonst ist ein eingehender Anruf
+  unsichtbar: der Toast bleibt aus, das Fenster wechselt nicht;
+- der dritte Anruf wird **vorgemerkt**, nicht sofort abgelehnt (Reentranz);
+- die automatische Annahme wird **vorgemerkt**, nicht im Callback ausgeführt;
+- ein Zwischenzustand ohne eigene Aussage lässt den bisherigen stehen;
+- der Endgrund wird **beim letzten Ereignis** festgehalten, danach ist der
+  Anruf aus der Verwaltung;
+- der eigene Rufton endet, sobald der Anruf nicht mehr läutet.
+
+**Zu bauen:**
+
+1. `Model/CallSnapshot.cs` — ein `record`: Nummer, Anzeigename, Zustand,
+   Meldung, Codec, Verschlüsselung, Endgrund, `EarlyMedia`, Kennung des Kontos.
+   **Kein SDK-Typ.**
+2. In `SipEventBridge`: die Momentaufnahme **dort** lesen, wo ohnehin schon
+   `using Linphone` steht — die Bridge ist die Stelle, die das SDK übersetzt,
+   das ist ihr Zweck. `SdkCallStateEventArgs` trägt künftig die Momentaufnahme.
+   **Der `Call` bleibt daneben stehen**, solange `SipService` ihn zum Ausführen
+   braucht.
+3. `Telephony/CallFlow.cs` — rein, ohne SDK: nimmt die Momentaufnahme und die
+   laufenden Anrufe, gibt eine **Entscheidung** zurück (`Ablehnen`, `Anlegen`,
+   `Aktualisieren`, `Entfernen`) samt neuem `CallInfo`, Vorzustand und den
+   Vormerkungen (automatische Annahme, Rufton stoppen).
+4. `OnBridgeCallStateChanged` führt nur noch aus, was `CallFlow` entschieden
+   hat.
+
+**Tests (`CallFlowTests`):** die sechs Regeln oben je einzeln; dazu das Rennen
+eingehend gegen ausgehend, der dritte Anruf, der Anruf, der endet, während ein
+zweiter klingelt, und derselbe Zustand zweimal hintereinander.
+
+**Fertig, wenn:** `OnBridgeCallStateChanged` unter 40 Zeilen liegt und keine
+Entscheidung mehr trifft; `CallFlowTests` deckt jede der sechs Regeln.
+
+## B2 — Die Anmeldung
+
+`OnBridgeRegistrationChanged` (`:1603`), `ReadDefaultAccountStatus` (`:1718`),
+`NormalizeIdentity` (`:1696`) und die drei Wörterbücher `_accountSettings`,
+`_accountStates`, `_accountMessages`.
+
+**Zu bauen:** `AccountRegistry` — hält die Kontozustände und beantwortet
+„welcher Zustand gilt für das Standardkonto?" und „was ändert sich, wenn für
+dieses Kürzel dieser Zustand kommt?". `NormalizeIdentity` wandert mit.
+
+**Tests:** Kontowechsel im laufenden Gespräch, zehn Konten (`MaxAccountCount`),
+ein Zustand für ein Kürzel, das nicht mehr eingetragen ist, und die Frage, wann
+`AccountsChanged` überhaupt gemeldet werden muss — **die Gegenprobe aus
+ADR-060**: eine Meldung ohne Änderung ist ein Auftrag ohne Anlass.
+
+## B3 — Der Gerätewechsel
+
+`ReactToDeviceChange` (`:2136`) und `RetargetRunningCalls` (`:2211`) — 130
+Zeilen Entscheidung über Audiogeräte, ausgelöst aus einem SDK-Callback.
+
+**Zu bauen:** `AudioDeviceChoice` — nimmt die bisherige und die neue
+Geräteliste plus die Wahl des Benutzers und gibt zurück, welches Gerät gilt und
+ob laufende Gespräche umgehängt werden müssen.
+
+**Tests:** Headset kommt, Headset geht, Headset kommt zurück; das vom Benutzer
+namentlich gewählte Gerät verschwindet; zwei Geräte mit demselben Namen.
+
+## B4 — Die Präsenz
+
+`CheckPresenceSubscriptions` (`:1470`) — läuft alle fünf Sekunden aus `Pump()`.
+
+**Zu bauen:** `PresenceWatch` — entscheidet aus Zuständen und Zeit, was zu
+erneuern ist. **Ohne Zeitgeber:** die Uhr kommt als Parameter herein, wie bei
+`RingbackWatch`.
+
+**Tests:** eine Anmeldung, die nie bestätigt wird; eine, die abläuft; eine
+Nebenstelle, die zwischendurch aus der Liste fällt.
+
+## B5 — Adresse, Konto, Aufnahmepfad
+
+`ToDialableAddress` (`:852`), `DomainOf` (`:871`), `IdentityOf` (`:2677`),
+`BuildRecordingPath` (`:962`), `MapCallStatus` (`:2598`), `ReadEndReason`
+(`:2713`).
+
+Die sechs sind **schon fast rein** — sie brauchen kein neues Gebilde, nur die
+Trennung von dem einen SDK-Zugriff, den sie je noch haben, und dann Tests.
+**Die billigste Etappe, und sie deckt den Weg, auf dem die Klammer-Null
+gefunden wurde.**
+
+**Tests:** eine Nebenstelle ohne Domäne; eine E.164-Nummer; eine Nummer mit
+Leerzeichen; ein Aufnahmepfad für eine Nummer mit Zeichen, die Windows im
+Dateinamen nicht annimmt.
+
+## B6 — `SettingsApplier`
+
+499 Zeilen, die Einstellungen auf den Core schreiben. **Der Teil, der
+entscheidet, _was_ geschrieben wird, gehört heraus** — der Teil, der schreibt,
+bleibt.
+
+**Tests:** dass ein unveränderter Satz Einstellungen **nichts** auslöst
+(ADR-060); dass der SIP-Port ankommt (ADR-019 Nachtrag — „gebaut, nicht
+angeschlossen" zum fünften Mal); dass eine Sperre die Benutzermarkierung löscht
+(ADR-054).
+
+## B7 — Die HID-Schicht
+
+Zwei Stellen in `HidTelephonyDevice.cs` sind reine Entscheidung und heute
+unerreichbar:
+
+- **`Deute`** (`:858`) — aus einem Report wird ein Tastendruck. `HookWatch` ist
+  geprüft, die Deutung darum herum nicht. Ein Report ist ein `byte[]`; ein Test
+  braucht **kein Gerät**.
+- **`WriteLoop` / `Schreibe`** (`:604`, `:692`) — das Sammelfenster von 60 ms
+  und die drei Bits. **Ein Ausgangsreport ohne eigenen Anruf ist ein Eingriff in
+  das Gespräch eines anderen Programms** (ADR-028 Nachtrag 4); die Regel steht
+  in `HeadsetSignalGate` und ist geprüft, das Zusammenfassen der Zustände
+  darunter ist es nicht.
+
+**Zu bauen:** `HidReportDeutung` und `LampenSammler`, beide rein. Die
+Geräteöffnung, die Threads und die Ströme bleiben unangetastet.
+
+## B8 — Die drei Anläufe zur Ansichtsnavigation
+
+Aus der Geschichte dieses Projekts: eine Ausnahme aus `ContentFrame.Navigate`,
+geworfen im Zustands-Callback. Das ist **kein** Test von `SipService`, sondern
+von `CallbackGuard` — und `ExceptionBoundaryTests` erzwingt heute nur, dass der
+Wächter **dasteht**, nicht, dass er trägt.
+
+**Zu bauen:** ein Test, der einen Abonnenten anmeldet, der wirft, und prüft: die
+übrigen Abonnenten bekommen ihr Ereignis trotzdem, die Ausnahme steht im
+Protokoll, und nichts verlässt den Rahmen.
+
+## B9 — Die Gegenprobe
+
+**Nach jeder Etappe B1 bis B7: T04 bis T09 an der Anlage wiederholen** — genau
+die sechs, die A2 als Referenzdurchlauf hinterlegt hat. Eine Etappe ohne
+Gegenprobe gilt als nicht abgeschlossen.
+
+**Und jede Etappe ist ein eigener Commit.** Sieben kleine Diffs sind zu prüfen,
+einer über 3 000 Zeilen ist es nicht.
+
+## Was Teil B ausdrücklich nicht tut
+
+| | Warum |
+|---|---|
+| **Keine `ISdkCore`-Fassade über achtzig Member** | Sie verschiebt den Beweis, statt ihn zu erbringen — Begründung in B0, festzuhalten als ADR-066 |
+| **Kein Testprojekt für `Nipp.App`** | 9 715 Zeilen hinter WinUI; der Zustand, der zählt, liegt seit ADR-032 ff. ohnehin im Kern (`CardDraft`, `CardDesignerViewModel`) |
+| **Kein Umbau von `Pump()`** | Die Schleife ist der Taktgeber; was sie ruft, wird testbar, sie selbst bleibt |
+| **Keine Änderung an `OutlookContactSource`** | Unangetastet, wie seit der Migration |
+| **B9 wird nicht durch Tests ersetzt** | Ein Test beweist die Entscheidung, nicht das Gerät |
+
+## Fertig, wenn
+
+- `SipService.cs` trägt keine Entscheidung mehr, die nicht in einer eigenen,
+  geprüften Klasse steht — messbar daran, dass die Datei **unter 2 000 Zeilen**
+  liegt und keine der in B1 bis B5 genannten Methoden mehr enthält;
+- `CallFlow`, `AccountRegistry`, `AudioDeviceChoice`, `PresenceWatch`,
+  `HidReportDeutung` und `LampenSammler` haben Tests;
+- die sechs Regeln aus B1 stehen als Test da, nicht als Kommentar;
+- T04–T09 nach jeder Etappe wiederholt und eingetragen;
+- ADR-066 steht in `docs/decisions.md`.
+
+---
+
+## Aufwand, offen gesagt
+
+| | |
+|---|---|
+| A0 Rüstzeug | ~~½ Tag~~ **erledigt** |
+| A1 Schreibtisch | **2 Tage** |
+| A2 Anlage | 1 Tag |
+| A3 Headsets | ½ Tag |
+| A4 frischer Rechner | ½ Tag |
+| A5 Windows 10 | 2 Stunden |
+| A6 x64 | 1 Nachmittag, **fremdes Gerät nötig** |
+| B0–B9 | **3 bis 4 Tage** |
+
+**Rund neun Arbeitstage**, davon zwei an fremder Hardware. Das ist die ehrliche
+Zahl; „ein Tag am Gerät" war sie nie.
+
+**Der kürzeste Weg zum Merge nach `main`,** wenn nicht alles zu haben ist:
+A0 → A1 → A2 → die Abbruchkriterien aus A4 und A5. Teil B und A6 wandern dann
+hinter den Merge — aber **A6 bleibt vor der ersten Kundenabgabe fällig**, und
+das steht seit ADR-001 so da.

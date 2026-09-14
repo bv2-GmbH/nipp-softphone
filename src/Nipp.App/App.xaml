@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Application
+    x:Class="Nipp.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:Nipp.App.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="ms-appx:///Themes/Tokens.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--
+                Die Konverter gehoeren hierher, nicht ins Fenster: eine Seite
+                im Frame bildet einen eigenen Ressourcenbaum und findet die
+                Ressourcen des Fensters nicht. Genau daran ist die erste
+                Fassung beim Start gescheitert.
+            -->
+            <converters:RegistrationBrushConverter x:Key="RegistrationBrushConverter" />
+            <converters:OutcomeGlyphConverter x:Key="OutcomeGlyphConverter" />
+            <converters:OutcomeBrushConverter x:Key="OutcomeBrushConverter" />
+            <converters:HistoryDetailConverter x:Key="HistoryDetailConverter" />
+            <converters:NewToFontWeightConverter x:Key="NewToFontWeightConverter" />
+            <converters:PresenceBrushConverter x:Key="PresenceBrushConverter" />
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+            <converters:AccountStateTextConverter x:Key="AccountStateTextConverter" />
+            <converters:RelativeDateConverter x:Key="RelativeDateConverter" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,8 @@
+{
+  "//": "nipp wird mit dem x64-SDK gebaut. Auf der ARM64-Entwicklungsmaschine liegt es unter C:\\Program Files\\dotnet\\x64 und ist vom arm64-Host im PATH NICHT sichtbar. Siehe docs/environment.md und ADR-001. Bauen ueber .\\build.ps1, nicht ueber ein blankes dotnet.",
+  "sdk": {
+    "version": "8.0.424",
+    "rollForward": "latestFeature",
+    "allowPrerelease": false
+  }
+}

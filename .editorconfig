@@ -1,0 +1,104 @@
+# nipp — Codeformat. Siehe NIPP-BUILD.md Paragraph 15.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{md,yml,yaml,json}]
+indent_size = 2
+trim_trailing_whitespace = false
+
+[*.{xml,xaml,csproj,props,targets,config,resw,appxmanifest}]
+indent_size = 2
+
+[*.cs]
+indent_size = 4
+
+# --- using-Direktiven ---
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# --- Moderne Sprachfeatures, die im Projekt erwartet werden ---
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = true:suggestion
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_methods = false:suggestion
+csharp_style_prefer_pattern_matching = true:suggestion
+csharp_style_throw_expression = true:suggestion
+csharp_style_prefer_primary_constructors = false:suggestion
+
+# --- Nullable: die Analyse ist scharf, weil Warnungen Fehler sind ---
+dotnet_diagnostic.CS8600.severity = error
+dotnet_diagnostic.CS8602.severity = error
+dotnet_diagnostic.CS8603.severity = error
+dotnet_diagnostic.CS8604.severity = error
+dotnet_diagnostic.CS8618.severity = error
+
+# --- Async: Paragraph 15 verlangt Async-Suffix und CancellationToken ---
+dotnet_diagnostic.CA2007.severity = none      # ConfigureAwait: in einer UI-App unnoetig
+dotnet_diagnostic.CA1849.severity = warning   # synchroner Aufruf in async-Methode
+dotnet_diagnostic.CA2016.severity = warning   # CancellationToken weiterreichen
+dotnet_diagnostic.VSTHRD100.severity = warning # async void ausser in Event-Handlern
+
+# --- Namensregeln ---
+dotnet_naming_rule.interfaces_start_with_i.severity = error
+dotnet_naming_rule.interfaces_start_with_i.symbols = interface_symbol
+dotnet_naming_rule.interfaces_start_with_i.style = i_prefix_style
+dotnet_naming_symbols.interface_symbol.applicable_kinds = interface
+dotnet_naming_style.i_prefix_style.required_prefix = I
+dotnet_naming_style.i_prefix_style.capitalization = pascal_case
+
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_rule.private_fields_underscore.symbols = private_field_symbol
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel_style
+dotnet_naming_symbols.private_field_symbol.applicable_kinds = field
+dotnet_naming_symbols.private_field_symbol.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel_style.required_prefix = _
+dotnet_naming_style.underscore_camel_style.capitalization = camel_case
+
+# --- Ereignisargumente der Telefonie ---
+#
+# CA1711 verlangt, dass ein Typname nur dann auf "EventArgs" endet, wenn er von
+# System.EventArgs erbt. Diese Typen sind Records, und ein Record kann nicht von
+# einer Klasse erben — nur von einem anderen Record.
+#
+# Die Namen bleiben trotzdem: NIPP-BUILD.md Paragraph 6 gibt sie woertlich vor
+# (EventHandler<RegistrationChangedEventArgs> und so weiter), und EventHandler<T>
+# akzeptiert seit .NET Core jedes T. Die Regel warnt hier vor einer Verwirrung,
+# die nicht entsteht.
+[**/Services/Telephony/Model/*.cs]
+dotnet_diagnostic.CA1711.severity = none
+
+# --- Generierter Code: der Linphone-Wrapper wird nicht formatiert oder geprueft ---
+#
+# Die Datei ist fremder, maschinell erzeugter Code (rund 62'000 Zeilen). Sie
+# verweist an vielen Stellen auf eigene veraltete APIs, und mit
+# TreatWarningsAsErrors bricht deshalb der ganze Build.
+#
+# Abgeschaltet wird nur HIER, nicht projektweit: eine eigene Verwendung einer
+# veralteten SDK-API soll weiterhin auffallen. Genau darum steht das in einem
+# dateibezogenen Abschnitt und nicht in Directory.Build.props.
+[**/LinphoneWrapper.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none
+dotnet_diagnostic.CS0612.severity = none   # veraltet, ohne Meldung
+dotnet_diagnostic.CS0618.severity = none   # veraltet, mit Meldung
+dotnet_diagnostic.CS8600.severity = none
+dotnet_diagnostic.CS8601.severity = none
+dotnet_diagnostic.CS8602.severity = none
+dotnet_diagnostic.CS8603.severity = none
+dotnet_diagnostic.CS8604.severity = none
+dotnet_diagnostic.CS8618.severity = none
+dotnet_diagnostic.CS8625.severity = none
+dotnet_diagnostic.CS8632.severity = none
+
+[*.{g,g.i,designer}.cs]
+generated_code = true

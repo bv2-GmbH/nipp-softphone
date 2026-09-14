@@ -1,0 +1,94 @@
+# --- .NET / Visual Studio ---
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]64/
+[Bb]uild[Ll]og.*
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+*.binlog
+
+# --- MSIX / Paketierung ---
+AppPackages/
+BundleArtifacts/
+*.appx
+*.appxbundle
+*.appxupload
+*.msix
+*.msixbundle
+*.msixupload
+# Signaturzertifikate gehoeren NIE ins Repo
+*.pfx
+*.snk
+*.p12
+
+# Velopack-Auslieferung (ADR-038): publish-Ausgabe, Setup, Pakete und Feed.
+# Gemessen am 07.09.2026: 345 MB publish und 426 MB unter dist\releases —
+# das gehoert in ein GitHub-Release, nicht in die Versionsgeschichte.
+dist/
+*.nupkg
+
+# --- Linphone SDK: nie eingecheckt, immer ueber NuGet oder das Prebuilt-ZIP beziehen ---
+# (Beschaffungsweg und exakte Version stehen in docs/sdk-setup.md)
+linphone-sdk/
+sdk/
+*.nupkg
+!nuget.config
+
+# --- Laufzeitartefakte der App ---
+# Aufnahmen und Logs entstehen unter %LOCALAPPDATA%, hier nur zur Sicherheit
+*.wav
+# ... aber die mitgelieferten Klaenge gehoeren ins Repo (ADR-031). Sie sind
+# erzeugt (tools/Build-Sounds.py) und trotzdem versioniert, aus demselben
+# Grund wie die Symbole: ein frischer Klon soll klingeln koennen, ohne dass
+# vorher jemand ein Skript findet. Ohne diese Ausnahme fing "*.wav" sie mit —
+# gedacht war die Regel fuer Gespraechsaufnahmen.
+!src/Nipp.App/Assets/Sounds/*.wav
+*.log
+logs/
+Diagnose_*.zip
+
+# --- Zugangsdaten: der Test-Trunk gehoert nicht ins Repo ---
+# (siehe NIPP-BUILD.md Paragraph 13: nie gegen Kundentenants testen)
+*.secrets.json
+
+# Nur ein Ablageordner im Wurzelverzeichnis, NICHT jedes Verzeichnis dieses
+# Namens. Vorher stand hier "secrets/", und das traf
+# src\Nipp.Core\Services\Integrations\Secrets\ mit: IntegrationSecrets.cs war
+# nie eingecheckt. Lokal fiel das nie auf — die Datei lag ja da. Der erste
+# frische Klon (GitHub Actions, 07.09.2026) brach mit zehn CS0234/CS0246 ab,
+# und die Meldung zeigte auf die Verwender, nicht auf die fehlende Datei.
+#
+# Wer hier ein Verzeichnismuster eintraegt, prueft es gegen den Quellbaum:
+# eine Datei in einem ignorierten Verzeichnis laesst sich mit einer Ausnahme
+# NICHT wieder einschliessen, das Muster selbst muss enger werden.
+/secrets/
+linphonerc
+linphonerc-*
+!linphonerc-factory.template
+
+# --- Sonstiges ---
+Thumbs.db
+desktop.ini
+.DS_Store
+*.bak
+!NIPP-BUILD.md.rev1-*.bak
+
+# --- SDK-Spike: Code ja, Ausgabe nein ---
+spike/**/bin/
+spike/**/obj/
+
+# --- Test-Trunk-Zugangsdaten (Paragraph 13) ---
+# Die echte Datei liegt unter %LOCALAPPDATA%\nipp\test-trunk.json, also
+# ausserhalb des Repos. Diese Regel ist das zweite Netz, falls sie doch
+# jemand hier ablegt. Die Vorlage ohne Werte bleibt eingecheckt.
+test-trunk.json
+**/test-trunk.json
+!**/test-trunk.template.json

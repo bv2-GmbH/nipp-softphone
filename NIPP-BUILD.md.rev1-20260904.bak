@@ -1,0 +1,618 @@
+# nipp — Windows-Softphone: Bau-Auftrag
+
+**Auftraggeber:** bv2 GmbH (Dominic Brunner)
+**Dokumentstand:** 04.09.2026
+**Adressat dieses Dokuments:** Claude Code, als Arbeitsauftrag von der ersten Zeile Code bis zum signierten Installer.
+
+---
+
+## 0. Wie dieses Dokument zu benutzen ist
+
+Dieses Dokument ist die verbindliche Spezifikation. Arbeite die Meilensteine **M0 bis M8** in Reihenfolge ab. Jeder Meilenstein hat Akzeptanzkriterien; erst wenn die erfüllt und verifiziert sind, gehst du zum nächsten.
+
+Drei Regeln, die über allem stehen:
+
+1. **Verifiziere die SDK-Oberfläche, bevor du gegen sie schreibst.** Die in diesem Dokument genannten C#-Namen sind aus der offiziellen API-Doku recherchiert, aber die generierte `LinphoneWrapper.cs` ist die einzige Wahrheit. Nach dem Einbinden des SDK: Wrapper-Datei öffnen, Signaturen prüfen, Abweichungen in `docs/sdk-api-notes.md` festhalten. Erfinde niemals eine Methode, die du nicht in der Wrapper-Datei gesehen hast.
+2. **Kein Feature-Erweitern ohne Auftrag.** Was hier nicht steht, wird nicht gebaut. Video, Chat, Konferenzbrücke und Multi-Tenant-Verwaltung sind explizit ausgeschlossen (siehe §2).
+3. **Nichts gegen Produktivsysteme testen, ohne zu fragen.** Registrierungen laufen gegen den ausdrücklich genannten Test-Trunk, nicht gegen Kundentenants.
+
+Wenn du auf einen Widerspruch zwischen diesem Dokument und der Realität des SDK stösst: dokumentiere ihn, wähle die pragmatische Variante, und markiere sie in `docs/decisions.md` als ADR. Nicht stillschweigend abweichen.
+
+---
+
+## 1. Was gebaut wird
+
+Ein Windows-Desktop-Softphone für die SIP-Telefonanlagen von bv2 (Asterisk-basiert), als Ersatz für den zugekauften Drittanbieter-Client. Audio-only, ein bis mehrere SIP-Konten, mit den Integrationen, die im Alltag zählen: Klick-to-Call aus Outlook und dem bv2Cockpit, Kontakte mit Besetztlampenfeld, Anrufliste, und ein Einstellungsdialog, den ein Supporter im Kundeneinsatz versteht.
+
+**Referenz für das UI:** das freigegebene Mockup (Fluent/WinUI-Entwurf, fünf Ansichten plus Einstellungen in sechs Gruppen). Das Mockup ist verbindlich für Struktur, Informationsdichte und Beschriftungen; es ist nicht verbindlich für Pixelmasse.
+
+**Produktname:** **nipp** — konsequent klein geschrieben, auch am Satzanfang und im Fenstertitel. Im Code wird daraus der PascalCase-Namespace `Nipp` (siehe §15). Branding, Icon und Signaturzertifikat fehlen noch (siehe §16).
+
+---
+
+## 2. Umfang
+
+### Im Umfang (MVP bis M6)
+
+- Registrierung eines SIP-Kontos über UDP/TCP/TLS, mit SRTP
+- Ausgehende Anrufe (Wähltastatur, Kurzwahl, Klick-to-Call über `tel:`/`sip:`)
+- Eingehende Anrufe mit Windows-Toast (Annehmen / Ablehnen / Mailbox)
+- Aktives Gespräch: Stumm, Halten, blindes und begleitetes Weiterleiten, DTMF, Aufnahme, zweiter Ruf/Makeln
+- Anrufliste lokal, Voicemail-Anzeige über MWI
+- Kontakte: Team-Nebenstellen mit Presence/BLF, externe Kontakte aus Outlook
+- Einstellungen vollständig gemäss §9
+- Audiogerätewahl inkl. getrenntem Klingelgerät, Echounterdrückung mit Kalibrierung
+- Codec-Verwaltung mit Priorität
+- Autostart, Infobereich-Icon, globaler Hotkey, Single-Instance
+- Remote-Provisioning und per Richtlinie gesperrte Felder
+- Logging und Diagnose-Export
+
+### Ausdrücklich nicht im Umfang
+
+Video, Instant Messaging/Chat, LIME/E2E-Verschlüsselung von Nachrichten, Konferenzserver-Steuerung, CRM-Schreibzugriffe, Mandantenverwaltung, macOS/Linux, Mobile. Nicht wegdiskutieren, nicht „schon mal vorbereiten“ — kein Code, keine leeren Ordner, keine Interfaces „für später“.
+
+### Nicht-funktionale Anforderungen
+
+| Anforderung | Zielwert |
+|---|---|
+| Kaltstart bis registriert | < 3 s auf einem i5 der 8. Generation |
+| Arbeitsspeicher im Leerlauf | < 180 MB |
+| CPU im Gespräch | < 6 % auf einem Kern |
+| Zeit vom eingehenden INVITE bis Toast | < 400 ms |
+| Absturzfreiheit | 8 h Dauerbetrieb mit 50 Anrufen ohne Neustart |
+| Unterstützte OS | Windows 10 22H2 und Windows 11, x64 |
+
+---
+
+## 3. Rechtliche Rahmenbedingung — vor dem ersten Release zu klären
+
+Das **linphone-sdk ist dual lizenziert: AGPLv3 oder eine kostenpflichtige proprietäre Lizenz** von Belledonne Communications. Ein Closed-Source-Client, der an Kunden ausgeliefert wird, ist mit AGPLv3 nicht vereinbar, sofern nicht der komplette Quellcode unter AGPLv3 offengelegt wird.
+
+**Aufgabe für Claude Code:** Diese Anforderung nicht lösen, sondern sichtbar halten. Lege `docs/licensing.md` an, halte den Stand fest, und blocke M8 (Release) mit einem Hinweis darauf. Für die Entwicklungsphase und interne Tests ist AGPLv3 unproblematisch.
+
+Zweiter Punkt: **G.729** ist im SDK optional (bcg729). Die Kernpatente sind abgelaufen, aber wenn der Codec nicht gebraucht wird, gehört er nicht in den Build. Standardmässig deaktiviert.
+
+---
+
+## 4. Zielstack
+
+| Komponente | Wahl | Begründung |
+|---|---|---|
+| Sprache/Runtime | C# / .NET 8 LTS, `net8.0-windows10.0.19041.0` | LTS, breite Toolchain; auf .NET 9+ nur wechseln, wenn das Windows App SDK es verlangt |
+| UI | WinUI 3 über Windows App SDK (aktuellste stabile 1.x) | Fluent-Optik des Mockups nativ, Mica, moderne Controls |
+| Architektur | MVVM mit `CommunityToolkit.Mvvm` | Source-Generatoren, keine eigene Bindings-Infrastruktur |
+| Plattform | x64 only | Das SDK liefert win32-Desktop-Binaries; ARM64 ist nicht Ziel |
+| Packaging | MSIX (packaged), Sparse-Package geprüft | Braucht es für Toasts, Protokoll-Handler und Autostart-Registrierung |
+| DI | `Microsoft.Extensions.DependencyInjection` | |
+| Logging | `LoggingService` des SDK für SIP, Serilog für die App | Zwei Ströme, eine gemeinsame Log-Ordnerstruktur |
+| Tray-Icon | `H.NotifyIcon.WinUI` | WinUI 3 hat keinen eigenen NotifyIcon |
+| Tests | xUnit, plus FakeItEasy oder NSubstitute | |
+
+**Wichtig zur Bitness und zum Packaging:** WinUI 3 lädt die native `liblinphone`-DLL-Kette zur Laufzeit. Verifiziere in M1 mit einem Wegwerf-Konsolenprojekt, dass die DLLs sich überhaupt laden lassen, bevor du UI-Code schreibst. Wenn MSIX und native DLLs kollidieren, ist die Rückfallebene ein unpackaged Build plus separate Registrierung der Protokoll-Handler — dann aber ohne `AppNotificationManager`, was eine eigene Toast-Lösung nötig macht. Diese Entscheidung fällt in M1, nicht später.
+
+---
+
+## 5. SDK beschaffen
+
+Zwei Wege, in dieser Reihenfolge probieren:
+
+### Weg A — NuGet aus der Registry von Belledonne (bevorzugt)
+
+Belledonne veröffentlicht `LinphoneSDK.Dotnet` und `LinphoneSDK.Windows` in der eigenen GitLab-Package-Registry. Das alte Paket `LinphoneSDK` auf nuget.org ist von 2017, UWP-only und als legacy markiert — **nicht verwenden**.
+
+```xml
+<!-- nuget.config im Repo-Root -->
+<configuration>
+  <packageSources>
+    <add key="linphone" value="https://gitlab.linphone.org/api/v4/projects/<projectId>/packages/nuget/index.json" />
+  </packageSources>
+</configuration>
+```
+
+Aufgabe: die korrekte Registry-URL und den aktuellen Paketnamen aus der Wiki-Seite „Getting started / Windows“ von linphone.org verifizieren und in `docs/sdk-setup.md` festhalten. Die Windows-Variante existiert in drei Paketierungen — **win32-Desktop** ist die richtige; UWP und Windows Store haben Einschränkungen (kein OpenH264, kein Lime X3DH) und sind hier falsch.
+
+### Weg B — SDK selbst bauen (Rückfallebene)
+
+Nötig, wenn das Paket nicht erreichbar ist oder ein Codec fehlt. Aktueller Stand: **linphone-sdk 5.5.0 (25.05.2026)**.
+
+Voraussetzungen: Visual Studio 2022, MSYS2 mit MinGW32/64, CMake ≥ 3.22, Python ≥ 3.6 mit `pystache` und `six`, yasm, nasm, 7-Zip im PATH.
+
+```bash
+git clone https://gitlab.linphone.org/BC/public/linphone-sdk.git --recursive
+cd linphone-sdk
+cmake --preset=windows-sdk -B build-windows
+cmake --build build-windows --config RelWithDebInfo
+```
+
+Der C#-Wrapper wird beim Build generiert (`LinphoneWrapper.cs`). Für ein eigenes NuGet-Paket: `-DLINPHONESDK_BUILD_TYPE=Packager -DLINPHONESDK_PACKAGER=Nuget` mit `-DLINPHONESDK_CSHARP_WRAPPER_PATH` und `-DLINPHONESDK_DESKTOP_ZIP_PATH`. Ergebnis landet unter `linphone-sdk/packages`. Bei Änderungen den NuGet-Cache leeren, sonst zieht der Build stillschweigend die alte Version.
+
+**Dokumentiere in `docs/sdk-setup.md`, welcher Weg genommen wurde, mit exakter Version und Commit-Hash.** Reproduzierbarkeit ist hier wichtiger als Eleganz.
+
+**API-Referenz C#:** `https://download.linphone.org/releases/docs/liblinphone/latest/cs/api/`
+
+---
+
+## 6. Architektur
+
+Vier Schichten, strikt in eine Richtung abhängig:
+
+```
+UI (WinUI 3, XAML)
+   ↓ bindet an
+ViewModels (CommunityToolkit.Mvvm)
+   ↓ ruft
+Services (Telefonie, Einstellungen, Kontakte, Verlauf, Windows-Integration)
+   ↓ kapselt
+Linphone SDK (LinphoneWrapper.cs + native DLLs)
+```
+
+**Kein XAML-Code-Behind ruft das SDK.** Kein ViewModel importiert `Linphone` direkt — der Namespace kommt ausschliesslich in `Services/Telephony/` vor. Das ist die Grenze, an der sich später ein SDK-Wechsel oder ein Mock aufhängen lässt, und sie wird durch einen Architekturtest abgesichert (siehe §13).
+
+### Der zentrale Punkt: die Iterate-Schleife
+
+`Core.Iterate()` muss regelmässig aufgerufen werden, damit das SDK Netzwerkereignisse verarbeitet und Callbacks feuert — auf Desktop macht das SDK das **nicht** selbst.
+
+**Vorgabe:** ein `DispatcherQueueTimer` auf dem UI-Thread mit 20 ms Intervall. Damit laufen alle SDK-Callbacks auf dem UI-Thread und es braucht kein Marshalling. Der Preis: nichts Blockierendes in einem Callback, keine synchronen Datei- oder Netzwerkoperationen. Wenn ein Callback Arbeit auslöst, geht die auf einen Worker und kommt über den Dispatcher zurück.
+
+Der Timer läuft, solange die App läuft — auch wenn das Fenster geschlossen und die App nur im Infobereich ist. Also hängt er am `App`-Lebenszyklus, nicht am `MainWindow`.
+
+### `SipService` — die eine Klasse, die das SDK kennt
+
+Verantwortlich für: Factory- und Core-Initialisierung, Iterate-Timer, Listener-Registrierung (`Core.AddListener`), und die Übersetzung der SDK-Callbacks in .NET-Events mit eigenen, SDK-freien Argumenttypen.
+
+```csharp
+public interface ISipService
+{
+    RegistrationState RegistrationState { get; }
+    IReadOnlyList<CallInfo> ActiveCalls { get; }
+
+    Task InitializeAsync(CancellationToken ct);
+    Task<CallHandle> PlaceCallAsync(string destination);
+    Task AcceptAsync(CallHandle call);
+    Task HangUpAsync(CallHandle call);
+    Task TransferAsync(CallHandle call, string destination, TransferMode mode);
+    Task SetHoldAsync(CallHandle call, bool onHold);
+    Task SendDtmfAsync(CallHandle call, char digit);
+    Task<bool> StartRecordingAsync(CallHandle call, string path);
+
+    event EventHandler<RegistrationChangedEventArgs> RegistrationChanged;
+    event EventHandler<CallStateEventArgs> CallStateChanged;
+    event EventHandler<CallQualityEventArgs> QualityUpdated;
+    event EventHandler<MessageWaitingEventArgs> MessageWaitingChanged;
+    event EventHandler<PresenceEventArgs> PresenceChanged;
+}
+```
+
+`CallHandle`, `CallInfo`, `RegistrationState` etc. sind eigene Typen in `Services/Telephony/Model/`. Kein `Linphone.Call` verlässt den Service.
+
+### Nachgewiesene SDK-Oberfläche
+
+Diese Namen stammen aus der offiziellen C#-Doku und sind der Ausgangspunkt — in M1 gegen `LinphoneWrapper.cs` verifizieren:
+
+| Zweck | C#-Member |
+|---|---|
+| Factory-Singleton | `Factory.Instance` |
+| Core anlegen | `Factory.Instance.CreateCore(...)`, `CreateCoreWithConfig(...)` |
+| Adresse parsen | `Factory.Instance.CreateAddress(string)` |
+| Auth-Objekt | `Factory.Instance.CreateAuthInfo(...)`, `ComputeHa1ForAlgorithm(...)` |
+| Verzeichnisse vor Core-Start | `Factory.Instance.ConfigDir`, `DataDir`, `CacheDir` |
+| Listener | `Core.AddListener(...)`, `Core.RemoveListener(...)` |
+| Ereignisschleife | `Core.Iterate()`, `Core.Start()`, `Core.Stop()` |
+| Konten | `Core.AccountList`, `Core.AuthInfoList`, `Core.AddAuthInfo(...)` |
+| Anrufe | `Core.InviteAddress(...)`, `Core.AcceptCall(...)`, `Core.CurrentCall`, `Core.Calls` |
+| Audiogeräte | `Core.AudioDevices`, `Core.ExtendedAudioDevices` |
+| Codecs | `Core.AudioPayloadTypes` |
+| NAT | `Core.NatPolicy` |
+| Verschlüsselung | `Core.MediaEncryption` |
+| Transport | `Core.Transports` |
+| Provisionierung | `Core.ProvisioningUri` |
+| Echo | `Core.EchoCancellerEnabled` |
+| DTMF | `Core.Rfc2833DtmfsEnabled` |
+| Ports | `Core.AudioPort`, `Core.AudioPortsRange` |
+| QoS | `Core.AudioDscp` |
+
+Für Echo-Kalibrierung, PayloadType-Reihenfolge, `AccountParams` und `NatPolicy`-Details: Namen aus der Wrapper-Datei holen, nicht raten.
+
+---
+
+## 7. Projektstruktur
+
+```
+nipp/
+├── Nipp.sln
+├── nuget.config
+├── Directory.Build.props            # gemeinsame Version, Nullable, TreatWarningsAsErrors
+├── CLAUDE.md                        # Konventionen, siehe §17
+├── docs/
+│   ├── sdk-setup.md                 # Weg A oder B, Version, Commit
+│   ├── sdk-api-notes.md             # Abweichungen der Wrapper-API von diesem Dokument
+│   ├── decisions.md                 # ADRs
+│   ├── licensing.md                 # AGPL vs. kommerziell, Stand
+│   └── test-matrix.md               # manuelle Testfälle gegen die PBX
+├── src/
+│   ├── Nipp.App/                               # WinUI 3 App
+│   │   ├── App.xaml(.cs)                       # DI-Container, Iterate-Timer, Single-Instance
+│   │   ├── MainWindow.xaml(.cs)                # NavigationView, Mica, Titlebar
+│   │   ├── Views/
+│   │   │   ├── DialerPage.xaml
+│   │   │   ├── ActiveCallPage.xaml
+│   │   │   ├── CallHistoryPage.xaml
+│   │   │   ├── ContactsPage.xaml
+│   │   │   ├── VoicemailPage.xaml
+│   │   │   └── Settings/
+│   │   │       ├── SettingsPage.xaml           # Pivot-Container
+│   │   │       ├── AccountSettingsView.xaml
+│   │   │       ├── NetworkSettingsView.xaml
+│   │   │       ├── NatMediaSettingsView.xaml
+│   │   │       ├── AudioSettingsView.xaml
+│   │   │       ├── CodecSettingsView.xaml
+│   │   │       └── AdvancedSettingsView.xaml
+│   │   ├── Controls/
+│   │   │   ├── SettingCard.xaml                # Label/Beschreibung/Control, wie im Mockup
+│   │   │   ├── Keypad.xaml
+│   │   │   ├── PresenceBadge.xaml
+│   │   │   └── CallQualityPanel.xaml
+│   │   ├── Themes/
+│   │   │   ├── Tokens.xaml                     # Farben, Radien, Typo-Skala
+│   │   │   └── Controls.xaml
+│   │   ├── Tray/
+│   │   │   └── TrayIconHost.cs
+│   │   └── Assets/                             # Icons, Klingeltöne
+│   ├── Nipp.Core/                              # ViewModels, Services, Modelle
+│   │   ├── ViewModels/
+│   │   ├── Services/
+│   │   │   ├── Telephony/
+│   │   │   │   ├── SipService.cs               # einzige Datei mit "using Linphone"
+│   │   │   │   ├── SipEventBridge.cs
+│   │   │   │   ├── CodecService.cs
+│   │   │   │   ├── AudioDeviceService.cs
+│   │   │   │   └── Model/
+│   │   │   ├── Settings/
+│   │   │   │   ├── SettingsService.cs
+│   │   │   │   ├── SettingsSchema.cs           # Tabelle aus §9 als Code
+│   │   │   │   ├── ProvisioningService.cs
+│   │   │   │   └── PolicyService.cs            # gesperrte Felder
+│   │   │   ├── Contacts/
+│   │   │   │   ├── OutlookContactSource.cs
+│   │   │   │   ├── BlfService.cs
+│   │   │   │   └── ClipResolver.cs             # Nummer → Name
+│   │   │   ├── History/
+│   │   │   │   └── CallHistoryStore.cs         # SQLite
+│   │   │   └── Windows/
+│   │   │       ├── AutostartService.cs
+│   │   │       ├── ProtocolHandlerService.cs   # tel:, sip:, callto:
+│   │   │       ├── GlobalHotkeyService.cs
+│   │   │       ├── ToastService.cs
+│   │   │       └── SecretStore.cs              # DPAPI
+│   │   └── Diagnostics/
+│   └── Nipp.Provisioning/                      # XML-Schema + Generator (M7)
+└── tests/
+    ├── Nipp.Core.Tests/
+    └── Nipp.Architecture.Tests/                # erzwingt die Schichtgrenze
+```
+
+---
+
+## 8. Die Screens
+
+Jeder Screen: Aufbau aus dem Mockup, Verhalten hier. Wo das Mockup und dieser Text sich widersprechen, gilt dieser Text.
+
+### 8.1 Wählen (`DialerPage`)
+
+- Nummernanzeige, Tastatur 3×4 mit Buchstabenzeile, Anrufen und Rücktaste.
+- Eingabe per Tastatur **und** per Ziffernblock der Hardware-Tastatur; Enter wählt, Escape leert.
+- Nummernnormalisierung: interne Ziele (`*` plus 3–4 Stellen, oder ≤ 4 Ziffern) bleiben unverändert; alles andere wird nach E.164 normalisiert. Regeln: `00` → `+`, führende `0` → `+41` (Länderpräfix aus Einstellungen), bereits `+` bleibt. Die Normalisierung ist eine reine Funktion in `Services/Telephony/NumberNormalizer.cs` und **wird mit Unit-Tests abgedeckt** — das ist die Stelle, an der Softphones typischerweise falsch wählen.
+- Live-Auflösung: während der Eingabe passende Kontakte einblenden (Präfixsuche über Name und Nummer, max. 5 Treffer).
+- Kurzwahl aus der Provisionierung, „Zuletzt“ aus dem Verlauf.
+
+### 8.2 Aktives Gespräch (`ActiveCallPage`)
+
+- Gegenstelle (Name aus CLIP-Auflösung, sonst Nummer), Dauer als tickender Timer, Chips für Codec und Verschlüsselung.
+- Aktionen: Stumm, Halten, Weiterleiten, DTMF-Feld, Aufnahme, zweiter Anruf.
+- **Weiterleiten** kann beides: blind (`Transfer`) und begleitet (zweiter Anruf, dann `TransferToAnother`). Im UI eine Auswahl, kein verstecktes Verhalten.
+- **Qualitätspanel** aus `CallStats`: Round-Trip, Jitter, Empfangs-Paketverlust, geschätzter MOS, Bandbreite. Aktualisierung im Sekundenrhythmus, nicht bei jedem Iterate.
+- Zwei parallele Gespräche: eines aktiv, eines gehalten, Umschalten sichtbar. Mehr als zwei wird abgelehnt mit klarer Meldung.
+- Aufnahme schreibt WAV in einen konfigurierbaren Ordner mit Namensschema `JJJJ-MM-TT_HHMMSS_<Nummer>.wav`. **Ein sichtbarer Aufnahmeindikator ist Pflicht** — in der Schweiz ist das Mitschneiden ohne Kenntnis der Gegenseite strafbar; die App darf nicht unbemerkt aufnehmen.
+
+### 8.3 Anrufliste (`CallHistoryPage`)
+
+- Lokale SQLite-Historie: Richtung, Gegenstelle, aufgelöster Name, Zeit, Dauer, Codec, Ergebnis (angenommen/verpasst/abgelehnt/Fehler), Aufnahmepfad.
+- Filter: Alle, Verpasst, Eingehend, Ausgehend, Aufgenommen. Suche über Nummer und Name.
+- Rückruf per Doppelklick, Kontextmenü mit Kopieren und „Kontakt anlegen“.
+- Aufbewahrung konfigurierbar (Standard 365 Tage), Aufräumen beim Start.
+
+### 8.4 Kontakte (`ContactsPage`)
+
+- Zwei Quellen: Team-Nebenstellen (aus Provisionierung, mit BLF) und Outlook-Kontakte.
+- **BLF** über `Friend`/`FriendList` mit aktivierten Subscribes; Zustände frei / klingelt / im Gespräch / offline, farblich und als Text (nie nur Farbe — das ist eine Barrierefreiheitsanforderung, kein Stilfrage).
+- Outlook-Anbindung: **erst Microsoft Graph** über den angemeldeten Benutzer, wenn ein Entra-App-Consent vorliegt; Rückfallebene ist COM-Interop gegen ein lokal laufendes Outlook. Graph ist die Vorgabe, COM nur wenn Graph nicht verfügbar ist. Ergebnis wird lokal gecacht (12 h) — nie synchron im UI-Thread laden.
+- `ClipResolver` bedient Toast, Gesprächsansicht und Anrufliste aus demselben Cache.
+
+### 8.5 Voicemail (`VoicemailPage`)
+
+- MWI über `Account.setVoicemailAddress` und das Message-Waiting-Ereignis: Anzahl neuer Nachrichten als Badge in der Navigation.
+- Liste ist Anzeige plus „Mailbox anrufen“. Kein IMAP, kein Download, keine Wiedergabe im Client — die Nachrichten liegen auf der PBX.
+
+### 8.6 Eingehender Anruf (Toast)
+
+- `AppNotificationManager` mit Buttons Annehmen / Ablehnen / Mailbox. Der Toast erscheint, auch wenn das Fenster geschlossen ist.
+- Klick auf Annehmen: App in den Vordergrund, direkt in die Gesprächsansicht.
+- Klingeln auf dem separaten Klingelgerät, wenn eines gewählt ist.
+- Wenn schon ein Gespräch läuft: Toast mit „Annehmen und halten“ statt „Annehmen“.
+- Auto-Annahme (Einstellung) überspringt den Toast, spielt aber einen kurzen Hinweiston.
+
+---
+
+## 9. Einstellungen — vollständige Referenz
+
+Diese Tabelle ist die Quelle für `SettingsSchema.cs`. Jede Zeile: ein Feld, sein Typ, der Standardwert, und wohin es im SDK geht. Die `linphonerc`-Sektion ist nachzutragen, wo sie beim Verifizieren bekannt wird.
+
+### 9.1 SIP-Konto
+
+| Feld | Typ | Standard | Ziel im SDK |
+|---|---|---|---|
+| Anzeigename | Text | leer | `AccountParams` Identity-Address, Display-Name |
+| SIP-Benutzername | Text | leer | Identity-Address Username |
+| Authentifizierungs-ID | Text | = Benutzername | `AuthInfo` |
+| Passwort | Secret | leer | `AuthInfo`, siehe §11 |
+| Domain / Registrar | Text | leer | `AccountParams` Server-Address |
+| Outbound-Proxy | Text + Schalter | aus | `AccountParams` Routes |
+| Registrierungsdauer | Zahl (s) | 600 | `AccountParams` Expires |
+| Konto aktiviert | Schalter | ein | `AccountParams` Register aktivieren |
+| Voicemail-Adresse | Text | leer | `Account` Voicemail-Address |
+| Länderpräfix für Normalisierung | Text | `+41` | eigene Logik (§8.1) |
+
+Mehrere Konten sind möglich; das erste registrierte ist Standard für ausgehende Anrufe. Ein Konto lässt sich löschen, wobei `AuthInfo` mitgelöscht wird — sonst bleiben Zugangsdaten verwaist liegen.
+
+### 9.2 Netzwerk & Transport
+
+| Feld | Typ | Standard | Ziel im SDK |
+|---|---|---|---|
+| Transport | UDP / TCP / TLS | TLS | `AccountParams` Transport, `Core.Transports` |
+| SIP-Port | Zahl | 5061 (TLS) | `Core.Transports` |
+| Serverzertifikat prüfen | Schalter | ein | `Core` Root-CA + Verifikation; CA aus dem Windows-Zertifikatspeicher exportieren |
+| Keep-Alive-Intervall | Zahl (s) | 30 | `Core` |
+| IPv6 | Schalter | aus | `Core` |
+| Netzwerkwechsel erkennen | Schalter | ein | `Core` Network-Reachability; an `NetworkInformation.NetworkStatusChanged` hängen |
+| RTP-Portbereich | Bereich | 7078–7178 | `Core.AudioPortsRange` |
+| DSCP Signalisierung / Medien | Zahl | CS3 (24) / EF (46) | `Core.SipDscp`, `Core.AudioDscp` |
+
+### 9.3 NAT & Medien
+
+| Feld | Typ | Standard | Ziel im SDK |
+|---|---|---|---|
+| STUN-Server | Text | leer | `NatPolicy` |
+| ICE | Schalter | ein | `NatPolicy` |
+| TURN + Zugangsdaten | Text + Schalter | aus | `NatPolicy` |
+| Medienverschlüsselung | Keine / SRTP / ZRTP / DTLS | SRTP | `Core.MediaEncryption` |
+| Verschlüsselung erzwingen | Schalter | ein | `Core` Mandatory-Flag |
+| Adaptive Bitrate | Schalter | ein | `Core` |
+| Video | Schalter | aus, **im UI ausgegraut** | `Core` Video deaktivieren |
+
+### 9.4 Audio
+
+| Feld | Typ | Standard | Ziel im SDK |
+|---|---|---|---|
+| Mikrofon | Geräteliste | Windows-Standard folgen | `Core` Default-Input-Device |
+| Lautsprecher | Geräteliste | Windows-Standard folgen | `Core` Default-Output-Device |
+| Klingelgerät | Geräteliste | = Lautsprecher | `Core` Ringer-Device |
+| Wiedergabelautstärke | 0–100 | 72 | `Core` Playback-Gain |
+| Mikrofonpegel | 0–100 | 50 | `Core` Mic-Gain |
+| Echounterdrückung | Schalter + Kalibrieren | ein | `Core.EchoCancellerEnabled`, Kalibrierung starten |
+| Automatische Aussteuerung | Schalter | ein | `Core` AGC |
+| Rauschunterdrückung | Schalter | ein | Noise-Suppression; SDK 5.5 bringt RNNoise mit |
+| Klingelton | Dateipfad | mitgelieferte WAV | `Core` Ring-Path |
+
+Geräte-Hotplug: `AudioDevices` neu einlesen, wenn Windows ein Gerät meldet. Ein während des Gesprächs verschwindendes Headset darf das Gespräch nicht abreissen lassen — auf das Standardgerät zurückfallen und den Benutzer informieren.
+
+Die Echo-Kalibrierung ist ein eigener Dialog mit Fortschritt (~15 s) und dem Ergebniswert in ms.
+
+### 9.5 Codecs
+
+Tabelle mit Aktiv-Kästchen, Name, Rate, Payload-Type, Bitrate und Reihenfolge (hoch/runter). Reihenfolge bestimmt die Priorität im SDP.
+
+| Codec | Rate | PT | Standard |
+|---|---|---|---|
+| Opus | 48 kHz | 96 | aktiv, Priorität 1 |
+| G.722 | 16 kHz | 9 | aktiv, Priorität 2 |
+| PCMA | 8 kHz | 8 | aktiv, Priorität 3 |
+| PCMU | 8 kHz | 0 | aktiv, Priorität 4 |
+| G.729 | 8 kHz | 18 | inaktiv |
+| speex | 16 kHz | 102 | inaktiv |
+
+PCMA und PCMU dürfen nicht beide deaktiviert werden — das UI verhindert es, weil sonst die Verhandlung mit vielen Trunks scheitert.
+
+DTMF-Modus: RFC 2833 (Standard) / SIP INFO / Inband → `Core.Rfc2833DtmfsEnabled` plus SIP-INFO-Gegenstück.
+
+### 9.6 Erweitert
+
+| Feld | Typ | Standard |
+|---|---|---|
+| Mit Windows starten | Schalter | ein |
+| Minimiert im Infobereich starten | Schalter | ein |
+| Standard für `tel:`, `sip:`, `callto:` | Schalter | ein |
+| Globaler Hotkey Annehmen/Auflegen | Tastenkombination | Strg+Umschalt+A |
+| Anrufe automatisch annehmen | Schalter | aus |
+| Protokollierung | Aus / Info / Debug | Info |
+| Log-Ordner öffnen | Aktion | — |
+| Provisioning-URI | Text | leer, `Core.ProvisioningUri` |
+| Konfiguration jetzt abrufen | Aktion | — |
+| Diagnosepaket erstellen | Aktion | ZIP mit Logs, Config ohne Passwörter, Systeminfo |
+| Version / Update prüfen | Anzeige + Aktion | — |
+
+---
+
+## 10. Windows-Integration
+
+| Thema | Vorgabe |
+|---|---|
+| Single-Instance | `AppInstance.FindOrRegisterForKey`, Weiterleitung der Aktivierungsargumente an die laufende Instanz |
+| Protokoll-Handler | `tel:`, `sip:`, `callto:` per MSIX-Manifest; bei unpackaged Build über HKCU-Registry. Aktivierung mit URI → direkt wählen, keine Rückfrage |
+| Autostart | MSIX `StartupTask`; unpackaged über `HKCU\...\Run` |
+| Infobereich | `H.NotifyIcon.WinUI` mit Kontextmenü: Öffnen, Präsenz setzen, Stumm, Beenden. Schliessen des Fensters beendet die App nicht |
+| Toasts | `AppNotificationManager` mit Buttons und Aktivierungs-Argumenten |
+| Globaler Hotkey | `RegisterHotKey` per P/Invoke auf einem versteckten Fenster; Konflikte abfangen und melden |
+| Zugangsdaten | DPAPI (`ProtectedData`, CurrentUser-Scope), Datei unter `%LOCALAPPDATA%`; **niemals Klartext in `linphonerc`** — wenn möglich HA1 statt Passwort ablegen |
+| Klick-to-Call aus Outlook | ergibt sich aus dem `tel:`-Handler |
+| Klick-to-Call aus bv2Cockpit | ebenfalls `tel:`-Link; keine eigene Schnittstelle bauen |
+| Energieverwaltung | Bei Standby/Resume Registrierung erneuern; `SystemEvents.PowerModeChanged` |
+| Datenpfade | Config und `linphonerc` unter `%APPDATA%\nipp`, Logs und Aufnahmen unter `%LOCALAPPDATA%\nipp`, ausgelieferte Factory-Config unter `%PROGRAMDATA%\bv2\nipp` |
+
+---
+
+## 11. Provisionierung
+
+Zwei Ebenen:
+
+1. **Factory-Config** (`linphonerc-factory`), mitgeliefert: Standardwerte für alle Felder aus §9. Was hier steht, gilt als Auslieferungszustand.
+2. **Remote-Provisioning** über `Core.ProvisioningUri`: XML von `https://prov.<domain>/<id>.xml`, abgerufen beim Start. Fehler beim Abruf dürfen den Start nicht verhindern — dann gilt die lokale Config, mit Hinweis im UI.
+
+**Gesperrte Felder:** Ein Provisioning-Profil kann Felder als schreibgeschützt markieren. `PolicyService` liest diese Liste, `SettingCard` rendert betroffene Controls ausgegraut mit Schloss-Symbol und Tooltip „Von der Administration festgelegt“. Das ist keine Sicherheitsgrenze, sondern ein Bedienschutz — so auch dokumentieren.
+
+`Nipp.Provisioning` liefert das XML-Schema und einen kleinen Generator, mit dem bv2 ein Profil pro Kunde erzeugt. Keine Web-UI, ein Kommandozeilenwerkzeug reicht.
+
+---
+
+## 12. Meilensteine
+
+### M0 — Repo und Skelett
+Solution, Projekte, `Directory.Build.props` (Nullable ein, Warnungen als Fehler), `CLAUDE.md`, `.editorconfig`, `.gitignore`, leere WinUI-App startet mit Mica und Titlebar.
+**Akzeptanz:** `dotnet build` grün, App startet, leeres Fenster im richtigen Look.
+
+### M1 — SDK-Spike (der wichtigste Meilenstein)
+Wegwerf-Konsolenprojekt: SDK einbinden, native DLLs laden, `Core` erzeugen, Iterate-Schleife, gegen den Test-Trunk registrieren, ein Testanruf zu einer Echo-Nebenstelle. Danach: dieselbe Ladbarkeit aus der WinUI-App heraus prüfen (packaged **und** unpackaged).
+**Akzeptanz:** REGISTER 200 OK im Log; ein Gespräch mit hörbarem Audio in beide Richtungen; `docs/sdk-api-notes.md` gefüllt; die Packaging-Entscheidung aus §4 getroffen und als ADR festgehalten.
+**Wenn dieser Meilenstein scheitert, wird nicht weitergebaut** — dann melden, mit dem konkreten Fehlerbild.
+
+### M2 — Telefonie-Kern
+`SipService` mit Registrierung, ausgehend, eingehend, Auflegen, Zustandsmaschine, Events. Konsolen- oder Minimal-UI genügt.
+**Akzeptanz:** Registrierung mit Statusanzeige; ausgehender und eingehender Anruf; Neuregistrierung nach Netzwerkwechsel; keine Abstürze bei 20 Anrufen in Folge.
+
+### M3 — Wählen und Gespräch
+`DialerPage` und `ActiveCallPage` vollständig, Nummernnormalisierung mit Tests, Stumm/Halten/DTMF/Weiterleiten/Aufnahme, Qualitätspanel.
+**Akzeptanz:** blindes und begleitetes Weiterleiten funktionieren gegen die Test-PBX; zwei Gespräche makeln; Aufnahme erzeugt abspielbares WAV mit sichtbarem Indikator.
+
+### M4 — Einstellungen
+Alle sechs Gruppen aus §9, `SettingsSchema`, Persistenz, sofortige Wirksamkeit ohne Neustart (wo möglich), Neustart-Hinweis wo nicht.
+**Akzeptanz:** Transportwechsel UDP↔TLS wirkt nach Neuregistrierung; Codec-Reihenfolge ändert das SDP nachweisbar (im SIP-Log); Audiogerätewechsel im laufenden Gespräch funktioniert; Echo-Kalibrierung liefert einen Wert.
+
+### M5 — Kontakte, Verlauf, Voicemail
+SQLite-Verlauf, Outlook über Graph, `ClipResolver`, BLF, MWI-Badge.
+**Akzeptanz:** eingehender Anruf einer bekannten Nummer zeigt den Namen in Toast, Gespräch und Verlauf; BLF wechselt sichtbar, wenn eine Nebenstelle telefoniert; MWI-Badge folgt der Mailbox.
+
+### M6 — Windows-Integration
+Toast mit Buttons, Infobereich, Autostart, Protokoll-Handler, Hotkey, Single-Instance, DPAPI-Speicher.
+**Akzeptanz:** `tel:`-Link aus Outlook und aus dem Browser wählt; Toast bei geschlossenem Fenster mit funktionierenden Buttons; Autostart überlebt einen Neustart; zweiter Programmstart aktiviert die erste Instanz.
+
+### M7 — Provisionierung und Diagnose
+Factory-Config, Remote-Provisioning, gesperrte Felder, Diagnosepaket, Log-Level.
+**Akzeptanz:** ein Profil richtet ein Konto vollständig ein; gesperrte Felder sind nicht editierbar; Diagnose-ZIP enthält Logs und **keine** Passwörter (im Test explizit prüfen).
+
+### M8 — Paket und Auslieferung
+MSIX mit Code-Signing, Versionierung, Update-Prüfung, Installationsanleitung, Silent-Install-Parameter für die Verteilung.
+**Akzeptanz:** Installation und Update auf einem frischen Windows 11; unbeaufsichtigte Installation funktioniert; `docs/licensing.md` ist geklärt oder der Release ist ausdrücklich als intern markiert.
+
+---
+
+## 13. Tests und Verifikation
+
+**Unit-Tests, verbindlich für:** Nummernnormalisierung (mit Fällen: `044 512 84 30`, `+41445128430`, `0041445128430`, `*8010`, `40`, `112`, Ausland `0049...`), Settings-Serialisierung, Provisioning-XML-Parsing (inkl. kaputtes XML), CLIP-Auflösung, Verlaufs-Aufbewahrung.
+
+**Architekturtest, verbindlich:** ein Test, der fehlschlägt, wenn `using Linphone` ausserhalb von `Services/Telephony/` auftaucht. Reflection über die Assemblies oder Quelltext-Scan — beides zulässig.
+
+**Nicht mit Unit-Tests abdeckbar** (SIP, Audio, Windows-Integration): manuelle Testmatrix in `docs/test-matrix.md`, gepflegt ab M2, mit Spalten Testfall / Erwartung / Ergebnis / Datum / Build. Mindestens: Registrierung über alle drei Transporte, Anruf in beide Richtungen, Weiterleitung beide Varianten, Makeln, DTMF gegen ein IVR, Netzwerkwechsel WLAN→VPN, Standby/Resume, Gerätewechsel im Gespräch, verpasster Anruf, Mailbox.
+
+**Testumgebung:** ein dedizierter Test-Trunk auf der Test-PBX, kein Kundentenant. Die Zugangsdaten kommen von Dominic — nicht selbst welche erfinden und nicht produktive verwenden.
+
+---
+
+## 14. Bekannte Fallstricke
+
+Diese Punkte kosten erfahrungsgemäss Tage, wenn man sie spät entdeckt:
+
+1. **Iterate im falschen Thread.** Callbacks kommen dort an, wo `Iterate()` läuft. UI-Thread heisst: nichts blockieren. Ein `await` auf eine Netzwerkoperation in einem Callback friert die App ein.
+2. **Native DLL-Kette.** `liblinphone` bringt eine ganze Reihe abhängiger DLLs mit. Fehlt eine, ist die Fehlermeldung nutzlos. Alle DLLs müssen im Ausgabeverzeichnis und im MSIX landen — mit einem Post-Build-Schritt sicherstellen, nicht per Hand kopieren.
+3. **MSIX und native Bibliotheken.** Klassische Bruchstelle. Deshalb der Doppeltest in M1.
+4. **Bitness.** Alles x64. Ein AnyCPU-Projekt, das als x86 startet, lädt die DLLs nicht.
+5. **Windows-Firewall.** Beim ersten Start fragt Windows nach der Freigabe. Im MSIX-Manifest die Capability setzen und in der Installationsanleitung erwähnen.
+6. **TLS-Zertifikate.** Das SDK will eine CA-Datei, nicht den Windows-Zertifikatspeicher. Root-CAs beim Start exportieren und dem Core als Datei übergeben.
+7. **SRTP erzwingen** bricht Gespräche zu Gegenstellen ohne SRTP hart ab. Fehlermeldung muss den Grund nennen, sonst wird der Client für „kaputt“ erklärt.
+8. **BLF-Subscribes** erzeugen Last auf der PBX. Nur für Kontakte in der Team-Liste subscriben, nicht für Outlook-Kontakte.
+9. **Aufnahme und Recht.** Sichtbarer Indikator, siehe §8.2.
+10. **Codec-Reihenfolge** wird gern still ignoriert, wenn man die Liste falsch setzt. Immer im SIP-Log gegenprüfen, nicht dem UI-Zustand glauben.
+11. **Doppelte Registrierung.** Wenn dieselben Zugangsdaten schon auf einem Tischtelefon registriert sind, verhält sich die PBX je nach Konfiguration anders. Beim Testen bewusst sauber halten.
+
+---
+
+## 15. Konventionen
+
+- C# 12, Nullable aktiviert, `TreatWarningsAsErrors`, `dotnet format` vor jedem Commit.
+- Async durchgängig mit `Async`-Suffix und `CancellationToken`; `async void` nur in Event-Handlern.
+- Keine Singletons per `static`; alles über DI.
+- **Schreibweise des Produktnamens:** in allen Benutzertexten, im Fenstertitel und in der Dokumentation **nipp** in Kleinbuchstaben, nie „Nipp“ oder „NIPP“. Im Code dagegen `Nipp` als Namespace- und Assembly-Präfix (`Nipp.App`, `Nipp.Core`, `Nipp.Provisioning`); Ordner auf der Platte und das Repo heissen `nipp`.
+- **Alle für Benutzer sichtbaren Texte auf Hochdeutsch** (kein „ß“, sondern „ss“), in `Strings/de-CH.resw`. Code, Kommentare und Commits auf Deutsch oder Englisch, aber einheitlich.
+- Fehlermeldungen sagen, was passiert ist und was zu tun ist. „Registrierung fehlgeschlagen: Server nicht erreichbar (Zeitüberschreitung nach 5 s). Netzwerkverbindung und Domain prüfen.“ statt „Fehler beim Registrieren“.
+- Commits klein und thematisch, mit Meilenstein-Präfix: `M3: Weiterleitung begleitet`.
+- Jede Abweichung von diesem Dokument als ADR in `docs/decisions.md`: Kontext, Entscheidung, Konsequenz.
+
+---
+
+## 16. Offene Entscheidungen für Dominic
+
+Diese Punkte nicht selbst entscheiden, sondern beim Erreichen sammeln und gemeinsam klären:
+
+1. **Lizenz** — AGPLv3-Offenlegung oder kommerzielle Lizenz von Belledonne (§3). Blockiert die Auslieferung, nicht die Entwicklung.
+2. **Branding** — der Name **nipp** steht fest; Icon, Wortmarke, Signaturzertifikat und der Anzeigename im Startmenü fehlen noch.
+3. **Verteilung** — MSIX über Intune, oder klassisches MSI/EXE, weil nicht alle Kundenumgebungen Intune haben.
+4. **Update-Mechanismus** — App-Installer-URL, eigener Update-Check oder Verteilung über Intune.
+5. **Test-Trunk** — Zugangsdaten und Nebenstelle für automatisierte Tests.
+6. **Outlook-Zugriff** — Graph mit Entra-App-Registrierung (welcher Tenant, welche Berechtigungen?) oder COM als Standard.
+7. **Aufnahme-Ablage** — lokal, oder auf einen Netzpfad je Kunde.
+
+---
+
+## 17. `CLAUDE.md` für das Repo
+
+Beim Anlegen des Repos (M0) diese Datei mit folgendem Inhalt erstellen — sie ist der Kurzkontext für jede weitere Sitzung:
+
+```markdown
+# nipp — Projektkontext
+
+Windows-Softphone (WinUI 3, .NET 8, x64) auf Basis des Linphone SDK.
+Vollständige Spezifikation: NIPP-BUILD.md — im Zweifel dort nachlesen.
+
+## Grenzen
+- `using Linphone` ausschliesslich in `src/Nipp.Core/Services/Telephony/`.
+  Ein Architekturtest erzwingt das.
+- ViewModels kennen keine SDK-Typen, nur eigene Modelle.
+- `Core.Iterate()` läuft im UI-Thread (DispatcherQueueTimer, 20 ms).
+  Nichts Blockierendes in SDK-Callbacks.
+
+## Befehle
+- Bauen: `dotnet build -c Debug`
+- Tests: `dotnet test`
+- Formatieren: `dotnet format`
+- Paket: siehe docs/packaging.md
+
+## Regeln
+- Nullable ein, Warnungen sind Fehler.
+- Benutzertexte auf Hochdeutsch (ss statt ß), in Strings/de-CH.resw.
+- Kein Feature ohne Auftrag aus NIPP-BUILD.md.
+- Abweichungen als ADR in docs/decisions.md.
+- Nie gegen Kundentenants testen — nur der Test-Trunk.
+
+## Aktueller Meilenstein
+M0 — bei Fortschritt hier aktualisieren.
+```
+
+---
+
+## 18. Quellen
+
+- [linphone-sdk auf GitHub (Spiegel des GitLab-Repos)](https://github.com/BelledonneCommunications/linphone-sdk) — Lizenzmodell AGPLv3/proprietär, Build-Voraussetzungen Windows, CMake-Presets
+- [linphone-sdk CHANGELOG](https://github.com/BelledonneCommunications/linphone-sdk/blob/master/CHANGELOG.md) — Version 5.5.0 vom 25.05.2026, RNNoise, VS 2022 ab 5.4.0
+- [NuGet-Paketierung im linphone-sdk](https://github.com/BelledonneCommunications/linphone-sdk/blob/master/cmake/NuGet/README.md) — `LinphoneSDK.Dotnet` / `LinphoneSDK.Windows`, win32- vs. UWP- vs. Store-Variante, Packager-Optionen
+- [LinphoneSDK auf nuget.org](https://www.nuget.org/packages/LinphoneSDK) — als legacy markiert, UWP-only, Stand 2017; **nicht verwenden**
+- [C#-API-Referenz Core](https://download.linphone.org/releases/docs/liblinphone/latest/cs/api/Linphone.Core.html) und [Factory](https://download.linphone.org/releases/docs/liblinphone/latest/cs/api/Linphone.Factory.html) — Member-Namen in §6
+- [Linphone-Wiki: Getting started Windows](https://wiki.linphone.org/xwiki/wiki/public/view/Lib/Getting%20started/Windows%20UWP/) — Registry-URL des NuGet-Pakets verifizieren
+- [Linphone C# wrapper (Wiki)](https://wiki.linphone.org/xwiki/wiki/public/view/Lib/Linphone%20C%23%20wrapper/) — dünn, Wrapper-Datei ist die bessere Quelle

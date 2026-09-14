@@ -1,0 +1,1896 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Nipp.App.Views.ShellPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cards="using:Nipp.App.Controls.Cards"
+    xmlns:controls="using:Nipp.App.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:history="using:Nipp.Core.Services.History"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="using:Nipp.Core.Services.Telephony.Model"
+    xmlns:vm="using:Nipp.Core.ViewModels"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <!--
+            Die Zeile der Kontaktliste. Steht hier und nicht in der Liste, weil
+            es zwei Listen gibt — Team und Outlook — und eine Vorlage, die
+            zweimal dasteht, wird beim nächsten Mal nur einmal geändert.
+
+            §8.4: Farbe UND Text für die Präsenz. Wer Rot und Grün nicht
+            unterscheidet, liest „im Gespräch".
+        -->
+        <!--
+            Ein waehlbarer Nummerneintrag. EINE Vorlage fuer beide Orte: den
+            Bereich in der Team-Zeile und den unter der Liste. Zweimal
+            derselbe Knopf im Baum hiesse, dass beim naechsten Mal einer davon
+            geaendert wird (ADR-042).
+        -->
+        <DataTemplate x:Key="NippContactNumberTemplate" x:DataType="vm:ContactNumberChoice">
+            <Button
+                Margin="0,2,0,2"
+                Padding="6,4,6,4"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Left"
+                Style="{StaticResource NippSubtleButtonStyle}"
+                AutomationProperties.Name="{x:Bind AccessibleName}"
+                Click="OnCallContactNumberClick"
+                Tag="{x:Bind}">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                    <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE717;" />
+                    <TextBlock Text="{x:Bind Number}" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="{x:Bind KindLabel}" />
+                </StackPanel>
+            </Button>
+        </DataTemplate>
+
+        <!--
+            Der aufgeklappte Teil einer Kontaktzeile (ADR-048).
+
+            <b>x:Load und nicht Visibility.</b> Der Teilbaum entsteht erst,
+            wenn die Zeile aufgeklappt wird, und verschwindet beim Zuklappen
+            wieder — bei ueber hundert Outlook-Zeilen kostet er also nichts,
+            solange niemand etwas angeklickt hat. Genau dieser Einwand hat
+            ADR-042 dazu gebracht, den Bereich aus der Zeile herauszunehmen;
+            er ist damit ausgeraeumt und nicht umgangen.
+
+            Der Doppelklick wird hier abgefangen: ohne das waehlte ein
+            Doppelklick auf einen Nummernknopf zusaetzlich die Hauptnummer,
+            weil Tapped nach aussen weiterlaeuft.
+        -->
+        <DataTemplate x:Key="NippContactDetailTemplate" x:DataType="vm:ContactRow">
+            <ItemsControl
+                Margin="36,0,0,4"
+                DoubleTapped="OnDetailDoubleTapped"
+                ItemTemplate="{StaticResource NippContactNumberTemplate}"
+                ItemsSource="{x:Bind Choices}" />
+        </DataTemplate>
+
+        <!--
+            Die Zeile der Team-Liste.
+
+            <b>Sie klappt bei Auswahl auf</b> (ADR-048) — wie die beiden
+            anderen Zeilenvorlagen auch. Von ADR-046 bis zum 13.09.2026 stand
+            der Bereich fuer alle drei Listen unter der Liste; wer unten in 137
+            Namen etwas anklickte, las die Antwort am anderen Ende des
+            Fensters.
+        -->
+        <!--
+            <b>Der Gruppenkopf — einmal, für beide Ansichten</b> (ADR-064).
+
+            Bis zum 13.09.2026 stand derselbe Bauplan zweimal ausgeschrieben:
+            einmal im GroupStyle der Liste, einmal in dem des Kachelrasters.
+            Sie unterschieden sich in einer Zahl (Margin unten 0 gegen 2), und
+            das war kein Entwurf, sondern eine Abschrift, die auseinandergelaufen
+            ist.
+
+            <b>Der Umschalter sitzt jetzt hier</b> statt in einer eigenen Leiste
+            über der Liste, wo er als einzelner Knopf über einer leeren Fläche
+            stand. Welche Gruppe ihn zeigt, entscheidet der Kern
+            (ShellViewModel.RefreshReorderHost); hier steht nur, woran es
+            gebunden ist.
+
+            <b>Geschwister, nicht verschachtelt:</b> der Klappknopf und der
+            Umschalter stehen nebeneinander im Gitter. Ein ToggleButton IM
+            Klappknopf wäre ein Knopf in einem Knopf — für die Sprachausgabe
+            ein ungültiger Baum, und Click traegt in WinUI nur RoutedEventArgs
+            ohne Handled, mit dem sich ein doppeltes Auslösen notfalls stoppen
+            liesse.
+        -->
+        <DataTemplate x:Key="NippContactGroupHeaderTemplate" x:DataType="vm:ContactGroupRow">
+            <!--
+                <b>Der Kopf ist ein Ablegeziel</b> (ADR-065) — und bei einer
+                leeren Gruppe das einzige. Wer hier ablegt, meint «ganz oben in
+                diese Gruppe».
+            -->
+            <!--
+                <b>Der Name ist kein Schmuck</b> (Paragraf 8.4). Ohne ihn liest
+                eine Sprachausgabe den Klassennamen vor — am 14.09.2026 stand
+                «Nipp.Core.ViewModels.ContactGroupRow» dreimal im
+                UI-Automation-Baum, einmal je Gruppenkopf. Fuer die ZEILEN war
+                das laengst behoben (ContactRow.AccessibleName), fuer den Kopf
+                nicht; gefunden hat es erst eine Pruefung ueber genau diesen
+                Baum.
+            -->
+            <Grid
+                Margin="0,4,0,0"
+                ColumnSpacing="{StaticResource NippGapMedium}"
+                AllowDrop="True"
+                AutomationProperties.Name="{x:Bind Header, Mode=OneWay}"
+                Background="Transparent"
+                DragOver="OnTeamGroupDragOver"
+                Drop="OnTeamGroupDrop">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button
+                    MinHeight="32"
+                    Padding="4,4,4,4"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    Style="{StaticResource NippSubtleButtonStyle}"
+                    AutomationProperties.Name="{x:Bind Header, Mode=OneWay}"
+                    Click="OnTeamGroupHeaderClick"
+                    Tag="{x:Bind}">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapMedium}">
+                        <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="{x:Bind Glyph, Mode=OneWay}" />
+                        <!--
+                            <b>OneWay und nicht OneTime.</b> SetRows meldet
+                            Header ausdruecklich, weil sich der Zaehler in
+                            Klammern aendert, sobald eine Nebenstelle dazukommt
+                            oder die Gruppe wechselt. Die Bindung war bis zum
+                            13.09.2026 einmalig — die Meldung lief also ins
+                            Leere, und der Kopf zeigte einen veralteten Stand,
+                            bis die Sammlung zufaellig ersetzt wurde.
+                        -->
+                        <TextBlock
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{x:Bind Header, Mode=OneWay}" />
+                    </StackPanel>
+                </Button>
+
+                <ToggleButton
+                    Grid.Column="1"
+                    Style="{StaticResource NippSubtleIconToggleStyle}"
+                    Click="OnReorderToggleClick"
+                    IsChecked="{x:Bind IsReordering, Mode=OneWay}"
+                    Visibility="{x:Bind ShowReorderToggle, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                    ToolTipService.ToolTip="Reihenfolge ändern"
+                    AutomationProperties.Name="Reihenfolge ändern">
+                    <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE8CB;" />
+                </ToggleButton>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="NippContactRowTemplate" x:DataType="vm:ContactRow">
+          <!--
+              <b>Background="Transparent" ist kein Schoenheitsfehler</b>
+              (ADR-065): ein Panel ohne Hintergrund nimmt an der
+              Trefferermittlung nicht teil. Das Druecken, aus dem ein Zug wird,
+              faende sonst ueber der leeren Flaeche der Zeile ins Nichts — also
+              unzuverlaessig statt kaputt, und das ist die schlimmere Sorte
+              Fehler.
+
+              <b>Ein Ablegeziel ist die Zeile seit ADR-066 nicht mehr</b>: das
+              ist die Liste. Zwischen den Zeilen lag totes Gebiet, und ein Zug,
+              der dort endete, ging stumm verloren (am 14.09.2026 gemessen).
+
+              Die Deckkraft sagt, welche Zeile gerade gezogen wird — <b>an der
+              Zeile gebunden und nicht am Container gesetzt</b>: die Liste
+              virtualisiert, ein Container gehoert spaeter einer anderen Zeile.
+          -->
+          <StackPanel
+              AutomationProperties.Name="{x:Bind AccessibleName}"
+              Background="Transparent"
+              Opacity="{x:Bind DragOpacity, Mode=OneWay}"
+              DragStarting="OnContactDragStarting"
+              DoubleTapped="OnContactDoubleTapped">
+            <StackPanel.ContextFlyout>
+                <MenuFlyout Opening="OnContactMenuOpening">
+                    <MenuFlyoutItem Click="OnCallContactClick" Text="Anrufen" />
+                    <MenuFlyoutItem Click="OnCopyContactNumberClick" Text="Nummer kopieren" />
+
+                    <!--
+                        Der Weg ohne Maus (ADR-042). Ziehen ist fuer eine
+                        Sprachausgabe kein Weg; das hier ist deshalb kein
+                        Rueckfall, sondern der zweite gleichwertige Weg.
+                        Gefuellt wird beim Oeffnen, weil die Gruppen erst
+                        zur Laufzeit feststehen.
+                    -->
+                    <MenuFlyoutSubItem Text="In Gruppe verschieben" />
+                </MenuFlyout>
+            </StackPanel.ContextFlyout>
+
+            <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Border
+                    Width="{StaticResource NippListAvatarSize}"
+                    Height="{StaticResource NippListAvatarSize}"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource AccentFillColorSecondaryBrush}"
+                    CornerRadius="{StaticResource NippListAvatarCornerRadius}">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        FontSize="{StaticResource NippFontSizeCaption}"
+                        Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                        Text="{x:Bind Initials}" />
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        Text="{x:Bind DisplayName}"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="{x:Bind SubLabel}"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <!--
+                    Der Punkt steht ganz rechts, der Text links daneben. Die
+                    feste Breite hält die Punkte über die Zeilen hinweg in einer
+                    Spalte — siehe NippPresenceColumnWidth.
+                -->
+                <Grid
+                    Grid.Column="2"
+                    Width="{StaticResource NippPresenceColumnWidth}"
+                    VerticalAlignment="Center"
+                    ColumnSpacing="{StaticResource NippGapMedium}"
+                    Visibility="{x:Bind HasPresence, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="{x:Bind PresenceText, Mode=OneWay}"
+                        TextAlignment="Right"
+                        TextTrimming="CharacterEllipsis" />
+
+                    <Ellipse
+                        Grid.Column="1"
+                        Width="{StaticResource NippPresenceBadgeSize}"
+                        Height="{StaticResource NippPresenceBadgeSize}"
+                        VerticalAlignment="Center"
+                        Fill="{x:Bind Presence, Mode=OneWay, Converter={StaticResource PresenceBrushConverter}}" />
+                </Grid>
+            </Grid>
+
+            <ContentControl
+                x:Name="TeamRowDetails"
+                x:Load="{x:Bind IsDetailExpanded, Mode=OneWay}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Content="{x:Bind}"
+                ContentTemplate="{StaticResource NippContactDetailTemplate}" />
+          </StackPanel>
+        </DataTemplate>
+
+        <!--
+            Dieselbe Zeile ohne Präsenzspalte. Ein Outlook-Kontakt hat nie eine
+            Lampe (§14.8, ContactRow.HasPresence) — und bei über hundert Zeilen
+            ist ein Raster, eine Ellipse und ein Textblock je Zeile, die immer
+            unsichtbar bleiben, Aufwand ohne Gegenwert.
+        -->
+        <DataTemplate x:Key="NippOutlookRowTemplate" x:DataType="vm:ContactRow">
+          <StackPanel
+              AutomationProperties.Name="{x:Bind AccessibleName}"
+              DoubleTapped="OnContactDoubleTapped">
+            <StackPanel.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem Click="OnCallContactClick" Text="Anrufen" />
+                    <MenuFlyoutItem Click="OnCopyContactNumberClick" Text="Nummer kopieren" />
+                </MenuFlyout>
+            </StackPanel.ContextFlyout>
+
+            <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border
+                    Width="{StaticResource NippListAvatarSize}"
+                    Height="{StaticResource NippListAvatarSize}"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource AccentFillColorSecondaryBrush}"
+                    CornerRadius="{StaticResource NippListAvatarCornerRadius}">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        FontSize="{StaticResource NippFontSizeCaption}"
+                        Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                        Text="{x:Bind Initials}" />
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        Text="{x:Bind DisplayName}"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="{x:Bind SubLabel}"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Grid>
+
+            <ContentControl
+                x:Name="OutlookRowDetails"
+                x:Load="{x:Bind IsDetailExpanded, Mode=OneWay}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Content="{x:Bind}"
+                ContentTemplate="{StaticResource NippContactDetailTemplate}" />
+          </StackPanel>
+        </DataTemplate>
+
+        <!--
+            Ein Treffer der Quellensuche (§21.4).
+
+            Der Unterschied zu den beiden Vorlagen darüber ist das Abzeichen
+            rechts: hier stehen Kontakte aus Team, Outlook und fremden Systemen
+            in einer Liste, und wer eine Nummer anruft, soll sehen können, woher
+            sie stammt. Bei einer zusammengeführten Zeile sind es mehrere
+            Herkünfte — das kommt mit dem Zusammenführen dazu.
+        -->
+        <DataTemplate x:Key="NippSearchResultTemplate" x:DataType="vm:ContactRow">
+          <StackPanel
+              AutomationProperties.Name="{x:Bind AccessibleName}"
+              DoubleTapped="OnContactDoubleTapped">
+            <StackPanel.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem Click="OnCallContactClick" Text="Anrufen" />
+                    <MenuFlyoutItem Click="OnCopyContactNumberClick" Text="Nummer kopieren" />
+                    <MenuFlyoutItem Click="OnOpenContactClick" Text="Im Fremdsystem öffnen" />
+                </MenuFlyout>
+            </StackPanel.ContextFlyout>
+
+            <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Border
+                    Width="{StaticResource NippListAvatarSize}"
+                    Height="{StaticResource NippListAvatarSize}"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource AccentFillColorSecondaryBrush}"
+                    CornerRadius="{StaticResource NippListAvatarCornerRadius}">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        FontSize="{StaticResource NippFontSizeCaption}"
+                        Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                        Text="{x:Bind Initials}" />
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        Text="{x:Bind DisplayName}"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="{x:Bind SubLabel}"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <Border
+                    Grid.Column="2"
+                    Padding="6,1,6,1"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                    CornerRadius="{StaticResource NippBadgeCornerRadius}">
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="{x:Bind SourceLabel}" />
+                </Border>
+            </Grid>
+
+            <ContentControl
+                x:Name="SearchRowDetails"
+                x:Load="{x:Bind IsDetailExpanded, Mode=OneWay}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Content="{x:Bind}"
+                ContentTemplate="{StaticResource NippContactDetailTemplate}" />
+          </StackPanel>
+        </DataTemplate>
+
+        <!--
+            Die Kachel einer Nebenstelle im breiten Layout (ADR-047).
+
+            <b>Alles steht direkt darauf</b> — Name, Firma, Praesenz als Punkt
+            UND Text (Paragraph 8.4), und jede Nummer einzeln waehlbar. Genau
+            dafuer gibt es die Kachelform: sie ersetzt den Weg «anklicken,
+            aufklappen, lesen» durch «hinsehen».
+
+            <b>Der Statuston faerbt Punkt, Schrift und Rand — nie die Flaeche</b>
+            (ADR-044). Eine Kachel, die im Gespraechszustand gelb hinterlegt
+            waere, stuende im dunklen Erscheinungsbild bei rund 1,4:1; genau
+            deshalb gibt es die Regel.
+
+            Die Groesse ist fest (NippTileCellWidth/Height): ein ItemsWrapGrid
+            misst die erste Kachel und gibt allen anderen dasselbe Mass.
+        -->
+        <DataTemplate x:Key="NippContactTileTemplate" x:DataType="vm:ContactRow">
+            <Border
+                Margin="{StaticResource NippTileMargin}"
+                Padding="{StaticResource NippCardPadding}"
+                AutomationProperties.Name="{x:Bind TileAccessibleName}"
+                Opacity="{x:Bind DragOpacity, Mode=OneWay}"
+                DragStarting="OnContactDragStarting"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{x:Bind Presence, Mode=OneWay, Converter={StaticResource PresenceBrushConverter}, ConverterParameter=border}"
+                BorderThickness="1"
+                CornerRadius="{ThemeResource OverlayCornerRadius}"
+                DoubleTapped="OnContactDoubleTapped">
+                <Border.ContextFlyout>
+                    <MenuFlyout Opening="OnContactMenuOpening">
+                        <MenuFlyoutItem Click="OnCallContactClick" Text="Anrufen" />
+                        <MenuFlyoutItem Click="OnCopyContactNumberClick" Text="Nummer kopieren" />
+                        <MenuFlyoutSubItem Text="In Gruppe verschieben" />
+                    </MenuFlyout>
+                </Border.ContextFlyout>
+
+                <StackPanel Spacing="{StaticResource NippGapSmall}">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapMedium}">
+                        <Ellipse
+                            Width="{StaticResource NippPresenceBadgeSize}"
+                            Height="{StaticResource NippPresenceBadgeSize}"
+                            VerticalAlignment="Center"
+                            Fill="{x:Bind Presence, Mode=OneWay, Converter={StaticResource PresenceBrushConverter}}"
+                            Visibility="{x:Bind HasPresence, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <TextBlock
+                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                            Text="{x:Bind DisplayName}"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <!--
+                        Firma und Zustand in einer Zeile. Der Zustand steht
+                        hinten, weil er sich aendert: so springt der Name nicht.
+                    -->
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapSmall}">
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{x:Bind TileContext}"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{x:Bind PresenceText, Mode=OneWay}"
+                            TextTrimming="CharacterEllipsis"
+                            Visibility="{x:Bind HasPresence, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    </StackPanel>
+
+                    <ItemsControl
+                        ItemTemplate="{StaticResource NippContactNumberTemplate}"
+                        ItemsSource="{x:Bind TileChoices}" />
+
+                    <!--
+                        Die dritte und jede weitere Nummer. Sie steht nicht auf
+                        der Kachel, weil die Kachelhoehe fest ist — und sie ist
+                        trotzdem zwei Handgriffe entfernt.
+                    -->
+                    <Button
+                        Padding="6,2,6,2"
+                        Style="{StaticResource NippSubtleButtonStyle}"
+                        HorizontalAlignment="Left"
+                        AutomationProperties.Name="Weitere Nummern anzeigen"
+                        Visibility="{x:Bind HasHiddenChoices, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{x:Bind HiddenChoicesHint}" />
+                        <Button.Flyout>
+                            <Flyout>
+                                <ItemsControl
+                                    ItemTemplate="{StaticResource NippContactNumberTemplate}"
+                                    ItemsSource="{x:Bind HiddenChoices}" />
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <!--
+        Hauptansicht im Smartphone-Format (§20.1).
+
+        Reihenfolge von oben nach unten, wie vorgegeben:
+          1 Kontoauswahl mit Status-LED
+          2 Eingabefeld mit × ganz rechts
+          3 Wählen-Schaltfläche rechts daneben
+          4 Wähltastatur, ein- und ausblendbar
+          5 Inhalt: Kontakte / Anrufliste
+          6 Umschaltleiste
+    -->
+    <!--
+        <b>Die Breite gehoert dem Fenster</b> (ADR-052).
+
+        <b>Was hier stand und warum es weg ist.</b> ADR-046 hat die
+        Inhaltsbreite am 12.09.2026 auf 480 Pixel gedeckelt: §20.1 gibt ein
+        schmales Fenster im Smartphone-Format vor, das Fenster ist aber frei
+        ziehbar, und auf den gemessenen 1023 Pixeln bestand jede Zeile aus zwei
+        Haelften mit neunhundert Pixeln Nichts dazwischen. ADR-047 liess die
+        Deckelung je Spalte weitergelten.
+
+        <b>Der Preis dafuer war sichtbar und ist gemeldet worden:</b> wer das
+        Fenster zwischen 480 und 960 Pixeln zieht, sah einen schmalen Block in
+        der Mitte und links und rechts leeren Rand. Dominic hat den Einwand
+        gehoert und am 12.09.2026 entschieden — <b>der Inhalt fuellt das
+        Fenster</b>. Die zerfallende Zeile ist damit bewusst getragen und kein
+        uebersehener Fehler; wenn sie im Alltag stoert, steht die Milderung in
+        ADR-052.
+
+        Ab 960 logischen Pixeln stehen zwei Spalten: links 480 fest, rechts die
+        Nebenstellen als Kacheln ueber den <b>ganzen</b> Rest. Was gilt,
+        entscheidet ShellViewModel.ApplyWidth — hier steht nur, was daraus
+        folgt (siehe ApplyLayout im Code-Behind).
+    -->
+    <Grid
+        x:Name="RootGrid"
+        Padding="{StaticResource NippPagePadding}"
+        ColumnSpacing="{StaticResource NippGapMedium}"
+        RowSpacing="{StaticResource NippGapMedium}">
+
+        <!--
+            Zwei Spalten, von denen die zweite im schmalen Layout die Breite 0
+            hat. <b>Ein Baum und nicht zwei:</b> ein zweites XAML fuer das
+            breite Format waere die Doppelwahrheit, die dieses Projekt an vier
+            Stellen teuer bezahlt hat — beim naechsten Mal wird einer von
+            beiden geaendert.
+        -->
+        <!--
+            <b>Die linke Spalte ist im breiten Layout fest, nicht gedeckelt</b>
+            (ADR-052). Zwei Sternspalten, von denen eine an ihrer MaxWidth
+            abgeschnitten wird, <b>verschenken den Rest</b>: ein Grid verteilt
+            Sterne gleichmaessig und kuerzt erst danach. Auf 1920 Pixeln stand
+            links 480, rechts 960 — und 480 Pixel blieben leer.
+
+            Die Zahl steht als NippContentMaxWidth im XAML und wird in
+            ApplyLayout einmal abgelesen; umgeschaltet wird dann nur noch
+            Width.
+        -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="LeftColumn" Width="*" MaxWidth="{StaticResource NippContentMaxWidth}" />
+            <ColumnDefinition x:Name="TilesColumn" Width="0" />
+        </Grid.ColumnDefinitions>
+
+        <!--
+            Tastenkuerzel (ADR-046). In der ganzen Anwendung gab es zwei, beide
+            im Karten-Designer; der geuebte Benutzer — die Mehrheit nach zwei
+            Wochen — blieb auf Mausgeschwindigkeit.
+
+            Konventionell und knapp: Strg+1 bis 4 fuer die Bereiche, Strg+F ins
+            Nummernfeld. Der systemweite Hotkey deckt Annehmen und Auflegen ab;
+            ein zweiter dafuer innerhalb des Fensters waere derselbe Befehl an
+            zwei Stellen.
+        -->
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Invoked="OnSectionAccelerator" Key="Number1" Modifiers="Control" />
+            <KeyboardAccelerator Invoked="OnSectionAccelerator" Key="Number2" Modifiers="Control" />
+            <KeyboardAccelerator Invoked="OnSectionAccelerator" Key="Number3" Modifiers="Control" />
+            <KeyboardAccelerator Invoked="OnFocusNumberAccelerator" Key="F" Modifiers="Control" />
+        </Grid.KeyboardAccelerators>
+        <!--
+            Fünf Zeilen, nicht sechs: die normalisierte Form steht mit im
+            Eingabeblock. Als eigene Rasterzeile kostete sie auch dann einen
+            Zeilenabstand, wenn sie unsichtbar war — und sie ist es meistens.
+        -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <!-- Eigene Zeile fuer Meldungen: als Overlay ueber der Liste
+                 verdeckten sich Fehler und Hinweis gegenseitig. -->
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--
+            1 · Kontoauswahl mit Status-LED (§20.2), darunter der Zustand als
+            Text (§8.4: nie nur ueber Farbe) und darunter, wenn ein Gespraech
+            laeuft, der Weg zurueck in die Gespraechsansicht.
+        -->
+        <StackPanel Grid.Row="0" Spacing="{StaticResource NippGapSmall}">
+        <ComboBox
+            x:Name="AccountBox"
+            MinHeight="{StaticResource NippAccountRowHeight}"
+            Padding="10,0,10,0"
+            HorizontalAlignment="Stretch"
+            AutomationProperties.Name="Konto für ausgehende Anrufe"
+            ItemsSource="{x:Bind ViewModel.Accounts}"
+            SelectionChanged="OnAccountSelectionChanged">
+            <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="model:AccountStatus">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                        <Ellipse
+                            Width="{StaticResource NippPresenceBadgeSize}"
+                            Height="{StaticResource NippPresenceBadgeSize}"
+                            VerticalAlignment="Center"
+                            Fill="{Binding Status, Converter={StaticResource RegistrationBrushConverter}}" />
+                        <TextBlock VerticalAlignment="Center" Text="{x:Bind ShortLabel}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+            <!--
+                §8.4 und §15: der Anmeldezustand als Text, im Fehlerfall mit
+                Ursache und Abhilfe aus SipErrorCatalog. Vorher stand er nur in
+                den Einstellungen; in der Hauptansicht gab es allein die
+                achtpixelgrosse Lampe.
+            -->
+            <TextBlock
+                x:Name="AccountStateText"
+                Margin="4,0,4,0"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                TextWrapping="Wrap" />
+
+            <!--
+                W1.3 (C4): der Weg zu den Zugangsdaten, wenn die Anmeldung
+                scheitert. Ein Verweis und kein Knopf — der Zustand ist eine
+                Meldung, keine Aufforderung, und ein zweiter grosser Knopf
+                neben dem Nummernfeld waere lauter als die Sache.
+            -->
+            <HyperlinkButton
+                x:Name="FixAccountLink"
+                Margin="4,0,4,0"
+                Padding="0"
+                Click="OnSetupAccountClick"
+                Content="Zugangsdaten prüfen"
+                Visibility="Collapsed" />
+
+            <!-- Zurueck in ein laufendes Gespraech (§8.2) -->
+            <Button
+                x:Name="ActiveCallBar"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Left"
+                Click="OnActiveCallBarClick"
+                Style="{StaticResource AccentButtonStyle}"
+                ToolTipService.ToolTip="Zurück zum laufenden Gespräch"
+                AutomationProperties.Name="Zurück zum laufenden Gespräch"
+                Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                    <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE717;" />
+                    <TextBlock
+                        x:Name="ActiveCallText"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <!--
+            Hinweis, wenn noch kein Konto eingerichtet ist — <b>mit der
+            Handlung, die er beschreibt</b> (ADR-045).
+
+            Vorher stand hier eine Wegbeschreibung in Prosa: „Unten auf
+            Einstellungen tippen." Der Benutzer las sie, merkte sie sich,
+            klickte weg, suchte die Gruppe, klappte sie auf — vier Handgriffe
+            fuer etwas, das ein Klick ist. Und beim ersten Start ist es der
+            Handgriff, an dem alles haengt.
+        -->
+        <InfoBar
+            x:Name="NoAccountBar"
+            Grid.Row="0"
+            IsClosable="False"
+            IsOpen="False"
+            Message="Noch kein Konto eingerichtet — ohne Konto sind keine Anrufe möglich."
+            Severity="Informational">
+            <InfoBar.ActionButton>
+                <Button Click="OnSetupAccountClick" Content="Konto einrichten" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
+        <!--
+            2 und 3 · Eingabefeld mit × und Wählen-Schaltfläche (§20.1).
+
+            Die Umschaltung der Wähltastatur sitzt als Symbol mit im Feld, statt
+            eine eigene Zeile zu belegen. Die kostete 32 Pixel für einen Knopf,
+            den man selten braucht — und die fehlten unten in der Liste.
+        -->
+        <StackPanel Grid.Row="1" Spacing="{StaticResource NippGapSmall}">
+        <Grid ColumnSpacing="{StaticResource NippGapMedium}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!--
+                Padding rechts: die beiden Symbole liegen als Overlay IM Feld
+                (2 x 32 plus Abstand plus Rand). Ohne den Platz lief eine lange
+                Eingabe — eine SIP-Adresse etwa — unter sie hindurch.
+            -->
+            <TextBox
+                x:Name="NumberBox"
+                Height="{StaticResource NippInputRowHeight}"
+                VerticalAlignment="Center"
+                VerticalContentAlignment="Center"
+                FontSize="{StaticResource NippDialedNumberFontSize}"
+                KeyDown="OnNumberBoxKeyDown"
+                PlaceholderText="Nummer"
+                Padding="10,0,76,0"
+                Text="{x:Bind ViewModel.DialedNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <!-- Beide Symbole liegen im Feld, rechts -->
+            <StackPanel
+                Margin="0,0,4,0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Orientation="Horizontal"
+                Spacing="{StaticResource NippGapHair}">
+                <!--
+                    32 × 32 ist die Fluent-Mindestgroesse fuer ein Ziel mit der
+                    Maus; mit 28 lagen beide Symbole darunter, und mit dem
+                    Finger waren sie nicht zu treffen. Das Feld ist 40 hoch,
+                    also passen 32 hinein.
+                -->
+                <!--
+                    §22.2: die zuletzt gewählten Nummern — auf Klick, nicht auf
+                    Fokus.
+
+                    Vorher erschien die Liste, sobald jemand ins leere Feld
+                    klickte. Das ist genau der Handgriff, mit dem man zu tippen
+                    anfängt, und die Liste schob dabei die Kontakte darunter weg
+                    — sie drängte sich also gerade dann auf, wenn niemand sie
+                    wollte. Jetzt gibt es dafür einen Pfeil.
+
+                    Er steht nur bei <b>leerem</b> Feld, das Löschkreuz nur bei
+                    gefülltem: die beiden schliessen sich aus, und rechts im
+                    Feld bleiben es immer zwei Symbole.
+                -->
+                <Button
+                    x:Name="RecentButton"
+                    Style="{StaticResource NippSubtleIconButtonStyle}"
+                    Click="OnRecentClick"
+                    ToolTipService.ToolTip="Zuletzt gewählte Nummern"
+                    AutomationProperties.Name="Zuletzt gewählte Nummern">
+                    <!--
+                        Das Verlaufssymbol und nicht der Chevron E70D: 40 Pixel
+                        darueber steht die Kontoauswahl, eine echte ComboBox mit
+                        genau demselben Zeichen. Zwei gleiche Symbole, zwei
+                        Bedeutungen — das Nummernfeld sah dadurch aus, als waere
+                        es selbst eine Auswahlliste. E81C ist ausserdem das
+                        Symbol der Anrufliste, aus der diese Nummern stammen.
+                    -->
+                    <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE81C;" />
+                </Button>
+
+                <Button
+                    x:Name="ClearButton"
+                    Style="{StaticResource NippSubtleIconButtonStyle}"
+                    Command="{x:Bind ViewModel.ClearNumberCommand}"
+                    ToolTipService.ToolTip="Eingabe löschen"
+                    AutomationProperties.Name="Eingabe löschen"
+                    Visibility="Collapsed">
+                    <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE711;" />
+                </Button>
+
+                <!--
+                    Ein ToggleButton, kein Button: er zeigt von selbst an, ob
+                    die Tastatur offen ist. Ein Symbol, das dafür zwischen zwei
+                    Glyphen wechselt, müsste erst gelernt werden.
+                -->
+                <ToggleButton
+                    x:Name="DialpadToggle"
+                    Style="{StaticResource NippSubtleIconToggleStyle}"
+                    IsChecked="{x:Bind ViewModel.IsDialpadVisible, Mode=TwoWay}"
+                    ToolTipService.ToolTip="Wähltastatur ein- und ausblenden"
+                    AutomationProperties.Name="Wähltastatur ein- und ausblenden">
+                    <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE765;" />
+                </ToggleButton>
+            </StackPanel>
+
+            <Button
+                x:Name="DialButton"
+                Grid.Column="1"
+                Width="{StaticResource NippInputRowHeight}"
+                Height="{StaticResource NippInputRowHeight}"
+                Padding="0"
+                Command="{x:Bind ViewModel.DialCommand}"
+                Style="{StaticResource AccentButtonStyle}"
+                ToolTipService.ToolTip="Anrufen"
+                AutomationProperties.Name="Anrufen">
+                <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE717;" />
+            </Button>
+        </Grid>
+
+            <!-- Normalisierte Form, sobald sie abweicht (§8.1) -->
+            <TextBlock
+                x:Name="PreviewText"
+                Margin="4,0,0,0"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Visibility="Collapsed" />
+
+            <!--
+                AP4.3: Vorschläge während der Eingabe, höchstens fünf.
+
+                Direkt unter dem Feld und über allem anderen — wer tippt,
+                schaut dorthin. Ein Klick übernimmt die Nummer, wählt aber
+                nicht: ein Fehlgriff in einer Liste, die beim Tippen
+                aufspringt, wäre sonst ein Anruf bei der falschen Person.
+            -->
+            <Border
+                x:Name="SuggestionPanel"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="{ThemeResource ControlCornerRadius}"
+                Visibility="Collapsed">
+                <!--
+                    Auswaehlbar, damit die Liste auch mit der Tastatur
+                    erreichbar ist: Pfeil-runter aus dem Nummernfeld springt
+                    hinein, Enter uebernimmt. Vorher reagierte sie nur auf
+                    Antippen — und getippt wird hier mit der Tastatur.
+                -->
+                <ListView
+                    x:Name="SuggestionList"
+                    ItemContainerStyle="{StaticResource NippCompactListItemStyle}"
+                    ItemsSource="{x:Bind ViewModel.Suggestions}"
+                    KeyDown="OnSuggestionKeyDown"
+                    SelectionMode="Single">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DialSuggestion">
+                            <Grid
+                                Padding="0,4,0,4"
+                                ColumnSpacing="{StaticResource NippGapMedium}"
+                                Tapped="OnSuggestionTapped">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel>
+                                    <TextBlock
+                                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                                        Text="{x:Bind Title}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Text="{x:Bind Subtitle}"
+                                        Visibility="{x:Bind HasSubtitle, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                </StackPanel>
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind Source}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+        </StackPanel>
+
+        <!-- 4 · Wähltastatur, ein- und ausblendbar (§20.1) -->
+        <controls:Keypad
+            x:Name="DialKeypad"
+            Grid.Row="2"
+            HorizontalAlignment="Center"
+            KeyPressed="OnKeypadKeyPressed" />
+
+        <!-- 5 · Inhalt: Kontakte oder Anrufliste (§20.1) -->
+        <Border
+            Grid.Row="3"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{ThemeResource OverlayCornerRadius}">
+            <Grid>
+                <!-- Anrufliste: nur Nummer, Dauer, Uhrzeit, Ergebnis (§20.3) -->
+                <Grid
+                    x:Name="HistoryPanel"
+                    SizeChanged="OnHistoryPanelSizeChanged"
+                    Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!--
+                        §8.3 verlangt Filter und Suche. Der Speicher konnte
+                        beides von Anfang an; gerufen wurde er nur mit einer
+                        Obergrenze. §20.3 kuerzt die angezeigten Spalten, nicht
+                        die Funktionen.
+                    -->
+                    <StackPanel Padding="6,6,6,3" Spacing="{StaticResource NippGapSmall}">
+                        <AutoSuggestBox
+                            x:Name="HistorySearchBox"
+                            PlaceholderText="In der Anrufliste suchen"
+                            QueryIcon="Find"
+                            Text="{x:Bind ViewModel.HistorySearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <!--
+                            Fuenf Filter, wie §8.3 sie nennt. „Aufgenommen"
+                            fehlte in der Oberflaeche, obwohl der Store den
+                            Filter kennt — Aufnahmen waren nur ueber das
+                            Kontextmenue je Eintrag erreichbar.
+
+                            Zwei Zeilen und nicht fuenf Spalten: bei 400 Pixeln
+                            waeren fuenf Spalten je 76 Pixel breit, und
+                            „Aufgenommen" braucht mehr. Die zweite Zeile traegt
+                            nur einen Knopf und stoert die Ordnung nicht.
+                        -->
+                        <Grid ColumnSpacing="{StaticResource NippGapSmall}" RowSpacing="{StaticResource NippGapSmall}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <RadioButton
+                                x:Name="FilterAll"
+                                Grid.Column="0"
+                                MinWidth="0"
+                                Checked="OnHistoryFilterChecked"
+                                Content="Alle"
+                                Style="{StaticResource NippFilterRadioStyle}"
+                                GroupName="HistoryFilter"
+                                IsChecked="True"
+                                Tag="All" />
+                            <RadioButton
+                                x:Name="FilterMissed"
+                                Grid.Column="1"
+                                MinWidth="0"
+                                Checked="OnHistoryFilterChecked"
+                                Content="Verpasst"
+                                Style="{StaticResource NippFilterRadioStyle}"
+                                GroupName="HistoryFilter"
+                                Tag="Missed" />
+                            <RadioButton
+                                x:Name="FilterIncoming"
+                                Grid.Column="2"
+                                MinWidth="0"
+                                Checked="OnHistoryFilterChecked"
+                                Content="Eingehend"
+                                Style="{StaticResource NippFilterRadioStyle}"
+                                GroupName="HistoryFilter"
+                                Tag="Incoming" />
+                            <RadioButton
+                                x:Name="FilterOutgoing"
+                                Grid.Column="3"
+                                MinWidth="0"
+                                Checked="OnHistoryFilterChecked"
+                                Content="Ausgehend"
+                                Style="{StaticResource NippFilterRadioStyle}"
+                                GroupName="HistoryFilter"
+                                Tag="Outgoing" />
+                            <RadioButton
+                                x:Name="FilterRecorded"
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="2"
+                                MinWidth="0"
+                                Checked="OnHistoryFilterChecked"
+                                Content="Aufgenommen"
+                                Style="{StaticResource NippFilterRadioStyle}"
+                                GroupName="HistoryFilter"
+                                Tag="Recorded" />
+                        </Grid>
+                    </StackPanel>
+
+                <!--
+                    MinHeight, damit der Kartenbereich die Liste nicht
+                    aufbrauchen kann: er waechst bis 60 % der Hoehe (im
+                    Code-behind gerechnet), und darunter bleibt genug fuer drei
+                    Zeilen — sonst waere Durchklicken durch mehrere verpasste
+                    Anrufe ein Hin und Her.
+                -->
+                <ListView
+                    x:Name="HistoryList"
+                    Grid.Row="1"
+                    MinHeight="120"
+                    DoubleTapped="OnHistoryDoubleTapped"
+                    KeyDown="OnHistoryListKeyDown"
+                    SelectionChanged="OnHistorySelectionChanged"
+                    ItemContainerStyle="{StaticResource NippCompactListItemStyle}"
+                    ItemsSource="{x:Bind ViewModel.History}"
+                    SelectionMode="Single">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:HistoryRow">
+                            <Grid
+                                AutomationProperties.Name="{x:Bind AccessibleName, Mode=OneWay}"
+                                Padding="0,4,0,4"
+                                ColumnSpacing="{StaticResource NippGapLarge}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!--
+                                    §8.3: Kontextmenue mit Kopieren und
+                                    „Kontakt anlegen". Am Inhalt und nicht am
+                                    ListViewItem, weil nur hier der Eintrag als
+                                    DataContext steht.
+                                -->
+                                <Grid.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem
+                                            Click="OnCallBackClick"
+                                            Text="Zurückrufen" />
+                                        <MenuFlyoutItem
+                                            Click="OnCopyNumberClick"
+                                            Text="Nummer kopieren" />
+                                        <MenuFlyoutItem
+                                            Click="OnAddToTeamClick"
+                                            Text="Als Team-Nebenstelle anlegen" />
+                                        <MenuFlyoutItem
+                                            Click="OnOpenRecordingClick"
+                                            Text="Aufnahme im Ordner zeigen" />
+                                        <MenuFlyoutSeparator />
+                                        <!--
+                                            §8.3: der einzige Weg, ein Abzeichen
+                                            mit dreissig alten Eintraegen
+                                            loszuwerden, ohne die Liste selbst
+                                            zu loeschen.
+                                        -->
+                                        <MenuFlyoutItem
+                                            Click="OnMarkAllSeenClick"
+                                            Text="Alle als gesehen markieren" />
+                                    </MenuFlyout>
+                                </Grid.ContextFlyout>
+
+                                <FontIcon
+                                    VerticalAlignment="Center"
+                                    FontSize="{StaticResource NippIconFontSize}"
+                                    Foreground="{Binding Outcome, Converter={StaticResource OutcomeBrushConverter}}"
+                                    Glyph="{Binding Outcome, Converter={StaticResource OutcomeGlyphConverter}}" />
+
+                                <StackPanel Grid.Column="1">
+                                    <!--
+                                        Fett, solange der verpasste Anruf noch
+                                        niemandem aufgefallen ist (ADR-035).
+                                        Angeklickt heisst gesehen, und dann
+                                        steht die Zeile wie jede andere.
+
+                                        Die Aussage haengt nicht allein an der
+                                        Schrift: AccessibleName oben sagt
+                                        „ungelesen" mit (§8.4).
+                                    -->
+                                    <TextBlock
+                                        FontWeight="{x:Bind IsNew, Converter={StaticResource NewToFontWeightConverter}, Mode=OneWay}"
+                                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                                        Text="{x:Bind DisplayLabel}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Text="{Binding Entry, Converter={StaticResource HistoryDetailConverter}}" />
+                                </StackPanel>
+
+                                <TextBlock
+                                    Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{Binding StartedAt, Converter={StaticResource RelativeDateConverter}}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <!--
+                    §22.3: was das CRM und das Gesprächsjournal zu diesem Eintrag
+                    wissen.
+
+                    <b>Unter der Liste und nicht in der Zeile.</b> Ein
+                    Aufklappbereich je Eintrag hätte die Zeilen um einen Chevron
+                    verbreitert und die Liste bei jedem Öffnen umgebrochen — auf
+                    400 Pixeln ist beides teuer. So bleibt die Liste, wie sie
+                    ist, der gewählte Eintrag ist markiert, und der Kontext
+                    steht an einer festen Stelle statt jedes Mal woanders.
+
+                    <b>Abgerufen wird beim Anklicken, gespeichert wird nichts</b>
+                    (ADR-027). Ein Eintrag von vor drei Monaten zeigt deshalb
+                    den heutigen Stand.
+                -->
+                <Border
+                    x:Name="HistoryContextPanel"
+                    Grid.Row="2"
+                    Margin="6,3,6,6"
+                    Padding="{StaticResource NippCardPadding}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{ThemeResource OverlayCornerRadius}"
+                    Visibility="Collapsed">
+                    <Grid RowSpacing="{StaticResource NippGapSmall}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!--
+                            Der Kopf ist Rahmen und nicht Karte (ADR-036): er
+                            sagt, WELCHER Eintrag offen ist. Der Bereich steht
+                            unter der Liste und nicht in der Zeile — ohne diese
+                            Angabe staenden darunter Werte ohne Bezug, und was
+                            sich wegkonfigurieren laesst, darf diese Frage nicht
+                            beantworten.
+                        -->
+                        <Grid ColumnSpacing="{StaticResource NippGapMedium}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <TextBlock
+                                    x:Name="HistoryContextTitle"
+                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.ExpandedHistoryDetail, Mode=OneWay}" />
+                            </StackPanel>
+
+                            <ProgressRing
+                                Grid.Column="1"
+                                Width="16" Height="16"
+                                VerticalAlignment="Center"
+                                IsActive="{x:Bind ViewModel.IsLoadingHistoryContext, Mode=OneWay}" />
+
+                            <Button
+                                Grid.Column="2"
+                                Style="{StaticResource NippSubtleIconButtonStyle}"
+                                VerticalAlignment="Top"
+                                AutomationProperties.Name="Bereich schliessen"
+                                Click="OnCloseHistoryContextClick"
+                                ToolTipService.ToolTip="Schliessen">
+                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE711;" />
+                            </Button>
+                        </Grid>
+
+                        <!--
+                            Eigener ScrollViewer, und die Liste darueber behaelt
+                            ihren: zwei Listen in EINEM ScrollViewer bekommen
+                            unendliche Hoehe angeboten und erzeugen jede Zeile —
+                            auf demselben Thread, der alle 20 ms Core.Iterate()
+                            bedient. Der Fehler waere kein Absturz, sondern ein
+                            Ruckeln beim Wechsel auf den Kontakte-Tab.
+                        -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="{StaticResource NippGapSmall}">
+                                <TextBlock
+                                    x:Name="HistoryContextPlaceholderText"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.HistoryContextPlaceholder, Mode=OneWay}"
+                                    TextWrapping="Wrap" />
+
+                                <!--
+                                    Die Karte der Anrufliste (ADR-036) —
+                                    dieselbe Engine wie in der Gespraechsansicht
+                                    und im Designer. Was hier steht, ist im
+                                    Designer einzurichten.
+                                -->
+                                <cards:CardView
+                                    x:Name="HistoryContextCard"
+                                    ActionInvoked="OnHistoryCardAction"
+                                    Model="{x:Bind ViewModel.HistoryCard, Mode=OneWay}" />
+
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.HistoryContextSources}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:CallerCardSource">
+                                            <TextBlock
+                                                Padding="0,2,0,2"
+                                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Text="{x:Bind Message}"
+                                                TextWrapping="Wrap" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+                </Grid>
+
+                <!-- Kontakte: Team mit Besetztlampenfeld, dann Outlook (§8.4) -->
+                <!--
+                    Kein Suchfeld mehr: gesucht wird über das Nummernfeld oben,
+                    das Kontakte und Anrufliste durchsucht und seine Treffer als
+                    Vorschläge zeigt (§8.1). Zwei Suchfelder für denselben
+                    Bestand waren einer zu viel.
+
+                    Auch keine eigene Zeile für „neu einlesen" mehr: ein Knopf
+                    allein über der Liste stand ohne Bezug da. Er sitzt jetzt im
+                    Kopf des Outlook-Abschnitts — dort, wo das Einlesen
+                    hingehört und wo auch etwas draufsteht.
+                -->
+                <Grid x:Name="ContactsPanel" RowSpacing="{StaticResource NippGapSmall}" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!--
+                        <b>Kein eigenes Suchfeld mehr</b> (ADR-046). Gesucht wird
+                        oben im Nummernfeld: die lokalen Treffer stehen sofort
+                        als Vorschlaege darunter, die Quellen ueber das Netz
+                        antworten entprellt in die Trefferliste hier.
+
+                        Zwei Felder uebereinander hiessen „welches ist wofuer?",
+                        und wer den Kunden im falschen suchte, hielt ihn fuer
+                        nicht vorhanden — genau der Fehlschluss, der in ADR-025
+                        zum zweiten Feld gefuehrt hat.
+                    -->
+
+                    <!--
+                        §8.4: beide Quellen getrennt sichtbar — jetzt als zwei
+                        Abschnitte, die sich einzeln zuklappen lassen.
+
+                        Zwei Listen und kein umschliessender ScrollViewer: eine
+                        Liste, die unendlich hoch messen darf, erzeugt alle ihre
+                        Zeilen auf einmal. Bei über hundert Outlook-Kontakten
+                        wären das ein paar tausend Elemente statt der zwei
+                        Dutzend, die man sieht — auf einem Thread, der alle
+                        zwanzig Millisekunden das SDK bedienen muss. Jede Liste
+                        scrollt deshalb selbst.
+                    -->
+                    <Grid x:Name="ContactsBody" Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition x:Name="TeamRow" Height="Auto" />
+                            <RowDefinition x:Name="OutlookRow" Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!--
+                            <b>Eine Gliederungsebene, nicht zwei</b> (13.09.2026,
+                            ADR-063).
+
+                            Hier stand ein Expander mit der Kopfzeile
+                            «Nebenstellen (10)», und darunter klappte jede Gruppe
+                            noch einmal fuer sich. Zwei Klappebenen uebereinander
+                            fuer dieselbe Liste: wer «Dienste» zuklappte, hatte
+                            danach immer noch eine Ueberschrift darueber, die
+                            nichts weiter sagte als die Summe.
+
+                            Jetzt stehen «Team» und «Dienste» direkt da. Der
+                            Zaehler steht je Gruppe in ihrem eigenen Kopf, wo er
+                            etwas aussagt — und was frueher der Expander konnte,
+                            koennen die Gruppen einzeln und besser.
+                        -->
+                        <Grid
+                            x:Name="TeamGroup"
+                            Grid.Row="0"
+                            Padding="8,0,8,8"
+                            RowSpacing="{StaticResource NippGapSmall}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Der Hinweis im Sortiermodus (C20). -->
+                            <StackPanel
+                                x:Name="TeamReorderHint"
+                                Orientation="Horizontal"
+                                Spacing="{StaticResource NippGapMedium}"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="Zeilen ziehen, um sie umzusortieren." />
+                                <HyperlinkButton
+                                    Padding="4,0,4,0"
+                                    Click="OnReorderDoneClick"
+                                    Content="Fertig" />
+                            </StackPanel>
+
+                            <!--
+                                <b>AllowDrop an der Liste</b> (ADR-066) — sie
+                                ist das Ablegeziel, nicht die einzelne Zeile.
+                                CanDragItems und CanReorderItems bleiben aus:
+                                der Zug gehoert uns (ADR-065), und der
+                                eingebaute Weg tut in einer gruppierten
+                                CollectionViewSource ohnehin nichts.
+                            -->
+                            <ListView
+                                x:Name="TeamList"
+                                Grid.Row="1"
+                                MaxHeight="{StaticResource NippTeamListMaxHeight}"
+                                AllowDrop="True"
+                                DragOver="OnTeamListDragOver"
+                                Drop="OnTeamListDrop"
+                                CanDragItems="False"
+                                CanReorderItems="False"
+                                ItemContainerStyle="{StaticResource NippCompactListItemStyle}"
+                                ItemTemplate="{StaticResource NippContactRowTemplate}"
+                                KeyDown="OnContactListKeyDown"
+                                SelectionChanged="OnContactSelectionChanged"
+                                SelectionMode="Single">
+                                <ListView.GroupStyle>
+                                    <GroupStyle
+                                        HeaderContainerStyle="{StaticResource NippGroupHeaderContainerStyle}"
+                                        HeaderTemplate="{StaticResource NippContactGroupHeaderTemplate}" />
+                                </ListView.GroupStyle>
+                            </ListView>
+                        </Grid>
+
+                        <Expander
+                            x:Name="OutlookGroup"
+                            Grid.Row="1"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"
+                            IsExpanded="{x:Bind ViewModel.IsOutlookExpanded, Mode=TwoWay}"
+                            Padding="8,0,8,8">
+                            <Expander.Header>
+                                <Grid ColumnSpacing="{StaticResource NippGapLarge}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        x:Name="OutlookHeaderText"
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource BodyStrongTextBlockStyle}" />
+
+                                    <Button
+                                        x:Name="ReloadContactsButton"
+                                        Grid.Column="1"
+                                        Width="32" Height="32"
+                                        Padding="0"
+                                        MinWidth="0"
+                                        Command="{x:Bind ViewModel.ReloadContactsCommand}"
+                                        ToolTipService.ToolTip="Kontakte neu einlesen"
+                                        AutomationProperties.Name="Kontakte neu einlesen">
+                                        <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE72C;" />
+                                    </Button>
+                                </Grid>
+                            </Expander.Header>
+
+                            <Grid RowSpacing="{StaticResource NippGapSmall}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <!--
+                                    §8.4: „Outlook muss laufen (sonst
+                                    verstaendliche Anzeige statt leerer Liste)".
+                                    Der Grund stand bisher nur im Protokoll, und
+                                    in der Oberflaeche las man „Outlook (0)" —
+                                    das sieht aus, als sei nipp defekt.
+                                -->
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.OutlookHint, Mode=OneWay}"
+                                    TextWrapping="Wrap"
+                                    Visibility="{x:Bind ViewModel.HasOutlookHint, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                                <ListView
+                                    x:Name="OutlookList"
+                                    Grid.Row="1"
+                                    ItemContainerStyle="{StaticResource NippCompactListItemStyle}"
+                                    ItemTemplate="{StaticResource NippOutlookRowTemplate}"
+                                    ItemsSource="{x:Bind ViewModel.OutlookContacts}"
+                                    KeyDown="OnContactListKeyDown"
+                                    SelectionChanged="OnContactSelectionChanged"
+                                    SelectionMode="Single" />
+                            </Grid>
+                        </Expander>
+                    </Grid>
+
+                    <!--
+                        Die Trefferliste. Sie ersetzt die beiden Abschnitte,
+                        solange etwas im Suchfeld steht — nebeneinander wären es
+                        drei Listen in einem 400 Pixel breiten Fenster, und
+                        keine davon zeigte genug.
+
+                        Auch hier kein umschliessender ScrollViewer, aus dem
+                        Grund, der eine Zeile weiter oben steht.
+                    -->
+                    <Grid
+                        x:Name="SearchBody"
+                        Grid.Row="1"
+                        RowSpacing="{StaticResource NippGapSmall}"
+                        Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!--
+                            Was die Quellen gerade tun (§21.1: die Oberfläche
+                            soll auf ihre Zustände reagieren können). Steht nur
+                            da, wenn es etwas zu sagen gibt — eine erfolgreiche
+                            lokale Suche erwähnt niemand.
+                        -->
+                        <Grid ColumnSpacing="{StaticResource NippGapMedium}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                x:Name="SearchStatusText"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                TextWrapping="Wrap"
+                                Visibility="Collapsed" />
+
+                            <!--
+                                Der Ring sass im Suchfeld; es gibt keines mehr.
+                                Hier steht er bei den Treffern, zu denen er
+                                gehoert (ADR-046).
+                            -->
+                            <ProgressRing
+                                x:Name="SearchRing"
+                                Grid.Column="1"
+                                Width="16" Height="16"
+                                VerticalAlignment="Center"
+                                IsActive="False"
+                                Visibility="Collapsed" />
+                        </Grid>
+
+                        <ListView
+                            x:Name="SearchResultList"
+                            Grid.Row="1"
+                            ItemContainerStyle="{StaticResource NippCompactListItemStyle}"
+                            ItemTemplate="{StaticResource NippSearchResultTemplate}"
+                            ItemsSource="{x:Bind ViewModel.SearchResults}"
+                            KeyDown="OnContactListKeyDown"
+                            SelectionMode="Single" />
+
+                        <TextBlock
+                            x:Name="SearchEmptyText"
+                            Grid.Row="1"
+                            Margin="0,16,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextAlignment="Center"
+                            TextWrapping="Wrap"
+                            Visibility="Collapsed" />
+                    </Grid>
+
+                    <!--
+                        <b>Hier stand bis zum 13.09.2026 der Detailbereich</b>
+                        (ADR-041, ADR-046). Er klappt jetzt in der Zeile auf,
+                        in allen drei Listen gleich — die Vorlagen oben tragen
+                        ihn ueber NippContactDetailTemplate, und x:Load haelt
+                        ihn aus dem Baum, solange niemand etwas angeklickt hat
+                        (ADR-048).
+
+                        Die dritte Rasterzeile bleibt: an ihr haengt nichts
+                        mehr, und eine Zeile der Hoehe Auto ohne Inhalt kostet
+                        nichts.
+                    -->
+                </Grid>
+
+
+                <StackPanel
+                    x:Name="PlaceholderPanel"
+                    Padding="16"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="{StaticResource NippGapMedium}">
+                    <ProgressRing
+                        x:Name="PlaceholderRing"
+                        Width="20" Height="20"
+                        HorizontalAlignment="Center"
+                        IsActive="False"
+                        Visibility="Collapsed" />
+                    <FontIcon
+                        x:Name="PlaceholderIcon"
+                        HorizontalAlignment="Center"
+                        FontSize="24"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Glyph="&#xE77B;" />
+                    <TextBlock
+                        x:Name="PlaceholderText"
+                        HorizontalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+
+                    <!--
+                        Im leeren Zustand ist „neu einlesen" genau das, was man
+                        braucht — und der Knopf im Kopf des Outlook-Abschnitts
+                        ist dann nicht da, weil es den Abschnitt nicht gibt.
+                    -->
+                    <StackPanel
+                        Margin="0,6,0,0"
+                        HorizontalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="{StaticResource NippGapMedium}">
+                        <Button
+                            x:Name="PlaceholderReloadButton"
+                            Command="{x:Bind ViewModel.ReloadContactsCommand}"
+                            Content="Kontakte neu einlesen"
+                            Visibility="Collapsed" />
+
+                        <!-- Der zweite Weg aus dem leeren Zustand (ADR-045). -->
+                        <Button
+                            x:Name="PlaceholderTeamButton"
+                            Click="OnSetupTeamClick"
+                            Content="Nebenstelle anlegen"
+                            Visibility="Collapsed" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!--
+            Meldungen in eigener Rasterzeile.
+
+            Vorher lagen beide als Overlay in der Inhaltszeile: sie verdeckten
+            die Liste, und traten sie gleichzeitig auf, ueberlagerten sie sich
+            gegenseitig.
+        -->
+        <StackPanel Grid.Row="4" Spacing="{StaticResource NippGapSmall}">
+            <!-- Fehlermeldung nach §15: Ursache und Abhilfe -->
+            <InfoBar
+                x:Name="ErrorBar"
+                IsClosable="True"
+                IsOpen="False"
+                Severity="Error" />
+
+            <!--
+                Hinweis, der kein Fehler ist (§9.4, AP5.6): ein Audiogerät ist
+                verschwunden oder wieder da. Eigene Leiste und eigene Farbe —
+                wer ein rotes Feld sieht, sucht nach etwas, das er tun muss.
+            -->
+            <InfoBar
+                x:Name="HintBar"
+                IsClosable="True"
+                IsOpen="False"
+                Severity="Informational" />
+        </StackPanel>
+
+        <!--
+            5b · Die Nebenstellen als Kacheln, im breiten Layout (ADR-047).
+
+            <b>Sie stehen rechts, unabhaengig davon, was links gewaehlt ist.</b>
+            Ein Softphone wird zum Nachschauen benutzt — «ist der Kollege
+            frei?» —, und diese Frage stellt sich waehrend der Anrufliste
+            genauso wie waehrend der Kontakte.
+
+            <b>Warum ein GridView und nicht die Liste in breit.</b> Die Kachel
+            zeigt alles, was die Zeile erst nach einem Klick zeigt: Name,
+            Firma, Zustand und jede Nummer einzeln waehlbar. Das ist der Sinn
+            der Form, nicht ihr Schmuck.
+
+            <b>Und warum das ItemsWrapGrid als ItemsPanel steht.</b> Es ist das
+            virtualisierende Panel und kennt Gruppen selbst; ein
+            GroupStyle.Panel wird daneben gar nicht gelesen. Steht dort ein
+            ItemsStackPanel, stapelt es Koepfe und Kacheln stur untereinander —
+            gemessen am 12.09.2026, eine Kachel je Reihe. Wer das aendert,
+            prueft beides am Geraet: die Kacheln nebeneinander (T252) und die
+            Virtualisierung bei vierzig Nebenstellen (T215, T254).
+
+            <b>RowSpan 6 und nicht 5</b> (ADR-052): die Umschaltleiste steht im
+            breiten Layout nur noch in Spalte 0, also reicht der Kachelbereich
+            neben ihr bis an den unteren Rand. Im schmalen Layout ist er
+            unsichtbar und die Zeile gehoert ohnehin der Leiste.
+        -->
+        <Border
+            x:Name="TilesPanel"
+            Grid.Row="0"
+            Grid.RowSpan="6"
+            Grid.Column="1"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{ThemeResource OverlayCornerRadius}"
+            Visibility="Collapsed">
+            <Grid Padding="8" RowSpacing="{StaticResource NippGapSmall}">
+                <Grid.RowDefinitions>
+                    <!-- Der Hinweis im Sortiermodus, eigene Zeile (C20). -->
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!--
+                    Was der Filter uebriglaesst (C11). Das Raster zeigt bei
+                    einer Suche nur die passenden Nebenstellen — ohne diese
+                    Zeile saehe ein leeres Raster aus wie ein Fehler.
+                -->
+                <StackPanel
+                    x:Name="TilesFilterHint"
+                    Grid.Row="0"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{StaticResource NippGapMedium}"
+                    Visibility="Collapsed">
+                    <TextBlock
+                        x:Name="TilesFilterText"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}" />
+                    <HyperlinkButton
+                        Padding="4,0,4,0"
+                        Click="OnClearTileFilterClick"
+                        Content="Filter aufheben" />
+                </StackPanel>
+
+                <!-- Der Hinweis im Sortiermodus (C20) — hier heisst es Kacheln. -->
+                <StackPanel
+                    x:Name="TilesReorderHint"
+                    Grid.Row="0"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="{StaticResource NippGapMedium}"
+                    Visibility="Collapsed">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="Kacheln ziehen, um sie umzusortieren." />
+                    <HyperlinkButton
+                        Padding="4,0,4,0"
+                        Click="OnReorderDoneClick"
+                        Content="Fertig" />
+                </StackPanel>
+
+                <GridView
+                    x:Name="TeamTiles"
+                    Grid.Row="1"
+                    Padding="0,0,0,8"
+                    AllowDrop="True"
+                    DragOver="OnTeamListDragOver"
+                    Drop="OnTeamListDrop"
+                    CanDragItems="False"
+                    CanReorderItems="False"
+                    ItemContainerStyle="{StaticResource NippTileItemStyle}"
+                    ItemTemplate="{StaticResource NippContactTileTemplate}"
+                    KeyDown="OnContactListKeyDown"
+                    SelectionMode="Single">
+                    <!--
+                        <b>Das ItemsWrapGrid steht hier und nicht im
+                        GroupStyle.Panel</b> (ADR-052).
+
+                        Es kennt Gruppen selbst: die Kacheln einer Gruppe
+                        stehen nebeneinander und brechen um, wenn die Breite
+                        nicht reicht, und jede neue Gruppe beginnt unter ihrem
+                        Kopf eine neue Reihe (GroupHeaderPlacement="Top").
+
+                        <b>Vorher stand hier ein ItemsStackPanel und das
+                        WrapGrid im GroupStyle.Panel — und das war wirkungslos:
+                        die virtualisierenden Panels von WinUI
+                        (ItemsStackPanel, ItemsWrapGrid) tragen die Gruppierung
+                        eingebaut und lesen GroupStyle.Panel gar nicht.</b>
+                        Gezeichnet wurde deshalb eine Kachel je Reihe, ueber
+                        die volle Breite gestreckt. Es sah aus wie zu wenig
+                        Platz und war das falsche Panel.
+                    -->
+                    <GridView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid
+                                GroupHeaderPlacement="Top"
+                                ItemHeight="{StaticResource NippTileCellHeight}"
+                                ItemWidth="{StaticResource NippTileCellWidth}"
+                                Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </GridView.ItemsPanel>
+                    <GridView.GroupStyle>
+                        <GroupStyle
+                            HeaderContainerStyle="{StaticResource NippTileGroupHeaderContainerStyle}"
+                            HeaderTemplate="{StaticResource NippContactGroupHeaderTemplate}" />
+                    </GridView.GroupStyle>
+                </GridView>
+
+                <TextBlock
+                    x:Name="TilesEmptyText"
+                    Grid.Row="1"
+                    Margin="8,16,8,0"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="Keine Nebenstellen eingetragen."
+                    TextAlignment="Center"
+                    TextWrapping="Wrap"
+                    Visibility="Collapsed" />
+
+                <!--
+                    W1.3 (C9): der Weg aus dem leeren Zustand heraus. Die
+                    Kontaktliste links hat ihn seit ADR-045; das Kachelfeld
+                    stand bis zum 13.09.2026 mit einem blossen Satz da.
+                -->
+                <HyperlinkButton
+                    x:Name="TilesEmptyAction"
+                    Grid.Row="1"
+                    Margin="8,44,8,0"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Click="OnSetupTeamClick"
+                    Content="Nebenstellen einrichten"
+                    Visibility="Collapsed" />
+            </Grid>
+        </Border>
+
+        <!--
+            6 · Umschaltleiste (§20.1).
+
+            <b>Drei Knoepfe seit dem 13.09.2026</b> (ADR-062): Kontakte,
+            Anrufe, Einstellungen. Der Mailbox-Reiter ist entfallen, und mit
+            ihm alles, was an ihm hing.
+
+            <b>ToggleButton statt Button</b>: vorher sahen alle gleich aus,
+            und der aktive Bereich war nur am Inhalt zu erraten. Jetzt zeigt die
+            Leiste, wo man ist.
+
+            Die Beschriftung steht auf der Caption-Groesse der Fluent-Skala (12).
+            Mit 9 Pixeln lag sie unter jeder Ramp und war bei 100 % Skalierung
+            kaum lesbar.
+
+            Der Knopf rechts hiess eine Zeit lang „Optionen", weil
+            „Einstellungen" bei <b>vier</b> Spalten nicht auf die Mindestbreite
+            von 320 Pixeln passte. Damit gab es aber zwei Namen fuer dieselbe
+            Seite: der Knopf sagte „Optionen", die Seite „Einstellungen", und
+            jeder Hinweistext im Programm verwies auf „die Einstellungen". Jetzt
+            steht ueberall dasselbe Wort — und seit es nur noch drei Spalten
+            sind, ist der Platz ohnehin kein Thema mehr. TextTrimming bleibt
+            trotzdem: es kuerzt sauber ab, statt hart abzuschneiden. Sichtbarer
+            Text und Name fuer die Bedienhilfe bleiben gleich — verschiedene
+            Texte an denselben Knopf verletzen WCAG 2.5.3 und lassen die
+            Sprachsteuerung ins Leere greifen.
+
+            <b>Im breiten Layout steht sie nur unter der linken Spalte</b>
+            (ADR-052). Sie schaltet um, was links steht — die Kacheln rechts
+            stehen unabhaengig davon —, und die Knoepfe ueber 1920 Pixel
+            gezogen waeren riesige Flaechen mit einem 16-Pixel-Symbol in
+            der Mitte. Der ColumnSpan wird in ApplyLayout gesetzt, nicht hier:
+            er haengt am Layoutzustand.
+        -->
+        <Grid x:Name="SectionBar" Grid.Row="5" Grid.ColumnSpan="2" ColumnSpacing="{StaticResource NippGapSmall}">
+            <Grid.Resources>
+                <Style x:Key="NippTabButtonStyle" TargetType="ToggleButton">
+                    <!--
+                        MinHeight: bei Windows-Textskalierung waechst die
+                        Beschriftung, die feste Hoehe nicht — sie wurde dann
+                        unten abgeschnitten.
+                    -->
+                    <Setter Property="MinHeight" Value="{StaticResource NippTabBarHeight}" />
+                    <Setter Property="Padding" Value="0,4,0,4" />
+                    <Setter Property="MinWidth" Value="0" />
+                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                </Style>
+            </Grid.Resources>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <ToggleButton
+                x:Name="ContactsTab"
+                Grid.Column="0"
+                Click="OnTabClick"
+                Style="{StaticResource NippTabButtonStyle}"
+                Tag="Contacts"
+                ToolTipService.ToolTip="Kontakte (Strg+1)"
+                AutomationProperties.Name="Kontakte">
+                <StackPanel Spacing="{StaticResource NippGapHair}">
+                    <FontIcon HorizontalAlignment="Center" FontSize="{StaticResource NippTabIconFontSize}" Glyph="&#xE77B;" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="Kontakte" />
+                </StackPanel>
+            </ToggleButton>
+
+            <ToggleButton
+                x:Name="HistoryTab"
+                Grid.Column="1"
+                Click="OnTabClick"
+                Style="{StaticResource NippTabButtonStyle}"
+                Tag="History"
+                ToolTipService.ToolTip="Anrufe (Strg+2)"
+                AutomationProperties.Name="Anrufe">
+                <StackPanel Spacing="{StaticResource NippGapHair}">
+                    <!--
+                        <b>Das Abzeichen bekommt einen eigenen Platz</b> (W2.6,
+                        Befund D13). Die Zahl der verpassten Anrufe steht auf dem Anruf-Reiter.
+
+                        Hier stand bis zum 13.09.2026 Margin="11,-5,-9,0": vier
+                        Zahlen, zwei davon negativ, an denen sich das Abzeichen
+                        an das Symbol heranschob. Ein negativer Rand ist eine
+                        feste Pixelzahl, und das Symbol daneben ist es nicht —
+                        wer die Windows-Textskalierung auf 150 Prozent stellt,
+                        bekommt ein groesseres Symbol und ein Abzeichen, das
+                        weiterhin elf Pixel weit rechts steht.
+
+                        Stattdessen drei Spalten: links ein leerer Platz, so
+                        breit wie der rechte. Das Symbol bleibt dadurch mittig,
+                        das Abzeichen hat rechts seinen eigenen Raum, und
+                        nichts springt, wenn es erscheint.
+                    -->
+                    <Grid HorizontalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="16" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Grid.Column="1" FontSize="{StaticResource NippTabIconFontSize}" Glyph="&#xE81C;" />
+                        <InfoBadge
+                            x:Name="MissedBadge"
+                            Grid.Column="2"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Style="{StaticResource AttentionValueInfoBadgeStyle}"
+                            Visibility="Collapsed" />
+                    </Grid>
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="Anrufe" />
+                </StackPanel>
+            </ToggleButton>
+
+            <ToggleButton
+                x:Name="SettingsTab"
+                Grid.Column="2"
+                Click="OnTabClick"
+                Style="{StaticResource NippTabButtonStyle}"
+                Tag="Settings"
+                ToolTipService.ToolTip="Einstellungen (Strg+3)"
+                AutomationProperties.Name="Einstellungen">
+                <StackPanel Spacing="{StaticResource NippGapHair}">
+                    <FontIcon HorizontalAlignment="Center" FontSize="{StaticResource NippTabIconFontSize}" Glyph="&#xE713;" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        TextTrimming="CharacterEllipsis"
+                        Text="Einstellungen" />
+                </StackPanel>
+            </ToggleButton>
+        </Grid>
+    </Grid>
+</Page>

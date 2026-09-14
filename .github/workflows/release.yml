@@ -1,0 +1,93 @@
+﻿# Ein Release bauen und veroeffentlichen (docs/plans/RELEASE-PLAN.md R7, ADR-038).
+#
+# Von Hand angestossen, mit Version und Kanal als Eingabe. Absichtlich nicht
+# automatisch bei jedem Tag: ein Release ist eine Entscheidung, und die
+# Reihenfolge "erst beta, dann stable" ist die einzige Sicherung dagegen, dass
+# eine kaputte Fassung alle Arbeitsplaetze auf einmal erreicht.
+#
+# Der Tag entsteht hier mit und ist die Zuordnung "dieser Installer gehoert zu
+# diesem Quellstand". Nachtraeglich laesst sie sich nicht herstellen — und beim
+# Oeffentlichmachen (docs/plans/RELEASE-PLAN.md R10) ist sie die Pflichtangabe.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version, dreiteilig (0.9.0) oder mit Suffix (0.9.0-beta.1)'
+        required: true
+      channel:
+        description: 'Kanal'
+        required: true
+        default: 'beta'
+        type: choice
+        options: [beta, stable]
+
+env:
+  LINPHONE_SDK_VERSION: 5.5.18
+  LINPHONE_SDK_URL: https://download.linphone.org/releases/windows/sdk/linphone-sdk-win64-5.5.18.zip
+  LINPHONE_SDK_SHA256: 4C69440CFFD843DA324C7AEDA9A2EA54C9E699AE199AB0A9F102AC26F55BE023
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    permissions:
+      # Fuer das Anlegen des Releases und das Hochladen der Pakete.
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: SDK aus dem Cache
+        id: sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: sdk/extracted
+          key: linphone-sdk-${{ env.LINPHONE_SDK_VERSION }}
+
+      - name: SDK beschaffen
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path sdk | Out-Null
+          $zip = 'sdk/linphone-sdk.zip'
+          Invoke-WebRequest -Uri $env:LINPHONE_SDK_URL -OutFile $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash
+          if ($hash -ne $env:LINPHONE_SDK_SHA256) {
+            throw "Pruefsumme stimmt nicht. Erwartet $env:LINPHONE_SDK_SHA256, erhalten $hash."
+          }
+          Expand-Archive -Path $zip -DestinationPath sdk/extracted -Force
+          Remove-Item $zip
+
+      # Ein Release, das die Tests nicht besteht, geht niemanden etwas an.
+      - name: Testen
+        run: dotnet test Nipp.sln -c Release
+
+      - name: vpk bereitstellen
+        run: dotnet tool restore
+
+      # Dasselbe Skript, das auch von Hand laeuft. Zwei Wege zum Release waeren
+      # zwei Gelegenheiten, sie auseinanderlaufen zu lassen.
+      - name: Setup bauen und veroeffentlichen
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          .\build\Release-Nipp.ps1 `
+            -Version '${{ inputs.version }}' `
+            -Channel '${{ inputs.channel }}' `
+            -Publish
+
+      # Auch bei einem gescheiterten Upload bleibt greifbar, was gebaut wurde.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nipp-${{ inputs.version }}-${{ inputs.channel }}
+          path: dist/releases
+          retention-days: 14

@@ -1,0 +1,93 @@
+﻿<Project>
+
+  <!--
+    nipp — gemeinsame Build-Eigenschaften.
+    Vorgaben aus NIPP-BUILD.md Paragraph 4 (Zielstack) und Paragraph 15 (Konventionen).
+  -->
+
+  <PropertyGroup>
+    <!--
+      Paragraph 4: .NET 8 LTS.
+
+      TFM und Mindestversion sind absichtlich verschieden (ADR-003):
+      Das TFM bestimmt, welche APIs zur Compile-Zeit sichtbar sind, die
+      SupportedOSPlatformVersion, worauf die App laeuft. Hoch/niedrig ist die
+      von Microsoft empfohlene Kombination und kostet keine Reichweite.
+
+      19041 (Windows 10 2004) als Minimum deckt die Anforderung aus Paragraph 2
+      ab: Windows 10 22H2 (19045) und Windows 11.
+    -->
+    <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+
+    <!--
+      Paragraph 4 und Fallstrick Paragraph 14.4: alles x64, kein AnyCPU.
+      Ein als x86 gestarteter Prozess laedt die nativen DLLs nicht.
+      Die Entwicklungsmaschine ist ARM64 (docs/environment.md) — x64 laeuft
+      dort emuliert. Das ist gewollt: das Produkt ist x64 only, weil das
+      linphone-sdk fuer Windows nur win64-Binaries liefert.
+    -->
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+
+    <!--
+      Platforms ist nur die Liste der waehlbaren Plattformen; Platform ist die
+      aktive. Ohne diese Zeile faellt ein Projekt-Build ausserhalb der Solution
+      auf AnyCPU zurueck und legt die Ausgabe unter bin\Debug\ ab, waehrend der
+      Solution-Build sie unter bin\x64\Debug\ erwartet - "dotnet run" findet die
+      EXE dann nicht. Die Condition laesst eine ausdrueckliche Wahl (etwa aus
+      der Solution-Konfiguration) unangetastet.
+    -->
+    <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
+
+    <!-- Paragraph 15: C# 12, Nullable ein, Warnungen sind Fehler -->
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningLevel>9999</WarningLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Deterministische, reproduzierbare Builds — Paragraph 5 legt Wert darauf -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <DebugType>portable</DebugType>
+
+    <!--
+      Gemeinsame Version.
+
+      build\Release-Nipp.ps1 uebergibt beim Paketieren dieselbe Zahl per
+      -p:Version. Wer hier nicht mitzieht, bekommt eine Doppelwahrheit, die
+      genau dann schadet, wenn sie am teuersten ist: die installierte Fassung
+      meldet im Info-Bereich 0.9.1, ein Debug-Build 0.1.0 — und bei einer
+      Fehlersuche ueber Protokolle weiss dann niemand mehr, welcher Stand
+      gelaufen ist.
+    -->
+    <VersionPrefix>0.9.2</VersionPrefix>
+    <Product>nipp</Product>
+    <Company>bv2 GmbH</Company>
+    <Authors>bv2 GmbH</Authors>
+    <Copyright>© 2026 bv2 GmbH</Copyright>
+    <NeutralLanguage>de-CH</NeutralLanguage>
+
+    <!-- Paragraph 15: der Produktname ist klein geschrieben, der Namespace nicht -->
+    <RootNamespace>Nipp</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Der generierte Linphone-Wrapper ist fremder Code: keine Analyse, keine
+    Warnungen-als-Fehler. Sonst blockiert er den Build, ohne dass wir ihn
+    aendern duerften (Paragraph 0 Regel 1: die Wrapper-Datei ist die Wahrheit,
+    nicht unser Formatgeschmack).
+  -->
+  <ItemGroup>
+    <Compile Update="**\LinphoneWrapper.cs">
+      <NoWarn>$(NoWarn);CS8600;CS8602;CS8603;CS8604;CS8618;CS8625;CA1707;CA1069</NoWarn>
+    </Compile>
+  </ItemGroup>
+
+</Project>

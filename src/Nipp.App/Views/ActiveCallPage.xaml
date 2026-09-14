@@ -1,0 +1,820 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Nipp.App.Views.ActiveCallPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Nipp.App.Controls"
+    xmlns:cards="using:Nipp.App.Controls.Cards"
+    xmlns:model="using:Nipp.Core.Services.Telephony.Model"
+    xmlns:vm="using:Nipp.Core.ViewModels"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!-- Aktives Gespräch (§8.2) -->
+    <!--
+        W2.5 (C6): Ziffern von der Tastatur gehen als Tastenton hinaus —
+        aber nur, wenn kein Textfeld den Fokus hat. Bis zum 13.09.2026 ging
+        DTMF nur mit der Maus.
+    -->
+    <Grid CharacterReceived="OnPageCharacterReceived">
+        <!--
+            Der Rueckweg auf den Tasten, die jeder Windows-Benutzer dafuer
+            drueckt (C9). Bis zum 13.09.2026 hing er allein am Pfeil oben
+            links.
+
+            <b>Escape beendet kein Gespraech.</b> Es tut, was der Pfeil tut —
+            zurueck zur Waehltastatur, das Gespraech laeuft weiter —, und
+            schliesst vorher einen offenen Bereich, weil das die innerste
+            Ebene ist.
+        -->
+        <!--
+            Die Handgriffe im Gespraech auf Tasten (C7). Bis zum 13.09.2026
+            stand hier kein einziges KeyboardAccelerator: Stumm, Halten und
+            Auflegen waren ausschliesslich mit der Maus erreichbar — und nur,
+            solange das Fenster vorne stand.
+
+            Strg+M ist das Kuerzel, das jeder aus Teams und Zoom mitbringt.
+            Strg+E fuer Auflegen und nicht Strg+H: H liegt auf «Halten», und
+            zwei Bedeutungen auf einer Taste sind im Gespraech die schlechteste
+            Idee.
+        -->
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Invoked="OnBackAccelerator" Key="Escape" />
+            <KeyboardAccelerator Invoked="OnBackAccelerator" Key="Left" Modifiers="Menu" />
+            <KeyboardAccelerator Invoked="OnCallAccelerator" Key="M" Modifiers="Control" />
+            <KeyboardAccelerator Invoked="OnCallAccelerator" Key="H" Modifiers="Control" />
+            <KeyboardAccelerator Invoked="OnCallAccelerator" Key="E" Modifiers="Control" />
+        </Grid.KeyboardAccelerators>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--
+            Die Kopfleiste steht ausserhalb des ScrollViewers und bleibt
+            deshalb stehen, wenn der Inhalt scrollt.
+
+            <b>Warum Auflegen hierher gehoert.</b> Es ist die Handlung, die im
+            Gespraech am haeufigsten und am eiligsten gebraucht wird. Weiter
+            unten zwischen Umschaltern, Makeln und Weiterleiten war sie beim
+            Scrollen nicht mehr zu sehen — und dann sucht man sie genau in dem
+            Moment, in dem man sie braucht.
+        -->
+        <Grid
+            x:Name="CallHeaderBar"
+            Padding="{StaticResource NippPagePadding}"
+            Background="{ThemeResource LayerFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="0,0,0,1"
+            ColumnSpacing="{StaticResource NippGapLarge}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button
+                Click="OnBackClick"
+                ToolTipService.ToolTip="Zurück zur Wähltastatur — das Gespräch läuft weiter"
+                AutomationProperties.Name="Zurück zur Wähltastatur">
+                <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE72B;" />
+            </Button>
+
+            <!--
+                Der Hinweis stand frueher ausgeschrieben daneben, weil der Weg
+                zurueck sonst niemand fand. Neben einer Auflegen-Schaltflaeche
+                ist dafuer kein Platz mehr; die Erklaerung sitzt jetzt als
+                Kurzinfo am Knopf selbst.
+            -->
+            <TextBlock
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Text="{x:Bind ViewModel.StateCaption, Mode=OneWay}"
+                TextTrimming="CharacterEllipsis" />
+
+            <!--
+                Das Wiedergabegeraet, mitten im Gespraech (ADR-046). Vorher lag
+                der Wechsel fuenf Klicks entfernt, hinter einer Gruppe auf einer
+                Seite, die man im Gespraech gar nicht sehen will.
+            -->
+            <Button
+                x:Name="AudioDeviceButton"
+                Grid.Column="1"
+                Width="36" Height="36"
+                Padding="0"
+                MinWidth="0"
+                HorizontalAlignment="Right"
+                AutomationProperties.Name="Wiedergabegerät wählen"
+                Click="OnAudioDeviceClick"
+                ToolTipService.ToolTip="Wiedergabegerät wählen">
+                <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE7F5;" />
+            </Button>
+
+            <!--
+                <b>Der rote Grund liegt im Inhalt, nicht am Knopf</b>
+                (ADR-067, 14.09.2026).
+
+                <b>Der Anlass war ein Absturz.</b> Hier stand das
+                Lightweight-Styling von WinUI: sechs Zustands-Schluessel
+                (ButtonBackgroundPointerOver und Geschwister) in
+                Button.Resources, damit das Rot beim Ueberfahren nicht
+                verschwindet (W2.6, Befund D14). Das hat nipp reproduzierbar
+                beendet — siebenmal, immer beim blossen <b>Ueberfahren</b>,
+                Ausnahmecode 0xc000027b in combase.dll, ohne verwaltete
+                Ausnahme und ohne eine Zeile im Protokoll. Weder die Form der
+                Pinsel noch ThemeDictionaries haben daran etwas geaendert;
+                <b>ohne die Ueberschreibungen blieb der Knopf stehen.</b>
+
+                <b>Deshalb dieser Aufbau:</b> der Knopf selbst ist
+                durchsichtig und bleibt in allem der Standardknopf — Fokus,
+                Tastatur, Sprachausgabe, Befehl. Die Farbe traegt ein Rahmen
+                darin, und der deckt den grauen Grund, den die Standardvorlage
+                beim Ueberfahren setzt. Die Rueckmeldung macht die Deckkraft
+                dieses Rahmens (OnHangUpPointerEntered und Geschwister), nicht
+                das Thema.
+            -->
+            <Button
+                x:Name="HangUpButton"
+                Grid.Column="2"
+                MinWidth="104"
+                MinHeight="36"
+                Padding="0"
+                Background="Transparent"
+                BorderThickness="0"
+                Command="{x:Bind ViewModel.HangUpCommand}"
+                Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                PointerEntered="OnHangUpPointerEntered"
+                PointerExited="OnHangUpPointerLeft"
+                PointerPressed="OnHangUpPointerPressed"
+                PointerReleased="OnHangUpPointerReleased"
+                PointerCanceled="OnHangUpPointerLeft"
+                PointerCaptureLost="OnHangUpPointerLeft"
+                Visibility="Collapsed">
+                <ToolTipService.ToolTip>Auflegen (Strg+E)</ToolTipService.ToolTip>
+                <Border
+                    x:Name="HangUpFill"
+                    Padding="12,6,12,6"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="{ThemeResource SystemFillColorCriticalBrush}"
+                    CornerRadius="{ThemeResource ControlCornerRadius}">
+                    <StackPanel
+                        HorizontalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="{StaticResource NippGapLarge}">
+                        <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE778;" />
+                        <TextBlock Text="Auflegen" />
+                    </StackPanel>
+                </Border>
+            </Button>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1">
+        <Grid Padding="{StaticResource NippPagePadding}" RowSpacing="{StaticResource NippGapLarge}">
+            <!--
+                Die Reihenfolge folgt einer Regel: <b>erst was man tut, dann was
+                man liest.</b>
+
+                0  Leerzustand / Aufnahmewarnung
+                1  Wer, wie lange, welcher Codec
+                2  Alle Aktionen — Annehmen, Stumm, Halten, Aufnahme,
+                   Weiterleiten, Tastentoene
+                3  Weiterleiten, aufgeklappt
+                4  Tastentoene, aufgeklappt
+                5  Zwei Gespraeche (Makeln)
+                6  Fehlermeldung — dicht bei der Aktion, die sie ausgeloest hat
+                7  Anruferkarte aus dem CRM und Anrufgedaechtnis
+                8  Verbindungsqualitaet
+
+                Vorher stand die Anruferkarte auf Platz 2, also zwischen dem
+                Namen und den Knoepfen. Wer waehrend eines Gespraechs halten
+                oder weiterverbinden wollte, musste an einer Karte
+                vorbeiscrollen, die je nach Antwort des das CRMs mal drei und
+                mal fuenfzehn Zeilen hoch war — die Knoepfe standen also jedes
+                Mal woanders. Ein Bedienelement, dessen Platz vom Inhalt einer
+                Netzabfrage abhaengt, ist im Gespraech nicht zu treffen.
+            -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Kein Gespräch -->
+            <StackPanel
+                x:Name="EmptyState"
+                Grid.Row="0"
+                HorizontalAlignment="Center"
+                Margin="0,40,0,0"
+                Spacing="{StaticResource NippGapMedium}">
+                <FontIcon
+                    HorizontalAlignment="Center"
+                    FontSize="32"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Glyph="&#xE717;" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{StaticResource BodyTextBlockStyle}"
+                    Text="Kein Gespräch" />
+            </StackPanel>
+
+            <!--
+                §8.2: AUFNAHMEINDIKATOR. Ganz oben und nicht zu übersehen.
+                In der Schweiz ist das Mitschneiden ohne Kenntnis der
+                Gegenseite strafbar — die App darf nicht unbemerkt aufnehmen.
+            -->
+            <InfoBar
+                x:Name="RecordingBar"
+                Grid.Row="0"
+                IsClosable="False"
+                IsOpen="False"
+                Message="Dieses Gespräch wird aufgezeichnet. Die Gegenseite muss davon wissen."
+                Severity="Warning"
+                Title="Aufnahme läuft" />
+
+            <!-- Gegenstelle, Dauer, Chips -->
+            <Border
+                x:Name="CallHeader"
+                Grid.Row="1"
+                Padding="{StaticResource NippCardPadding}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="{ThemeResource OverlayCornerRadius}"
+                Visibility="Collapsed">
+                <StackPanel Spacing="{StaticResource NippGapSmall}">
+                    <TextBlock
+                        x:Name="PartyText"
+                        Style="{StaticResource SubtitleTextBlockStyle}"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="StateText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock
+                        x:Name="DurationText"
+                        FontSize="{StaticResource NippCallDurationFontSize}"
+                        Typography.NumeralAlignment="Tabular" />
+
+                    <!-- Chips für Codec und Verschlüsselung (§8.2), Text statt nur Farbe (§8.4) -->
+                    <StackPanel
+                        Margin="0,4,0,0"
+                        Orientation="Horizontal"
+                        Spacing="{StaticResource NippGapMedium}">
+                        <Border
+                            x:Name="CodecChip"
+                            Padding="8,2,8,2"
+                            Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                            CornerRadius="{StaticResource NippBadgeCornerRadius}">
+                            <TextBlock x:Name="CodecText" Style="{StaticResource CaptionTextBlockStyle}" />
+                        </Border>
+                        <Border
+                            x:Name="EncryptionChip"
+                            Padding="8,2,8,2"
+                            Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                            CornerRadius="{StaticResource NippBadgeCornerRadius}">
+                            <TextBlock x:Name="EncryptionText" Style="{StaticResource CaptionTextBlockStyle}" />
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!--
+                Die Anruferkarte (§21.1).
+
+                Sie steht direkt unter dem Kopf, weil sie zu ihm gehört: dort
+                steht, mit wem man spricht, hier, was die angebundenen Systeme
+                über diese Person wissen.
+
+                Eine feste Karte — die frei konfigurierbare kommt mit I4 und
+                ersetzt nur, wie aus den Angaben Zeilen werden.
+            -->
+            <Border
+                x:Name="CallerCardPanel"
+                Grid.Row="7"
+                Margin="0,8,0,0"
+                Padding="{StaticResource NippCardPadding}"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="{ThemeResource OverlayCornerRadius}"
+                Visibility="Collapsed">
+                <StackPanel Spacing="{StaticResource NippGapSmall}">
+                    <!--
+                        Die konfigurierbare Karte (Paragraf 21). Sie zeichnet,
+                        was die CardLayoutEngine ausgerechnet hat — Abschnitte,
+                        Zeilen, Spalten, wie der Administrator sie beschreibt.
+
+                        <b>Und sie laesst sich von hier aus bearbeiten</b>
+                        (C14). Der Moment, in dem einem auffaellt, dass eine
+                        Zeile fehlt oder falsch beschriftet ist, ist das
+                        Gespraech — bis zum 13.09.2026 musste man sich das bis
+                        zu seinem Ende merken und dann vier Ebenen tief
+                        suchen.
+                    -->
+                    <cards:CardView x:Name="CallerCardView" ActionInvoked="OnCardAction">
+                        <cards:CardView.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Click="OnEditCallerCardClick" Text="Karte bearbeiten …" />
+                            </MenuFlyout>
+                        </cards:CardView.ContextFlyout>
+                    </cards:CardView>
+
+                    <!--
+                        Die einfache Darstellung als Rueckfallebene: sie greift,
+                        solange keine Karte etwas zeigt.
+                    -->
+                    <ItemsControl x:Name="CallerCardFields">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CallerCardField">
+                                <Grid Padding="0,2,0,2" ColumnSpacing="{StaticResource NippGapLarge}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" MinWidth="120" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Text="{x:Bind Label}"
+                                        TextTrimming="CharacterEllipsis" />
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Style="{StaticResource BodyTextBlockStyle}"
+                                        Text="{x:Bind Value}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!--
+                        Was die Quellen tun (§21.1). Nur, was erwähnenswert
+                        ist: eine erfolgreiche Quelle steht mit ihren Feldern
+                        oben, und eine Zeile „CRM: gefunden" wäre Rauschen.
+                    -->
+                    <ItemsControl x:Name="CallerCardSources">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CallerCardSource">
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind Text}"
+                                    TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Zwei Gespräche: Makeln (§8.2) -->
+            <Border
+                x:Name="SwapCard"
+                Grid.Row="5"
+                Padding="{StaticResource NippSettingCardPadding}"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="{ThemeResource OverlayCornerRadius}"
+                Visibility="Collapsed">
+                <StackPanel Spacing="{StaticResource NippGapMedium}">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Zwei Gespräche" />
+                    <!--
+                        Kein TwoWay auf SelectedItem: die Auswahl fuehrt das
+                        ViewModel ueber die Kennung, hier wird sie nur
+                        gemeldet. Seit ADR-043 steht in der Liste eine CallRow,
+                        die dem Gespraech ueber alle Zustandswechsel hinweg
+                        erhalten bleibt — vorher tauschte jeder Wechsel die
+                        unveraenderliche CallInfo aus, und die ListView
+                        schrieb null zurueck.
+                    -->
+                    <ListView
+                        x:Name="CallList"
+                        ItemsSource="{x:Bind ViewModel.Calls}"
+                        SelectionChanged="OnCallSelectionChanged"
+                        SelectionMode="Single">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CallRow">
+                                <StackPanel Padding="0,4,0,4">
+                                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind Label, Mode=OneWay}" />
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Text="{x:Bind Status, Mode=OneWay}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <Button Command="{x:Bind ViewModel.SwapCommand}" Content="Makeln" />
+                </StackPanel>
+            </Border>
+
+            <!--
+                Aktionen. Fünf Knöpfe mit Beschriftung nebeneinander passen auf
+                400 Pixel Breite nicht — sie wurden abgeschnitten. Jetzt zwei
+                Zeilen: oben Annehmen und Auflegen als das, was eilt, darunter
+                die drei Umschalter als Symbol mit kurzem Text.
+            -->
+            <StackPanel
+                x:Name="ActionPanel"
+                Grid.Row="2"
+                Spacing="{StaticResource NippGapMedium}"
+                Visibility="Collapsed">
+                <StackPanel.Resources>
+                    <!--
+                        Der Stil steht hier und nicht in den Ressourcen einer
+                        der beiden Reihen: ein Ressourcenwoerterbuch gilt nur
+                        fuer den Teilbaum darunter. Als der Stil noch im ersten
+                        Grid stand, fand die zweite Reihe ihn nicht — und ein
+                        fehlender StaticResource-Schluessel ist in WinUI kein
+                        Build-Fehler, sondern eine XamlParseException beim
+                        Oeffnen der Seite. Die Gespraechsansicht liess sich
+                        dadurch gar nicht mehr anzeigen.
+
+                        MinHeight und nicht Height: bei Windows-Textskalierung
+                        (Barrierefreiheit, Textgroesse) waechst der Text, die
+                        feste Hoehe nicht — die Beschriftung unter dem Symbol
+                        wurde dann unten abgeschnitten. Betrifft jeden Knopf,
+                        der Symbol UND Text traegt.
+                    -->
+                    <Style x:Key="NippCallToggleStyle" TargetType="ToggleButton">
+                        <Setter Property="MinHeight" Value="46" />
+                        <Setter Property="MinWidth" Value="0" />
+                        <Setter Property="Padding" Value="0,4,0,4" />
+                        <Setter Property="HorizontalAlignment" Value="Stretch" />
+                    </Style>
+                </StackPanel.Resources>
+                <!--
+                    Annehmen steht allein und ueber die ganze Breite: Auflegen
+                    sitzt jetzt oben in der Kopfleiste. Ein zweiter
+                    Auflegen-Knopf daneben waere derselbe Befehl an zwei
+                    Stellen — und beim Klingeln die Gefahr, den falschen zu
+                    treffen.
+                -->
+                <Button
+                    x:Name="AcceptButton"
+                    MinHeight="40"
+                    HorizontalAlignment="Stretch"
+                    Command="{x:Bind ViewModel.AcceptCommand}"
+                    Content="Annehmen"
+                    Style="{StaticResource AccentButtonStyle}"
+                    Visibility="Collapsed" />
+
+                <!--
+                    Erste Reihe: die beiden Umschalter, die man im Gespraech
+                    schnell und oft braucht.
+
+                    <b>Die Aufnahme stand bis zum 13.09.2026 hier daneben</b>
+                    (C3) — gleich gross, gleich aussehend, zwei Spalten neben
+                    «Stumm». «Stumm» ist der Knopf, den man ohne hinzusehen
+                    drueckt, wenn jemand ins Buero kommt; die Aufnahme ist in
+                    der Schweiz ohne Kenntnis der Gegenseite strafbar
+                    (Art. 179ter StGB). Drei visuell gleichwertige Knoepfe,
+                    von denen einer eine andere Art von Folge hat, sind ein
+                    Fehlgriff, der kein Aergernis ist, sondern ein
+                    Rechtsproblem.
+                -->
+                <Grid ColumnSpacing="{StaticResource NippGapMedium}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <ToggleButton
+                        x:Name="MuteToggle"
+                        Click="OnMuteClick"
+                        Style="{StaticResource NippCallToggleStyle}"
+                        ToolTipService.ToolTip="Mikrofon stumm schalten (Strg+M)"
+                        AutomationProperties.Name="Stumm">
+                        <StackPanel Spacing="{StaticResource NippGapHair}">
+                            <FontIcon HorizontalAlignment="Center" FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE74F;" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Stumm" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="HoldToggle"
+                        Grid.Column="1"
+                        Click="OnHoldClick"
+                        Style="{StaticResource NippCallToggleStyle}"
+                        ToolTipService.ToolTip="Gespräch halten (Strg+H)"
+                        AutomationProperties.Name="Halten">
+                        <StackPanel Spacing="{StaticResource NippGapHair}">
+                            <FontIcon HorizontalAlignment="Center" FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE769;" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Halten" />
+                        </StackPanel>
+                    </ToggleButton>
+                </Grid>
+
+                <!--
+                    Zweite Reihe: die beiden Aktionen, die einen eigenen Bereich
+                    aufklappen.
+
+                    <b>Warum sie hier stehen und nicht weiter unten.</b>
+                    Weiterleiten war eine Karte, die im Gespraech immer offen
+                    stand und drei Zeilen hoch war; die Tastentoene lagen als
+                    Expander ganz unten, hinter der Anruferkarte. Beide sind
+                    Handgriffe waehrend eines Gespraechs und gehoeren zu den
+                    anderen Handgriffen — nicht in eine zweite Gegend der Seite.
+
+                    <b>Warum als Umschalter und nicht als offene Bereiche.</b>
+                    Bei 400 Pixeln Breite ist die Hoehe die knappe Groesse. Ein
+                    offenes Weiterleiten-Feld und eine offene Zehnertastatur
+                    zusammen sind ueber 300 Pixel, und danach ist von der
+                    Anruferkarte nichts mehr zu sehen. Es ist immer hoechstens
+                    einer offen — das steuert der Code-Behind.
+                -->
+                <Grid ColumnSpacing="{StaticResource NippGapMedium}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <ToggleButton
+                        x:Name="TransferToggle"
+                        Click="OnTransferToggleClick"
+                        Style="{StaticResource NippCallToggleStyle}"
+                        ToolTipService.ToolTip="Das Gespräch an jemand anderen übergeben"
+                        AutomationProperties.Name="Weiterleiten">
+                        <StackPanel Spacing="{StaticResource NippGapHair}">
+                            <FontIcon HorizontalAlignment="Center" FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE72A;" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Weiterleiten" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="DtmfToggle"
+                        Grid.Column="1"
+                        Click="OnDtmfToggleClick"
+                        Style="{StaticResource NippCallToggleStyle}"
+                        ToolTipService.ToolTip="Zifferntasten für Sprachmenüs"
+                        AutomationProperties.Name="Tastentöne">
+                        <StackPanel Spacing="{StaticResource NippGapHair}">
+                            <FontIcon HorizontalAlignment="Center" FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE75F;" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Tastentöne" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <!--
+                        Die Aufnahme steht bei den Handlungen, die man bewusst
+                        sucht (C3) — nicht neben dem Stummschalter.
+                    -->
+                    <ToggleButton
+                        x:Name="RecordToggle"
+                        Grid.Column="2"
+                        Click="OnRecordClick"
+                        Style="{StaticResource NippCallToggleStyle}"
+                        ToolTipService.ToolTip="Gespräch aufzeichnen — die Gegenseite muss davon wissen"
+                        AutomationProperties.Name="Aufnahme">
+                        <StackPanel Spacing="{StaticResource NippGapHair}">
+                            <FontIcon
+                                x:Name="RecordIcon"
+                                HorizontalAlignment="Center"
+                                FontSize="{StaticResource NippIconFontSize}"
+                                Glyph="&#xE7C8;" />
+                            <TextBlock
+                                x:Name="RecordLabel"
+                                HorizontalAlignment="Center"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Aufnahme" />
+                        </StackPanel>
+                    </ToggleButton>
+                </Grid>
+            </StackPanel>
+
+            <!-- Weiterleiten: beide Varianten sichtbar getrennt (§8.2) -->
+            <Border
+                x:Name="TransferCard"
+                Grid.Row="3"
+                Padding="{StaticResource NippCardPadding}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="{ThemeResource OverlayCornerRadius}"
+                Visibility="Collapsed">
+                <StackPanel Spacing="{StaticResource NippGapMedium}">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Weiterleiten" />
+                    <TextBox
+                        x:Name="TransferTargetBox"
+                        KeyDown="OnTransferTargetKeyDown"
+                        PlaceholderText="Nebenstelle, Name oder Nummer"
+                        AutomationProperties.Name="Ziel der Weiterleitung"
+                        Text="{x:Bind ViewModel.TransferTarget, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <!--
+                        §22.1: Vorschläge, Team zuoberst mit Präsenzlampe.
+
+                        Wer intern weiterverbindet, musste die Nebenstelle
+                        auswendig wissen — bei zehn geht das, bei dreissig nicht
+                        mehr. Und beim Weiterverbinden ist „ist die Person
+                        überhaupt frei" die eigentliche Frage; die Antwort hat
+                        das Besetztlampenfeld schon abonniert.
+
+                        Ein Klick übernimmt die Nummer ins Feld und wählt noch
+                        nicht: „Sofort abgeben" und „Erst ankündigen" sind zwei
+                        verschiedene Dinge, und ein Klick auf einen Namen darf
+                        nicht raten, welches gemeint war.
+                    -->
+                    <ListView
+                        x:Name="TransferSuggestionList"
+                        MaxHeight="180"
+                        ItemContainerStyle="{StaticResource NippCompactListItemStyle}"
+                        ItemsSource="{x:Bind ViewModel.TransferSuggestions}"
+                        SelectionMode="None"
+                        Visibility="Collapsed">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ContactRow">
+                                <Grid
+                                    AutomationProperties.Name="{x:Bind AccessibleName}"
+                                    Padding="0,4,0,4"
+                                    ColumnSpacing="{StaticResource NippGapMedium}"
+                                    Tapped="OnTransferSuggestionTapped">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel>
+                                        <TextBlock
+                                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                                            Text="{x:Bind DisplayName}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="{x:Bind SubLabel}"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Text="{x:Bind PresenceText, Mode=OneWay}"
+                                        Visibility="{x:Bind HasPresence, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                                    <Ellipse
+                                        Grid.Column="2"
+                                        Width="{StaticResource NippPresenceBadgeSize}"
+                                        Height="{StaticResource NippPresenceBadgeSize}"
+                                        VerticalAlignment="Center"
+                                        Fill="{x:Bind Presence, Converter={StaticResource PresenceBrushConverter}, Mode=OneWay}"
+                                        Visibility="{x:Bind HasPresence, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <!--
+                        Der Unterschied zwischen den beiden steht im Tooltip,
+                        nicht als Absatz darunter: er kostete drei Zeilen für
+                        eine Erklärung, die man einmal liest.
+                    -->
+                    <Grid ColumnSpacing="{StaticResource NippGapMedium}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--
+                            „Blind" und „Begleitet" sind Telefonie-Jargon, und
+                            die Erklärung stand nur im Tooltip — mit dem Finger
+                            unerreichbar. Jetzt sagt die Beschriftung selbst,
+                            was passiert.
+                        -->
+                        <Button
+                            x:Name="BlindButton"
+                            HorizontalAlignment="Stretch"
+                            Command="{x:Bind ViewModel.TransferBlindCommand}"
+                            Content="Sofort abgeben"
+                            ToolTipService.ToolTip="Blinde Weiterleitung: sofort abgeben, ohne Rückfrage. Das Gespräch ist danach weg."
+                            AutomationProperties.Name="Sofort abgeben, blinde Weiterleitung" />
+                        <Button
+                            x:Name="AttendedButton"
+                            Grid.Column="1"
+                            HorizontalAlignment="Stretch"
+                            Command="{x:Bind ViewModel.TransferAttendedCommand}"
+                            Content="Erst ankündigen"
+                            ToolTipService.ToolTip="Begleitete Weiterleitung: erst selbst beim Ziel anrufen und ankündigen, dann übergeben. Braucht ein zweites Gespräch."
+                            AutomationProperties.Name="Erst ankündigen, begleitete Weiterleitung" />
+                    </Grid>
+
+                    <!--
+                        Erklärt, warum "Begleitet übergeben" ausgegraut ist.
+                        Ein ausgegrauter Knopf ohne Begruendung ist das
+                        Gegenteil dessen, was Paragraph 15 verlangt.
+                    -->
+                    <InfoBar
+                        x:Name="AttendedHint"
+                        IsClosable="False"
+                        IsOpen="False"
+                        Message="Für die begleitete Übergabe zuerst ein zweites Gespräch aufbauen: oben zurück zur Wähltastatur, das Ziel anrufen, ankündigen. Dann hier übergeben."
+                        Severity="Informational" />
+                </StackPanel>
+            </Border>
+
+            <!--
+                Die Zehnertastatur, aufgeklappt über den Knopf darüber.
+
+                <b>Sie steht jetzt bei den Aktionen und nicht mehr ganz unten.</b>
+                Wer in einem Sprachmenü einer Hotline steht, hat wenige Sekunden
+                für eine Ziffer — und musste bisher an der Anruferkarte
+                vorbeiscrollen, um sie zu finden. Ein Bedienelement mit
+                Zeitdruck gehört dorthin, wo der Blick ohnehin ist.
+            -->
+            <Border
+                x:Name="DtmfCard"
+                Grid.Row="4"
+                Padding="{StaticResource NippCardPadding}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="{ThemeResource OverlayCornerRadius}"
+                Visibility="Collapsed">
+                <StackPanel Spacing="{StaticResource NippGapSmall}">
+                    <controls:Keypad HorizontalAlignment="Center" KeyPressed="OnDtmfKeyPressed" />
+                    <TextBlock
+                        x:Name="DtmfEcho"
+                        HorizontalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Typography.NumeralAlignment="Tabular" />
+                </StackPanel>
+            </Border>
+
+            <!--
+                §15: was schiefging, gehört sichtbar hierher.
+
+                LastError wurde im ViewModel gesetzt — bei gescheitertem
+                Weiterleiten und bei einer Aufnahme, die nicht startet — und
+                nirgends angezeigt. Der Benutzer drückte „Blind", und nichts
+                geschah.
+            -->
+            <InfoBar
+                x:Name="CallErrorBar"
+                Grid.Row="6"
+                IsClosable="True"
+                IsOpen="False"
+                Severity="Error" />
+
+            <!--
+                DTMF und Qualität untereinander, nicht nebeneinander: bei 400
+                Pixeln Breite belegte das Keypad 208 davon und liess dem
+                Qualitätspanel 120 — zu wenig für „Paketverlust 0,0 %".
+
+                Beide zugeklappt, weil beide selten gebraucht werden. Wer im
+                Sprachmenü einer Hotline steht, klappt die Töne auf; wer eine
+                schlechte Leitung untersucht, die Qualität.
+            -->
+            <StackPanel
+                x:Name="BottomGrid"
+                Grid.Row="8"
+                Spacing="{StaticResource NippGapMedium}"
+                Visibility="Collapsed">
+
+                <!-- Qualitätspanel (§8.2), im Sekundenrhythmus erneuert -->
+                <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapMedium}">
+                            <TextBlock Text="Verbindung" />
+                            <TextBlock
+                                x:Name="RatingText"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource CaptionTextBlockStyle}" />
+                        </StackPanel>
+                    </Expander.Header>
+                    <StackPanel Spacing="{StaticResource NippGapSmall}">
+                        <TextBlock x:Name="RttText" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock x:Name="JitterText" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock x:Name="LossText" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock x:Name="BandwidthText" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock x:Name="MosText" Style="{StaticResource CaptionTextBlockStyle}" />
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+        </Grid>
+        </ScrollViewer>
+    </Grid>
+</Page>

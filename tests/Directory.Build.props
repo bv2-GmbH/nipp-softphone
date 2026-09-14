@@ -1,0 +1,23 @@
+<Project>
+
+  <!--
+    Testprojekte erben alles aus dem Root (x64, Nullable, Warnungen als Fehler),
+    brauchen aber zwei Ausnahmen. Die Import-Kette muss explizit sein: MSBuild
+    findet nur die innerste Directory.Build.props und laedt die aeussere nicht
+    von selbst nach.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+
+    <!--
+      CA1707 verbietet Unterstriche in Membernamen. Bei Testmethoden ist
+      Methode_erwartetes_Verhalten aber die etablierte Konvention und deutlich
+      lesbarer als PascalCase im Testbericht. Nur hier abgeschaltet, im
+      Produktivcode gilt die Regel weiter.
+    -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+</Project>

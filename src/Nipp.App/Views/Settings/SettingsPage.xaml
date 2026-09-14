@@ -1,0 +1,1580 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Nipp.App.Views.Settings.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Nipp.App.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="using:Nipp.Core.Services.Telephony.Model"
+    xmlns:settings="using:Nipp.Core.Services.Settings"
+    xmlns:vm="using:Nipp.Core.ViewModels"
+    mc:Ignorable="d">
+
+    <!--
+        Einstellungen (§9 und §20). Im schmalen Fenster (§20.1) als
+        Aufklapp-Gruppen statt nebeneinander — sonst passt nichts.
+    -->
+    <Page.Resources>
+        <!--
+            Ein Expander richtet seinen Inhalt von Haus aus links aus und lässt
+            ihn nicht in die Breite laufen. Auf einem 400 Pixel schmalen Fenster
+            fällt das sofort auf: die Eingabefelder standen halb so breit wie
+            die Gruppe darum, mit einer leeren Spalte daneben.
+        -->
+        <Style x:Key="NippSettingsGroupStyle" TargetType="Expander">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="{StaticResource NippSettingCardPadding}" />
+        </Style>
+
+        <!--
+            Eine Zeile im Katalog "Quelle hinzufuegen" (ADR-033).
+
+            Hier und nicht im Dialog selbst: der Dialog entsteht im
+            Code-behind, und eine DataTemplate laesst sich dort nicht schreiben
+            ohne XamlReader. Ein Ressourcenwoerterbuch gilt nur fuer den
+            Teilbaum darunter, und Page.Resources ist der Teilbaum der ganzen
+            Seite; XamlResourceScopeTests prueft genau das.
+        -->
+        <DataTemplate x:Key="ConnectorCatalogTemplate" x:DataType="vm:ConnectorCatalogRow">
+            <!--
+                AutomationProperties.Name ist hier Pflicht und nicht Kosmetik.
+                Ohne ihn nimmt die Automation den ToString() des Datensatzes:
+                am Geraet gemessen war der Name einer Katalogzeile die ganze
+                Aufstellung samt Endpunkten, Mapping-Typen und der kompletten
+                Beispielantwort. Eine Sprachausgabe haette das vorgelesen.
+            -->
+            <StackPanel
+                Padding="0,6,0,6"
+                AutomationProperties.Name="{x:Bind AutomationName}"
+                Spacing="{StaticResource NippGapSmall}">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                    <TextBlock
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        Text="{x:Bind DisplayName}" />
+
+                    <Border
+                        Padding="6,1,6,1"
+                        VerticalAlignment="Center"
+                        Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                        CornerRadius="{ThemeResource ControlCornerRadius}"
+                        Visibility="{x:Bind IsImported, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{x:Bind VendorNote}" />
+                    </Border>
+                </StackPanel>
+
+                <TextBlock
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Text="{x:Bind Summary}"
+                    TextWrapping="Wrap" />
+
+                <TextBlock
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Text="{x:Bind CapabilityText}" />
+            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid x:Name="PageRoot" RowSpacing="{StaticResource NippGapMedium}">
+        <!--
+            Escape und Alt+Links gehen zurueck (C9) — dieselbe Handlung wie der
+            Pfeil oben links. Vorher tat beides nichts, und wer mit der Tastatur
+            arbeitet, musste sich durch die ganze aufgeklappte Gruppe
+            zurueckhangeln.
+
+            Ein Speichern gibt es nicht zu vergessen: jede Aenderung wirkt,
+            sobald sie gemacht ist, und ein Freitextfeld beim Verlassen des
+            Feldes (ADR-045) — was der Fokuswechsel beim Zuruecknavigieren
+            ausloest.
+        -->
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Invoked="OnBackAccelerator" Key="Escape" />
+            <KeyboardAccelerator Invoked="OnBackAccelerator" Key="Left" Modifiers="Menu" />
+        </Grid.KeyboardAccelerators>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Kopfzeile mit Zurück -->
+        <Grid Padding="12,6,12,0" ColumnSpacing="{StaticResource NippGapLarge}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Button Click="OnBackClick" ToolTipService.ToolTip="Zurück" AutomationProperties.Name="Zurück">
+                <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE72B;" />
+            </Button>
+            <TextBlock
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Style="{StaticResource SubtitleTextBlockStyle}"
+                Text="Einstellungen" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Padding="12,0,12,0">
+            <StackPanel Spacing="{StaticResource NippGapSmall}">
+
+                <!--
+                    AP8.4: Hinweis, wenn ein Provisionierungsprofil Felder
+                    festlegt. Ohne ihn wirkt eine ausgegraute Gruppe wie ein
+                    Fehler der App.
+                -->
+                <InfoBar
+                    x:Name="PolicyBar"
+                    IsClosable="False"
+                    IsOpen="False"
+                    Severity="Informational" />
+
+                <!-- §9.1 und §20.2: Konten -->
+                <Expander x:Name="AccountsGroup" Expanding="OnGroupExpanding"
+                    Style="{StaticResource NippSettingsGroupStyle}">
+                    <Expander.Header>
+                        <TextBlock Text="SIP-Konten" />
+                    </Expander.Header>
+                    <StackPanel Spacing="{StaticResource NippGapLarge}">
+                        <TextBlock
+                            x:Name="CapacityText"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}" />
+
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="model:AccountStatus">
+                                    <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Ellipse
+                                            Width="10" Height="10"
+                                            VerticalAlignment="Center"
+                                            Fill="{Binding Status, Converter={StaticResource RegistrationBrushConverter}}" />
+
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{x:Bind ShortLabel}" />
+                                            <!--
+                                                §8.4: der Zustand steht als Text da, nicht nur als
+                                                Farbe. Auf zwei Zeilen begrenzt — eine
+                                                Fehlermeldung nach §15 nennt Ursache und Abhilfe
+                                                und wird damit lang; vollständig steht sie im
+                                                Tooltip.
+                                            -->
+                                            <TextBlock
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                MaxLines="2"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Text="{Binding Converter={StaticResource AccountStateTextConverter}}"
+                                                TextTrimming="CharacterEllipsis"
+                                                TextWrapping="Wrap"
+                                                ToolTipService.ToolTip="{Binding Converter={StaticResource AccountStateTextConverter}}" />
+                                        </StackPanel>
+
+                                        <StackPanel
+                                            Grid.Column="2"
+                                            Orientation="Horizontal"
+                                            Spacing="{StaticResource NippGapSmall}">
+                                            <Button
+                                                Click="OnEditAccountClick"
+                                                Tag="{x:Bind}"
+                                                ToolTipService.ToolTip="Konto bearbeiten"
+                                                AutomationProperties.Name="Konto bearbeiten">
+                                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE70F;" />
+                                            </Button>
+                                            <Button
+                                                Click="OnRemoveAccountClick"
+                                                Tag="{x:Bind}"
+                                                ToolTipService.ToolTip="Konto entfernen"
+                                                AutomationProperties.Name="Konto entfernen">
+                                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE74D;" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock
+                            x:Name="AccountFormTitle"
+                            Margin="0,8,0,0"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                            Text="Konto hinzufügen" />
+                        <TextBox x:Name="UsernameBox" Header="Benutzername" Text="{x:Bind ViewModel.NewUsername, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Header="Domain" Text="{x:Bind ViewModel.NewDomain, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <PasswordBox Header="Passwort" Password="{x:Bind ViewModel.NewPassword, Mode=TwoWay}" />
+                        <TextBox Header="Anzeigename (optional)" Text="{x:Bind ViewModel.NewDisplayName, Mode=TwoWay}" />
+                        <ComboBox
+                            x:Name="TransportBox"
+                            Header="Transport"
+                            HorizontalAlignment="Stretch"
+                            SelectionChanged="OnTransportChanged">
+                            <ComboBoxItem Content="UDP" Tag="Udp" />
+                            <ComboBoxItem Content="TCP" Tag="Tcp" />
+                            <ComboBoxItem Content="TLS" Tag="Tls" />
+                        </ComboBox>
+
+                        <!--
+                            §9.1 nennt diese Felder; im Formular fehlten sie,
+                            und ein Supporter konnte sie nur über ein
+                            Provisionierungsprofil setzen.
+                        -->
+                        <Expander
+                            x:Name="AccountExtraGroup"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch">
+                            <Expander.Header>
+                                <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Weitere Angaben zum Konto" />
+                            </Expander.Header>
+                            <StackPanel Spacing="{StaticResource NippGapLarge}">
+                                <TextBox
+                                    Header="Authentifizierungs-ID"
+                                    PlaceholderText="leer = Benutzername"
+                                    Text="{x:Bind ViewModel.NewAuthUserId, Mode=TwoWay}" />
+                                <TextBox
+                                    Header="Outbound-Proxy"
+                                    PlaceholderText="sip:proxy.example.ch"
+                                    Text="{x:Bind ViewModel.NewOutboundProxy, Mode=TwoWay}" />
+                                <NumberBox
+                                    Header="Dauer der Anmeldung (Sekunden)"
+                                    Minimum="30"
+                                    SpinButtonPlacementMode="Compact"
+                                    Value="{x:Bind ViewModel.NewExpiresSeconds, Mode=TwoWay}" />
+                            </StackPanel>
+                        </Expander>
+
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                            <Button
+                                Command="{x:Bind ViewModel.AddAccountCommand}"
+                                Content="{x:Bind ViewModel.AccountActionLabel, Mode=OneWay}"
+                                Style="{StaticResource AccentButtonStyle}" />
+                            <Button
+                                Command="{x:Bind ViewModel.CancelEditAccountCommand}"
+                                Content="Abbrechen"
+                                Visibility="{x:Bind ViewModel.IsEditingAccount, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            <ProgressRing
+                                Width="20" Height="20"
+                                VerticalAlignment="Center"
+                                IsActive="{x:Bind ViewModel.IsRegistering, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <!--
+                            Warum der Knopf grau ist (ADR-045). Vorher stand
+                            dort nichts: drei der vier Felder sind Pflicht, und
+                            beschriftet war nur das optionale.
+                        -->
+                        <TextBlock
+                            x:Name="AccountIssueText"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{x:Bind ViewModel.AccountFormIssue, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            Visibility="Collapsed" />
+
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Ein Konto mit denselben Angaben ersetzt das bestehende — so lässt sich ein Passwort korrigieren, ohne das Konto vorher zu entfernen."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Expander>
+
+                <!-- §9.4: Audio -->
+                <Expander x:Name="AudioGroup" Expanding="OnGroupExpanding"
+                    Style="{StaticResource NippSettingsGroupStyle}">
+                    <Expander.Header>
+                        <TextBlock Text="Audio" />
+                    </Expander.Header>
+                    <StackPanel Spacing="{StaticResource NippGapLarge}">
+                        <!--
+                            PlaceholderText: ohne gespeicherte Geraetekennung ist
+                            nichts ausgewaehlt, und ein leeres Feld sagt nicht,
+                            ob der Windows-Standard gilt oder ob nipp kein Geraet
+                            gefunden hat. Genau so sah es im Alltag aus.
+                        -->
+                        <ComboBox
+                            Header="Mikrofon"
+                            HorizontalAlignment="Stretch"
+                            DisplayMemberPath="Name"
+                            PlaceholderText="Windows-Standard"
+                            ItemsSource="{x:Bind ViewModel.InputDevices}"
+                            SelectedItem="{x:Bind ViewModel.SelectedInput, Mode=TwoWay}" />
+                        <ComboBox
+                            Header="Lautsprecher"
+                            HorizontalAlignment="Stretch"
+                            DisplayMemberPath="Name"
+                            PlaceholderText="Windows-Standard"
+                            ItemsSource="{x:Bind ViewModel.OutputDevices}"
+                            SelectedItem="{x:Bind ViewModel.SelectedOutput, Mode=TwoWay}" />
+                        <ComboBox
+                            Header="Klingelgerät"
+                            HorizontalAlignment="Stretch"
+                            DisplayMemberPath="Name"
+                            PlaceholderText="Windows-Standard"
+                            ItemsSource="{x:Bind ViewModel.OutputDevices}"
+                            SelectedItem="{x:Bind ViewModel.SelectedRinger, Mode=TwoWay}" />
+
+                        <!--
+                            Klingelton (§9.4). Der Knopf daneben ist keine
+                            Zierde: die Namen in der Liste sagen nichts ueber
+                            den Klang, und der einzige andere Weg zum Anhoeren
+                            waere, sich anrufen zu lassen.
+                        -->
+                        <ComboBox
+                            Header="Klingelton"
+                            HorizontalAlignment="Stretch"
+                            DisplayMemberPath="DisplayName"
+                            ItemsSource="{x:Bind ViewModel.Ringtones}"
+                            SelectedItem="{x:Bind ViewModel.SelectedRingtone, Mode=TwoWay}" />
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                            <Button
+                                Command="{x:Bind ViewModel.PlayRingtoneSampleCommand}"
+                                Content="Probe hören" />
+                            <Button Click="OnPickRingtone" Content="Eigene Datei…" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Wiedergabelautstärke" />
+                        <Slider Maximum="100" Minimum="0" Value="{x:Bind ViewModel.PlaybackVolume, Mode=TwoWay}" />
+                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Mikrofonpegel" />
+                        <Slider Maximum="100" Minimum="0" Value="{x:Bind ViewModel.MicrophoneLevel, Mode=TwoWay}" />
+
+                        <ToggleSwitch
+                            Header="Echounterdrückung"
+                            IsOn="{x:Bind ViewModel.EchoCancellation, Mode=TwoWay}"
+                            OffContent="Aus"
+                            OnContent="Ein" />
+
+                        <!-- ADR-006: die Einstellung verspricht mehr, als bei 8 kHz eintritt -->
+                        <InfoBar
+                            IsClosable="False"
+                            IsOpen="True"
+                            Message="Bei Gesprächen mit 8-kHz-Codecs (PCMU, PCMA — also bei den meisten externen Anrufen) schaltet sich die Echounterdrückung selbst ab. Das ist eine Eigenschaft des SDK, keine Fehlfunktion."
+                            Severity="Informational" />
+
+                        <ToggleSwitch
+                            Header="Rauschunterdrückung"
+                            IsOn="{x:Bind ViewModel.NoiseSuppression, Mode=TwoWay}"
+                            OffContent="Aus"
+                            OnContent="Ein" />
+
+                        <!-- ADR-011: das SDK nennt den Algorithmus selbst experimentell -->
+                        <controls:SettingCard
+                            Description="Regelt den Mikrofonpegel automatisch nach. Das SDK bezeichnet diesen Algorithmus als experimentell — deshalb ab Werk aus."
+                            Header="Automatische Aussteuerung"
+                            SettingPath="audio.automatic-gain-control">
+                            <ToggleSwitch
+                                IsOn="{x:Bind ViewModel.AutomaticGainControl, Mode=TwoWay}"
+                                OffContent="Aus"
+                                OnContent="Ein" />
+                        </controls:SettingCard>
+
+                        <!-- Grid statt StackPanel, dieselbe Begruendung wie beim Tastenkuerzel -->
+                        <Grid ColumnSpacing="{StaticResource NippGapLarge}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Command="{x:Bind ViewModel.CalibrateEchoCommand}" Content="Echo kalibrieren" />
+                            <ProgressRing
+                                Grid.Column="1"
+                                Width="20" Height="20"
+                                VerticalAlignment="Center"
+                                IsActive="{x:Bind ViewModel.IsCalibrating, Mode=OneWay}" />
+                            <TextBlock
+                                x:Name="CalibrationText"
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                TextWrapping="Wrap" />
+                        </Grid>
+                    </StackPanel>
+                </Expander>
+
+                <!-- §20.4 und §20.5: Erscheinungsbild und Fenster -->
+                <Expander x:Name="AppearanceGroup" Expanding="OnGroupExpanding"
+                    Style="{StaticResource NippSettingsGroupStyle}">
+                    <Expander.Header>
+                        <TextBlock Text="Darstellung" />
+                    </Expander.Header>
+                    <StackPanel Spacing="{StaticResource NippGapLarge}">
+                        <ComboBox
+                            x:Name="ThemeBox"
+                            Header="Erscheinungsbild"
+                            HorizontalAlignment="Stretch"
+                            SelectionChanged="OnThemeChanged">
+                            <ComboBoxItem Content="Wie Windows" Tag="System" />
+                            <ComboBoxItem Content="Hell" Tag="Light" />
+                            <ComboBoxItem Content="Dunkel" Tag="Dark" />
+                        </ComboBox>
+                        <ToggleSwitch
+                            Header="Immer im Vordergrund"
+                            IsOn="{x:Bind ViewModel.AlwaysOnTop, Mode=TwoWay}"
+                            OffContent="Aus"
+                            OnContent="Ein" />
+                    </StackPanel>
+                </Expander>
+
+
+                <!--
+                    Die Anruferkarte, eigene Gruppe erster Ebene (C14).
+
+                    <b>Sie war vier Ebenen tief</b> — Einstellungen,
+                    Integrationen aufklappen, «Anruferkarte» aufklappen,
+                    «Bearbeiten …». Vier Ebenen fuer die Ansicht mit der
+                    hoechsten Sichtbarkeit im Programm: die Karte ist das, was
+                    der Benutzer bei JEDEM Anruf sieht. Und drei der vier
+                    Ebenen hiessen nach dem technischen Unterbau, nicht nach
+                    dem, was man aendern will.
+
+                    Sie steht deshalb neben «Darstellung» — dorthin gehoert
+                    sie inhaltlich. Was eine Quelle einrichtet, bleibt unter
+                    «Fuer Administratoren» (C13).
+                -->
+                <Expander x:Name="CardsGroup" Expanding="OnGroupExpanding"
+                    Style="{StaticResource NippSettingsGroupStyle}">
+                    <Expander.Header>
+                        <TextBlock Text="Anruferkarte" />
+                    </Expander.Header>
+
+                    <StackPanel Spacing="{StaticResource NippGapMedium}">
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Welche Werte wo stehen. Bearbeiten öffnet ein eigenes Fenster — 400 Pixel tragen keine Felderpalette."
+                            TextWrapping="Wrap" />
+
+                        <ItemsControl ItemsSource="{x:Bind IntegrationViewModel.Cards}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:CardSummaryRow">
+                                    <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel>
+                                            <TextBlock
+                                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                                Text="{x:Bind KindName}" />
+                                            <TextBlock
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Text="{x:Bind Summary}" />
+                                        </StackPanel>
+
+                                        <Button
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            AutomationProperties.Name="{x:Bind KindName}"
+                                            Click="OnEditCardClick"
+                                            Content="Bearbeiten …" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Expander>
+
+                <Expander x:Name="ContactsGroup" Expanding="OnGroupExpanding"
+                    Style="{StaticResource NippSettingsGroupStyle}">
+                    <Expander.Header>
+                        <TextBlock Text="Kontakte" />
+                    </Expander.Header>
+                    <StackPanel Spacing="{StaticResource NippGapLarge}">
+                        <ToggleSwitch
+                            Header="Kontakte aus Outlook"
+                            IsOn="{x:Bind ViewModel.UseOutlook, Mode=TwoWay}"
+                            OffContent="Aus"
+                            OnContent="Ein" />
+                        <ToggleSwitch
+                            Header="Besetztlampenfeld"
+                            IsOn="{x:Bind ViewModel.EnableBlf, Mode=TwoWay}"
+                            OffContent="Aus"
+                            OnContent="Ein" />
+
+                        <!-- §14.8: die Last auf der Anlage haengt an dieser Liste -->
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Nur Team-Nebenstellen werden beobachtet. Jede kostet die Anlage ein dauerhaftes Abonnement — Outlook-Kontakte bleiben aussen vor."
+                            TextWrapping="Wrap" />
+
+                        <!--
+                            Gruppen (ADR-041). Eine eigene Liste, damit sich
+                            auch eine leere Gruppe anlegen laesst — abgeleitet
+                            aus den Eintraegen muesste man "Support" erst
+                            befuellen, um ihn zu haben. Die erste Gruppe ist die
+                            Standardgruppe; ihr Name ist frei.
+                        -->
+                        <TextBlock
+                            Margin="0,8,0,0"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                            Text="Gruppen" />
+
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Die erste Gruppe ist die Standardgruppe: Nebenstellen ohne eigene Gruppe stehen dort. Eine Gruppe zu entfernen kostet keinen Eintrag — die Einträge wechseln in die Standardgruppe."
+                            TextWrapping="Wrap" />
+
+                        <Grid ColumnSpacing="{StaticResource NippGapLarge}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <ComboBox
+                                x:Name="GroupBox"
+                                HorizontalAlignment="Stretch"
+                                Header="Gruppe"
+                                ItemsSource="{x:Bind ViewModel.Groups}"
+                                SelectedItem="{x:Bind ViewModel.SelectedGroup, Mode=TwoWay}" />
+
+                            <TextBox
+                                Grid.Column="1"
+                                Header="Name"
+                                PlaceholderText="z. B. Support"
+                                Text="{x:Bind ViewModel.GroupName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                            <Button Command="{x:Bind ViewModel.AddGroupCommand}" Content="Gruppe hinzufügen" />
+                            <Button Command="{x:Bind ViewModel.RenameGroupCommand}" Content="Umbenennen" />
+                            <!--
+                                Grau, solange nur eine Gruppe da ist — mit dem
+                                Grund in der Kurzinfo (C10). Vorher liess er
+                                sich druecken und tat stillschweigend nichts.
+                            -->
+                            <Button
+                                x:Name="RemoveGroupButton"
+                                Click="OnRemoveGroupClick"
+                                Content="Entfernen" />
+                        </StackPanel>
+
+                        <TextBlock
+                            Margin="0,8,0,0"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                            Text="Team-Nebenstellen" />
+
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.Team}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="settings:TeamExtension">
+                                    <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel>
+                                            <TextBlock Text="{x:Bind DisplayName}" />
+                                            <TextBlock
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Text="{x:Bind Extension}" />
+                                            <!--
+                                                Die SIP-Adresse stand nirgends:
+                                                beim Bearbeiten war damit nicht
+                                                erkennbar, ob eine Lampe zu
+                                                erwarten ist (§14.8).
+                                            -->
+                                            <TextBlock
+                                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Text="{x:Bind SipAddress}"
+                                                TextTrimming="CharacterEllipsis"
+                                                Visibility="{x:Bind SipAddress, Converter={StaticResource NullToVisibilityConverter}}" />
+
+                                            <!--
+                                                Handynummer und Gruppe, jede nur
+                                                wenn sie gesetzt ist: eine Zeile
+                                                mit einem Gedankenstrich sagt
+                                                weniger als keine.
+                                            -->
+                                            <TextBlock
+                                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Text="{x:Bind Mobile}"
+                                                TextTrimming="CharacterEllipsis"
+                                                Visibility="{x:Bind Mobile, Converter={StaticResource NullToVisibilityConverter}}" />
+                                            <TextBlock
+                                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Text="{x:Bind Group}"
+                                                TextTrimming="CharacterEllipsis"
+                                                Visibility="{x:Bind Group, Converter={StaticResource NullToVisibilityConverter}}" />
+                                        </StackPanel>
+
+                                        <StackPanel
+                                            Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            Spacing="{StaticResource NippGapSmall}">
+                                            <Button
+                                                Click="OnEditTeamMemberClick"
+                                                Tag="{x:Bind}"
+                                                ToolTipService.ToolTip="Nebenstelle bearbeiten"
+                                                AutomationProperties.Name="Nebenstelle bearbeiten">
+                                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE70F;" />
+                                            </Button>
+                                            <Button
+                                                Click="OnRemoveTeamMemberClick"
+                                                Tag="{x:Bind}"
+                                                ToolTipService.ToolTip="Nebenstelle entfernen"
+                                                AutomationProperties.Name="Nebenstelle entfernen">
+                                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE74D;" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBox x:Name="TeamNameBox" Header="Name" Text="{x:Bind ViewModel.NewTeamName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Header="Nebenstelle" Text="{x:Bind ViewModel.NewTeamNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox
+                            Header="SIP-Adresse (optional, nur damit gibt es eine Lampe)"
+                            PlaceholderText="sip:151@pbx.example.ch"
+                            Text="{x:Bind ViewModel.NewTeamSip, Mode=TwoWay}" />
+                        <TextBox
+                            Header="Mobil (optional)"
+                            PlaceholderText="+41 79 123 45 67"
+                            Text="{x:Bind ViewModel.NewTeamMobile, Mode=TwoWay}" />
+
+                        <!--
+                            Editierbar: eine bestehende Gruppe waehlen oder eine
+                            neue tippen. Leer heisst Standardgruppe.
+                        -->
+                        <ComboBox
+                            HorizontalAlignment="Stretch"
+                            Header="Gruppe (optional)"
+                            IsEditable="True"
+                            ItemsSource="{x:Bind ViewModel.Groups}"
+                            Text="{x:Bind ViewModel.NewTeamGroup, Mode=TwoWay}" />
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                            <Button
+                                Command="{x:Bind ViewModel.AddTeamMemberCommand}"
+                                Content="{x:Bind ViewModel.TeamActionLabel, Mode=OneWay}" />
+                            <Button
+                                Command="{x:Bind ViewModel.CancelEditTeamMemberCommand}"
+                                Content="Abbrechen"
+                                Visibility="{x:Bind ViewModel.IsEditingTeamMember, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+
+                <!--
+                    Start und Bedienung (ADR-046).
+
+                    Die Gruppe „Erweitert" war kein Thema, sondern ein
+                    Restehaufen: Laenderpraefix und Aufnahmeordner gehoeren zum
+                    Benutzer, Protokollierung und Provisionierung zum
+                    Administrator. Sie ist aufgeloest.
+                -->
+                <Expander x:Name="UsageGroup" Expanding="OnGroupExpanding"
+                    Style="{StaticResource NippSettingsGroupStyle}">
+                    <Expander.Header>
+                        <TextBlock Text="Start und Bedienung" />
+                    </Expander.Header>
+                    <StackPanel Spacing="{StaticResource NippGapLarge}">
+                        <TextBox Header="Länderpräfix" Text="{x:Bind ViewModel.CountryPrefix, Mode=TwoWay}" />
+                        <TextBox Header="Aufnahmeordner" Text="{x:Bind ViewModel.RecordingDirectory, Mode=TwoWay}" />
+                        <NumberBox
+                            Header="Anrufliste aufbewahren (Tage)"
+                            Minimum="0"
+                            SpinButtonPlacementMode="Compact"
+                            Value="{x:Bind ViewModel.HistoryRetentionDays, Mode=TwoWay}" />
+                        <!-- AP7.6: das Kuerzel gilt systemweit, deshalb sofort pruefen -->
+                        <TextBox
+                            Header="Systemweites Tastenkürzel"
+                            PlaceholderText="Ctrl+Shift+A"
+                            Text="{x:Bind ViewModel.GlobalHotkey, Mode=TwoWay}" />
+                        <!--
+                            Grid und nicht StackPanel: ein waagerechtes
+                            StackPanel misst seine Kinder mit unbegrenzter
+                            Breite, TextWrapping wirkt darin nie, und der Text
+                            wurde rechts abgeschnitten. Ausgerechnet hier steht
+                            die Meldung „ist von einer anderen Anwendung
+                            belegt" — die einzige, die dem Benutzer sagt, warum
+                            sein Kuerzel nicht geht.
+                        -->
+                        <Grid ColumnSpacing="{StaticResource NippGapLarge}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Command="{x:Bind ViewModel.TryHotkeyCommand}" Content="Übernehmen" />
+                            <TextBlock
+                                x:Name="HotkeyStatusText"
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                TextWrapping="Wrap" />
+                        </Grid>
+
+                        <!--
+                            Das zweite systemweite Kuerzel (C7, ADR-050).
+
+                            <b>Leer heisst keines, und das ist die Vorgabe.</b>
+                            Ein zweites Kuerzel, das nipp beim ersten Start
+                            ungefragt fuer sich beansprucht, nimmt es womoeglich
+                            der Anwendung weg, in der man gerade sitzt. Der
+                            Platzhalter nennt den Vorschlag.
+                        -->
+                        <TextBox
+                            Header="Systemweit stumm schalten (optional)"
+                            PlaceholderText="Ctrl+Shift+M"
+                            Text="{x:Bind ViewModel.MuteHotkey, Mode=TwoWay}" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Schaltet das laufende Gespräch stumm, ohne nipp nach vorn zu holen. Ohne Gespräch tut es nichts."
+                            TextWrapping="Wrap" />
+                        <Grid ColumnSpacing="{StaticResource NippGapLarge}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Command="{x:Bind ViewModel.TryMuteHotkeyCommand}" Content="Übernehmen" />
+                            <TextBlock
+                                x:Name="MuteHotkeyStatusText"
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                TextWrapping="Wrap" />
+                        </Grid>
+
+                        <ToggleSwitch Header="Mit Windows starten" IsOn="{x:Bind ViewModel.StartWithWindows, Mode=TwoWay}" OffContent="Aus" OnContent="Ein" />
+                        <ToggleSwitch Header="Minimiert starten" IsOn="{x:Bind ViewModel.StartMinimized, Mode=TwoWay}" OffContent="Aus" OnContent="Ein" />
+                        <!--
+                            W1.3 (C11): ein blanker Schalter ohne ein Wort
+                            dazu. Ein Fehlgriff laesst jeden Anruf auf offenem
+                            Mikrofon durchgehen — das gehoert dazugesagt, und
+                            zwar hier und nicht erst, wenn es passiert ist.
+                        -->
+                        <controls:SettingCard
+                            Description="Jeder eingehende Anruf wird sofort verbunden, ohne Klingeln. Das Mikrofon ist damit offen, sobald jemand anruft."
+                            Header="Anrufe automatisch annehmen">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.AutoAnswer, Mode=TwoWay}" OffContent="Aus" OnContent="Ein" />
+                        </controls:SettingCard>
+                    </StackPanel>
+                </Expander>
+
+                <!--
+                    Integrationen (§21.4, K3).
+
+                    Vorher standen hier drei Geschwister-Aufklapper — Liste,
+                    Zugangsdaten, Test —, die sich alle auf "die ausgewählte
+                    Quelle" bezogen, aber nur einer benutzte die Auswahl. Es
+                    gab kein "Quelle hinzufügen": eine neue Quelle entstand
+                    nur, indem jemand eine Datei einlas, und das ersetzte die
+                    ganze Konfiguration.
+
+                    Jetzt: Liste, Katalog zum Hinzufügen, und je Quelle EIN
+                    Detail. Mappings bleiben JSON — aber je Quelle, nicht für
+                    die ganze Datei. Die Karten haben ihren eigenen Editor.
+                -->
+
+                <!--
+                    Aktualisierung (§9.6 „Version / Update pruefen", ADR-039).
+
+                    Bewusst eine ruhige Zeile und kein Dialog: der Toast ist bei
+                    nipp die Anrufmeldung, und wer ihn fuer ein Update benutzt,
+                    verwaessert das einzige Zeichen, das sofort Aufmerksamkeit
+                    verdient (ADR-030).
+
+                    Geladen wird auf Knopfdruck, nicht von selbst. Neu gestartet
+                    ebenfalls — und nie waehrend eines Gespraechs; der Knopf ist
+                    dann abgeblendet, mit dem Grund darunter.
+                -->
+
+                <!--
+                    <b>Fuer Administratoren</b> (ADR-046).
+
+                    Auf einer Seite standen 114 Eingabeelemente auf derselben
+                    Ebene: „Klingelton" gleichrangig neben „Keep-Alive
+                    (Sekunden, 0 = aus)" und der Codec-Reihenfolge. Der
+                    Benutzer, der seinen Klingelton sucht, scrollte daran
+                    vorbei — und wer hier etwas verstellt, das er nicht
+                    versteht, merkt es unter Umstaenden erst, wenn keine
+                    Gespraeche mehr zustande kommen.
+
+                    Ein Aufklapper und keine eigene Seite: es bleibt EIN Ort,
+                    an dem alles steht, und ein Supporter am Telefon sagt
+                    weiterhin „ganz unten aufklappen", statt einen zweiten
+                    Navigationsweg zu erklaeren.
+                -->
+                <Expander x:Name="AdminGroup"
+                    Style="{StaticResource NippSettingsGroupStyle}">
+                    <Expander.Header>
+                        <TextBlock Text="Für Administratoren" />
+                    </Expander.Header>
+                    <StackPanel Spacing="{StaticResource NippGapSmall}">
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Diese Angaben richtet ein Administrator einmal ein. Wer sie ohne Grund ändert, bekommt unter Umständen keine Gespräche mehr zustande."
+                            TextWrapping="Wrap" />
+
+                    <!-- §9.3: NAT und Medien -->
+                    <Expander x:Name="NetworkGroup" Expanding="OnGroupExpanding"
+                        Style="{StaticResource NippSettingsGroupStyle}">
+                        <Expander.Header>
+                            <TextBlock Text="Netzwerk und Verschlüsselung" />
+                        </Expander.Header>
+                        <StackPanel Spacing="{StaticResource NippGapLarge}">
+                            <!--
+                                §9.2: SIP-Port, Zertifikatspruefung und Keep-Alive.
+                                Alle drei standen im Modell und in keinem Formular.
+                            -->
+                            <NumberBox
+                                Header="SIP-Port"
+                                Maximum="65535"
+                                Minimum="1"
+                                SpinButtonPlacementMode="Compact"
+                                Value="{x:Bind ViewModel.SipPort, Mode=TwoWay}" />
+
+                            <controls:SettingCard
+                                Description="Prüft das Zertifikat der Anlage gegen die Wurzelzertifikate von Windows. Nur mit TLS von Belang."
+                                Header="Serverzertifikat prüfen"
+                                SettingPath="network.verify-certificate">
+                                <ToggleSwitch
+                                    IsOn="{x:Bind ViewModel.VerifyServerCertificate, Mode=TwoWay}"
+                                    OffContent="Aus"
+                                    OnContent="Ein" />
+                            </controls:SettingCard>
+
+                            <NumberBox
+                                Header="Keep-Alive (Sekunden, 0 = aus)"
+                                Minimum="0"
+                                SpinButtonPlacementMode="Compact"
+                                Value="{x:Bind ViewModel.KeepAliveSeconds, Mode=TwoWay}" />
+
+                            <TextBox Header="STUN-Server" Text="{x:Bind ViewModel.StunServer, Mode=TwoWay}" />
+                            <ToggleSwitch
+                                Header="ICE"
+                                IsOn="{x:Bind ViewModel.EnableIce, Mode=TwoWay}"
+                                OffContent="Aus"
+                                OnContent="Ein" />
+                            <ToggleSwitch
+                                Header="Verschlüsselung erzwingen"
+                                IsOn="{x:Bind ViewModel.EncryptionMandatory, Mode=TwoWay}"
+                                OffContent="Aus"
+                                OnContent="Ein" />
+
+                            <!-- ADR-007: gegen die aktuelle Anlage wäre das jedes Gespräch -->
+                            <InfoBar
+                                IsClosable="False"
+                                IsOpen="True"
+                                Message="Mit dieser Einstellung scheitern Gespräche zu Gegenstellen ohne SRTP hart. Die aktuelle Anlage von bv2 bietet keine Verschlüsselung an — eingeschaltet käme kein Gespräch zustande."
+                                Severity="Warning" />
+
+                            <!--
+                                §9.3 und AP5.10: „Video-Schalter existiert, ist aber
+                                ausgegraut und aus."
+
+                                Der Punkt ist nicht, Video vorzubereiten — §2
+                                schliesst es aus. Der Punkt ist, sichtbar zu machen,
+                                dass es bewusst fehlt. Ein Schalter, der gar nicht
+                                da ist, lässt offen, ob jemand daran gedacht hat.
+                            -->
+                            <controls:SettingCard
+                                Description="nipp telefoniert ohne Bild. Der Schalter steht hier, damit sichtbar ist, dass es bewusst so ist."
+                                Header="Video"
+                                SettingPath="nat.video">
+                                <ToggleSwitch
+                                    IsEnabled="False"
+                                    IsOn="False"
+                                    OffContent="Aus"
+                                    OnContent="Ein" />
+                            </controls:SettingCard>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- §9.5: Codecs -->
+                    <Expander x:Name="CodecsGroup" Expanding="OnGroupExpanding"
+                        Style="{StaticResource NippSettingsGroupStyle}">
+                        <Expander.Header>
+                            <TextBlock Text="Codecs" />
+                        </Expander.Header>
+                        <StackPanel Spacing="{StaticResource NippGapLarge}">
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Die Reihenfolge bestimmt die Priorität. PCMA und PCMU dürfen nicht beide aus sein."
+                                TextWrapping="Wrap" />
+
+                            <ItemsControl ItemsSource="{x:Bind ViewModel.Codecs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CodecChoice">
+                                        <Grid Padding="0,2,0,2" ColumnSpacing="{StaticResource NippGapSmall}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <CheckBox IsChecked="{x:Bind IsEnabled, Mode=TwoWay}" MinWidth="0" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{x:Bind Name}" />
+                                            <Button Grid.Column="2" Click="OnCodecUpClick" Tag="{x:Bind}" ToolTipService.ToolTip="Nach oben" AutomationProperties.Name="Codec nach oben">
+                                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE70E;" />
+                                            </Button>
+                                            <Button Grid.Column="3" Click="OnCodecDownClick" Tag="{x:Bind}" ToolTipService.ToolTip="Nach unten" AutomationProperties.Name="Codec nach unten">
+                                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE70D;" />
+                                            </Button>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <ComboBox
+                                x:Name="DtmfBox"
+                                Header="DTMF"
+                                HorizontalAlignment="Stretch"
+                                SelectionChanged="OnDtmfChanged">
+                                <ComboBoxItem Content="RFC 2833" Tag="Rfc2833" />
+                                <ComboBoxItem Content="SIP INFO" Tag="SipInfo" />
+                                <ComboBoxItem Content="Inband" Tag="Inband" />
+                            </ComboBox>
+                        </StackPanel>
+                    </Expander>
+
+                        <Expander x:Name="DiagnosticsGroup" Expanding="OnGroupExpanding"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            Padding="{StaticResource NippSettingCardPadding}">
+                            <Expander.Header>
+                                <TextBlock Text="Provisionierung und Diagnose" />
+                            </Expander.Header>
+                            <StackPanel Spacing="{StaticResource NippGapLarge}">
+                            <ComboBox
+                                x:Name="LoggingBox"
+                                Header="Protokollierung"
+                                HorizontalAlignment="Stretch"
+                                SelectionChanged="OnLoggingChanged">
+                                <ComboBoxItem Content="Aus" Tag="Off" />
+                                <ComboBoxItem Content="Info" Tag="Info" />
+                                <ComboBoxItem Content="Debug" Tag="Debug" />
+                            </ComboBox>
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                                <Button Click="OnOpenLogsClick" Content="Log-Ordner öffnen" />
+                                <Button Click="OnDiagnosticsClick" Content="Diagnosepaket" />
+                            </StackPanel>
+
+                            <!--
+                                §9.6 und §11: Provisioning-Adresse und „Konfiguration
+                                jetzt abrufen". Beides stand in der Spezifikation
+                                und in keiner Ansicht — die Adresse liess sich nur
+                                über die Datei setzen.
+                            -->
+                            <TextBlock
+                                Margin="0,8,0,0"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                Text="Provisionierung" />
+                            <TextBox
+                                Header="Provisioning-Adresse"
+                                PlaceholderText="https://prov.example.ch/kunde.xml"
+                                Text="{x:Bind ViewModel.ProvisioningUri, Mode=TwoWay}" />
+
+                            <controls:SettingCard
+                                Description="Ein Profil legt Konten und Zugangsdaten fest. Über http liest und verändert das jeder im Netz mit — deshalb nur einschalten, wenn die Anlage kein https anbietet."
+                                Header="Unverschlüsselt zulassen"
+                                SettingPath="advanced.allow-insecure-provisioning">
+                                <ToggleSwitch
+                                    IsOn="{x:Bind ViewModel.AllowInsecureProvisioning, Mode=TwoWay}"
+                                    OffContent="Aus"
+                                    OnContent="Ein" />
+                            </controls:SettingCard>
+
+                            <!--
+                                W1.3 (E9): was beim Abruf zuletzt schiefging.
+                                §11 verlangt fuer den fehlgeschlagenen Abruf
+                                beim Start einen Hinweis im UI; bis zum
+                                13.09.2026 stand er nur im Protokoll. Hier und
+                                nicht in der Hauptansicht: ein Profilserver,
+                                der morgens kurz nicht antwortet, haelt nipp
+                                nicht auf, und eine Leiste ueber dem
+                                Nummernfeld waere dafuer zu laut.
+                            -->
+                            <InfoBar
+                                x:Name="ProvisioningProblemBar"
+                                IsClosable="False"
+                                IsOpen="False"
+                                Severity="Warning" />
+
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                                <Button Click="OnFetchProvisioningClick" Content="Konfiguration jetzt abrufen" />
+                                <ProgressRing
+                                    x:Name="ProvisioningRing"
+                                    Width="20" Height="20"
+                                    VerticalAlignment="Center"
+                                    IsActive="False" />
+                            </StackPanel>
+                            </StackPanel>
+                        </Expander>
+
+                    <!-- Sichern, wiederherstellen, zuruecksetzen -->
+
+                    <!--
+                        Die Quellen — <b>unter «Fuer Administratoren»</b> (C13).
+
+                        ADR-046 hat die Einstellungen in zwei Ebenen geteilt:
+                        was den Benutzer angeht, steht oben; Netzwerk, Codecs,
+                        Provisionierung und Diagnose stehen hier. <b>Diese
+                        Gruppe stand oben</b> — mit Basisadresse, Zeitgrenze,
+                        Authorization-Schema, Zugangsschluessel und einem
+                        Textfeld fuer rohes JSON. Der Benutzerteil trug damit
+                        das technischste Werkzeug des ganzen Programms, und wer
+                        die Einstellungen nach «Klingelton» durchsah, kam an
+                        «Schema der Authorization-Kopfzeile» vorbei. Genau die
+                        Gleichrangigkeit, die ADR-046 aufgeloest hat, an einer
+                        Stelle, die dabei uebersehen wurde.
+
+                        <b>Warum oben nichts zurueckbleibt.</b> Naheliegend
+                        waere eine kurze Liste im Benutzerteil — «welche
+                        Quellen gibt es, an oder aus». Das waere dieselbe Liste
+                        zweimal im selben Programm, und genau davor warnen die
+                        Befunde C5 und C11: zwei Anzeigen desselben Bestands
+                        sind zwei Gelegenheiten, sie auseinanderlaufen zu
+                        lassen. Eine Quelle ein- und auszuschalten ist selten;
+                        «Fuer Administratoren» ist nicht gesperrt, nur eine
+                        Ebene tiefer.
+
+                        Was den Benutzer taeglich angeht, ist die Karte — und
+                        die steht seit C14 oben.
+                    -->
+                    <Expander x:Name="IntegrationsGroup" Expanding="OnGroupExpanding"
+                        Style="{StaticResource NippSettingsGroupStyle}">
+                        <Expander.Header>
+                            <TextBlock Text="Quellen: CRM, ERP, Ticketing" />
+                        </Expander.Header>
+
+                        <StackPanel Spacing="{StaticResource NippGapMedium}">
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Externe Systeme für Anruferkontext und Kontaktsuche. Ohne eingerichtete Quelle ändert sich nichts an nipp — telefoniert wird unverändert."
+                                TextWrapping="Wrap" />
+
+                            <InfoBar
+                                x:Name="IntegrationIssuesBar"
+                                IsClosable="False"
+                                IsOpen="False"
+                                Severity="Warning"
+                                Title="Die Konfiguration hat Befunde" />
+
+                            <!-- Die Quellen -->
+                            <ListView
+                                x:Name="IntegrationSourceList"
+                                MaxHeight="180"
+                                ItemsSource="{x:Bind IntegrationViewModel.Sources}"
+                                SelectionChanged="OnIntegrationSourceSelected"
+                                SelectionMode="Single">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:IntegrationSourceRow">
+                                        <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <FontIcon
+                                                VerticalAlignment="Center"
+                                                FontSize="{StaticResource NippIconFontSize}"
+                                                Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                                Glyph="&#xE7BA;"
+                                                Visibility="{x:Bind NeedsAttention, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock
+                                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                                    Text="{x:Bind DisplayName}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind StatusText}"
+                                                    TextWrapping="Wrap" />
+                                            </StackPanel>
+
+                                            <ToggleSwitch
+                                                Grid.Column="2"
+                                                VerticalAlignment="Center"
+                                                IsOn="{x:Bind IsEnabled, Mode=TwoWay}"
+                                                OffContent=""
+                                                OnContent="" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+
+                            <TextBlock
+                                x:Name="NoIntegrationsText"
+                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Keine Quelle eingerichtet. Eine Anbietervorlage importieren oder eine eigene REST-API von Hand einrichten."
+                                TextWrapping="Wrap" />
+
+                            <!--
+                                Der Import einer Anbietervorlage (ADR-040) steht
+                                <b>zuerst</b> (ADR-045): seit die beiden eigenen
+                                Anbieter den Quelltext verlassen haben, ist er der
+                                Normalweg. Er stand darunter und sah damit wie die
+                                Nebensache aus.
+
+                                Bewusst NICHT in der Zeile "Ausgeben"/"Einlesen"
+                                weiter unten: dort geht es um die GANZE
+                                Konfiguration, und Einlesen ersetzt alles. Zwei
+                                verschiedene Importe nebeneinander waeren die
+                                Verwechslung, die man sich einbaut.
+                            -->
+                            <Button
+                                HorizontalAlignment="Stretch"
+                                Click="OnImportConnectorClick"
+                                Content="API-Anbieter importieren …" />
+
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Eine Vorlagendatei beschreibt eine Schnittstelle — Adresse, Endpunkte und Feldzuordnung. Sie enthält keinen Zugangsschlüssel; der wird hier eingetragen."
+                                TextWrapping="Wrap" />
+
+                            <Grid ColumnSpacing="{StaticResource NippGapMedium}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button
+                                    x:Name="AddSourceButton"
+                                    HorizontalAlignment="Stretch"
+                                    Click="OnAddSourceClick"
+                                    Content="Quelle hinzufügen" />
+
+                                <Button
+                                    x:Name="RemoveSourceButton"
+                                    Grid.Column="1"
+                                    AutomationProperties.Name="Ausgewählte Quelle entfernen"
+                                    Click="OnRemoveSourceClick"
+                                    ToolTipService.ToolTip="Ausgewählte Quelle entfernen">
+                                    <FontIcon FontSize="{StaticResource NippIconFontSize}" Glyph="&#xE74D;" />
+                                </Button>
+                            </Grid>
+
+                            <!--
+                                Das Detail der ausgewählten Quelle. EIN Ort statt
+                                drei Aufklapper, die von der Auswahl nichts wussten.
+                            -->
+                            <StackPanel x:Name="SourceDetailPanel" Spacing="{StaticResource NippGapMedium}">
+                                <TextBlock
+                                    x:Name="SourceDetailHeader"
+                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                    TextTrimming="CharacterEllipsis" />
+
+                                <TextBlock
+                                    x:Name="SourceDetailCapabilities"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    TextWrapping="Wrap" />
+
+                                <InfoBar
+                                    x:Name="SourceDetailBar"
+                                    IsClosable="True"
+                                    IsOpen="False"
+                                    Severity="Informational" />
+
+                                <!-- Zugangsdaten: beschriftet, mit Herkunft, je Quelle -->
+                                <ItemsControl
+                                    x:Name="SecretList"
+                                    ItemsSource="{x:Bind IntegrationViewModel.Secrets}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:IntegrationSecretRow">
+                                            <StackPanel Margin="0,0,0,8" Spacing="{StaticResource NippGapSmall}">
+                                                <PasswordBox
+                                                    Header="{x:Bind Label}"
+                                                    Password="{x:Bind Value, Mode=TwoWay}"
+                                                    PlaceholderText="Wert einfügen" />
+
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind Hint}"
+                                                    TextWrapping="Wrap"
+                                                    Visibility="{x:Bind HasHint, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                                                <Grid ColumnSpacing="{StaticResource NippGapLarge}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                        Text="{x:Bind StatusText, Mode=OneWay}"
+                                                        TextWrapping="Wrap" />
+
+                                                    <Button
+                                                        Grid.Column="1"
+                                                        Click="OnSaveSecretClick"
+                                                        Content="Ablegen" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Verbindung und Anmeldung -->
+                                <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                    <Expander.Header>
+                                        <TextBlock Text="Verbindung und Anmeldung" />
+                                    </Expander.Header>
+
+                                    <StackPanel Spacing="{StaticResource NippGapMedium}">
+                                        <TextBox
+                                            Header="Anzeigename"
+                                            Text="{x:Bind IntegrationViewModel.DetailDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <TextBox
+                                            Header="Basisadresse"
+                                            PlaceholderText="https://api.example.ch/v1"
+                                            Text="{x:Bind IntegrationViewModel.DetailBaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <Grid ColumnSpacing="{StaticResource NippGapMedium}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBox
+                                                Header="Zeitgrenze (ms)"
+                                                Text="{x:Bind IntegrationViewModel.DetailTimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <TextBox
+                                                Grid.Column="1"
+                                                Header="Reihenfolge"
+                                                Text="{x:Bind IntegrationViewModel.DetailPriority, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        </Grid>
+
+                                        <TextBox
+                                            Header="Schema der Authorization-Kopfzeile"
+                                            PlaceholderText="Bearer"
+                                            Text="{x:Bind IntegrationViewModel.DetailScheme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <TextBlock
+                                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Leer heisst Bearer. Manche Server verlangen Token — und melden bei einem 401 trotzdem Bearer. Der Kopfzeile ist nicht zu glauben; ausprobieren."
+                                            TextWrapping="Wrap" />
+
+                                        <Button
+                                            Command="{x:Bind IntegrationViewModel.ApplyDetailCommand}"
+                                            Content="Übernehmen" />
+                                    </StackPanel>
+                                </Expander>
+
+                                <!-- Testabruf -->
+                                <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                    <Expander.Header>
+                                        <TextBlock Text="Verbindung testen" />
+                                    </Expander.Header>
+
+                                    <StackPanel Spacing="{StaticResource NippGapMedium}">
+                                        <TextBox
+                                            x:Name="TestNumberBox"
+                                            Header="Testnummer"
+                                            PlaceholderText="+41 79 123 45 67"
+                                            Text="{x:Bind IntegrationViewModel.TestNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <TextBox
+                                            x:Name="TestQueryBox"
+                                            Header="Suchbegriff"
+                                            Text="{x:Bind IntegrationViewModel.TestQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <Button
+                                            Command="{x:Bind IntegrationViewModel.TestCommand}"
+                                            Content="Abruf ausführen" />
+
+                                        <TextBlock
+                                            x:Name="IntegrationTestSummary"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            TextWrapping="Wrap" />
+
+                                        <TextBlock
+                                            x:Name="IntegrationFieldsLabel"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Gemappte Felder — genau das sieht die Karte"
+                                            Visibility="Collapsed" />
+
+                                        <ListView
+                                            x:Name="IntegrationTestFields"
+                                            MaxHeight="140"
+                                            ItemsSource="{x:Bind IntegrationViewModel.TestFields}"
+                                            SelectionMode="None" />
+
+                                        <TextBox
+                                            x:Name="IntegrationTestResponse"
+                                            MaxHeight="180"
+                                            AcceptsReturn="True"
+                                            FontFamily="Consolas"
+                                            Header="Antwort"
+                                            IsReadOnly="True"
+                                            TextWrapping="NoWrap" />
+                                    </StackPanel>
+                                </Expander>
+
+                                <!-- Das JSON dieser einen Quelle -->
+                                <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                    <Expander.Header>
+                                        <TextBlock Text="Endpunkte und Felder (JSON)" />
+                                    </Expander.Header>
+
+                                    <StackPanel Spacing="{StaticResource NippGapMedium}">
+                                        <TextBlock
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Nur diese Quelle. Eine kaputte Bearbeitung geht auf ihre Kosten, die anderen bleiben stehen. Welche Feldnamen etwas bewirken, zeigt die Vorschlagsliste beim Tippen."
+                                            TextWrapping="Wrap" />
+
+                                        <TextBox
+                                            MaxHeight="260"
+                                            AcceptsReturn="True"
+                                            FontFamily="Consolas"
+                                            Text="{x:Bind IntegrationViewModel.DetailJson, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            TextWrapping="NoWrap" />
+
+                                        <Button
+                                            Command="{x:Bind IntegrationViewModel.ApplyDetailJsonCommand}"
+                                            Content="Übernehmen" />
+                                    </StackPanel>
+                                </Expander>
+                            </StackPanel>
+
+                            <!-- Wann nachgeschlagen wird (§21.4) -->
+                            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                <Expander.Header>
+                                    <TextBlock Text="Wann nachgeschlagen wird" />
+                                </Expander.Header>
+
+                                <StackPanel Spacing="{StaticResource NippGapMedium}">
+                                    <ToggleSwitch
+                                        Header="Bei eingehenden Anrufen"
+                                        IsOn="{x:Bind IntegrationViewModel.LookupIncoming, Mode=TwoWay}"
+                                        Toggled="OnLookupSettingToggled" />
+
+                                    <ToggleSwitch
+                                        Header="Bei ausgehenden Anrufen"
+                                        IsOn="{x:Bind IntegrationViewModel.LookupOutgoing, Mode=TwoWay}"
+                                        Toggled="OnLookupSettingToggled" />
+
+                                    <ToggleSwitch
+                                        Header="Auch interne Nummern"
+                                        IsOn="{x:Bind IntegrationViewModel.LookupInternalNumbers, Mode=TwoWay}"
+                                        Toggled="OnLookupSettingToggled" />
+
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Text="Interne Nummern gehen standardmässig nicht nach aussen: für eine Nebenstelle hat kein Fremdsystem eine Antwort, und die Nebenstelle eines Mitarbeiters hat auf einem fremden Server nichts zu suchen. Notrufnummern gelten als intern."
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Expander>
+
+
+                            <!-- Ein- und Ausgabe der ganzen Konfiguration -->
+                            <Grid ColumnSpacing="{StaticResource NippGapMedium}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button
+                                    HorizontalAlignment="Stretch"
+                                    Click="OnExportIntegrationsClick"
+                                    Content="Ausgeben" />
+
+                                <Button
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Stretch"
+                                    Click="OnImportIntegrationsClick"
+                                    Content="Einlesen" />
+                            </Grid>
+
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Einlesen ersetzt alle Quellen — das ist für die Verteilung an mehrere Arbeitsplätze gedacht. Eine einzelne Quelle kommt über Quelle hinzufügen."
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Expander>
+
+                    <Expander x:Name="BackupGroup" Expanding="OnGroupExpanding"
+                        Style="{StaticResource NippSettingsGroupStyle}">
+                        <Expander.Header>
+                            <TextBlock Text="Sichern und zurücksetzen" />
+                        </Expander.Header>
+                        <StackPanel Spacing="{StaticResource NippGapLarge}">
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Die Ausgabedatei enthält alles Einstellbare — aber keine Passwörter. Sie liegen verschlüsselt an diesem Benutzerkonto und wären auf einem anderen Rechner ohnehin wertlos. Nach dem Einlesen werden sie einmal neu eingetragen."
+                                TextWrapping="Wrap" />
+
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                                <Button Click="OnExportSettingsClick" Content="Ausgeben" />
+                                <Button Click="OnImportSettingsClick" Content="Einlesen" />
+                            </StackPanel>
+
+                            <TextBlock
+                                Margin="0,8,0,0"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                Text="Zurücksetzen" />
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="Stellt alle Einstellungen auf die Vorgaben zurück. Die SIP-Konten samt Passwörtern und die Anrufliste bleiben — danach lässt sich weiter telefonieren, ohne sich neu anzumelden."
+                                TextWrapping="Wrap" />
+                            <Button Click="OnResetSettingsClick" Content="Alle Einstellungen zurücksetzen" />
+                        </StackPanel>
+                    </Expander>
+                    </StackPanel>
+                </Expander>
+
+                <Expander
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Header="Aktualisierung">
+                    <StackPanel Spacing="{StaticResource NippGapMedium}">
+                        <TextBlock
+                            AutomationProperties.Name="Stand der Update-Pruefung"
+                            Style="{StaticResource BodyTextBlockStyle}"
+                            Text="{x:Bind ViewModel.UpdateStatus, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{x:Bind ViewModel.UpdateBlockedReason, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            Visibility="{x:Bind ViewModel.IsUpdateReady, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                        <Grid ColumnSpacing="{StaticResource NippGapMedium}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button
+                                HorizontalAlignment="Stretch"
+                                AutomationProperties.Name="Jetzt nach Updates suchen"
+                                Command="{x:Bind ViewModel.CheckForUpdatesCommand}"
+                                Content="Jetzt prüfen" />
+
+                            <Button
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                AutomationProperties.Name="Gefundenes Update herunterladen"
+                                Command="{x:Bind ViewModel.DownloadUpdateCommand}"
+                                Content="Laden"
+                                IsEnabled="{x:Bind ViewModel.CanDownloadUpdate, Mode=OneWay}" />
+                        </Grid>
+
+                        <Button
+                            HorizontalAlignment="Stretch"
+                            AutomationProperties.Name="Update anwenden und nipp neu starten"
+                            Command="{x:Bind ViewModel.ApplyUpdateCommand}"
+                            Content="Neu starten und aktualisieren"
+                            IsEnabled="{x:Bind ViewModel.CanApplyUpdate, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.IsUpdateReady, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                        <ToggleSwitch
+                            Header="Beim Start nach Updates suchen"
+                            IsOn="{x:Bind ViewModel.CheckUpdatesOnStart, Mode=TwoWay}" />
+
+                        <ComboBox
+                            HorizontalAlignment="Stretch"
+                            AutomationProperties.Name="Update-Kanal"
+                            Header="Kanal"
+                            ItemsSource="{x:Bind ViewModel.UpdateChannelChoices}"
+                            SelectedItem="{x:Bind ViewModel.UpdateChannel, Mode=TwoWay}" />
+
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Stable ist die abgenommene Fassung. Beta zeigt Neues früher und kann Fehler haben, die stable nicht hat — der Rückweg ist jederzeit möglich."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Expander>
+
+                <!--
+
+                    Über nipp (§9, §16.2). Hier stand bis zum 07.09.2026 eine
+                    Zeile Text — „nipp · bv2 GmbH", ohne Version. Wer bei
+                    einem Support-Fall nach der Fassung gefragt wurde, konnte
+                    sie nicht nennen.
+
+                    Das Bild wird im Code-behind gesetzt und nicht hier: ein
+                    BitmapImage loest kein file:-URI auf, das Symbol folgt dem
+                    Erscheinungsbild (hell/dunkel), und ein Fehlschlag meldet
+                    sich nur ueber ImageFailed. Genau dieselbe Stelle wie in
+                    MainWindow.
+                -->
+                <StackPanel
+                    Margin="0,16,0,12"
+                    HorizontalAlignment="Center"
+                    Spacing="{StaticResource NippGapSmall}">
+                    <Image
+                        x:Name="AboutLogo"
+                        Width="96"
+                        Height="96"
+                        Margin="0,0,0,8"
+                        HorizontalAlignment="Center" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        Text="{x:Bind vm:SettingsViewModel.VersionLine}" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text="{x:Bind vm:SettingsViewModel.Copyright}" />
+                    <StackPanel
+                        HorizontalAlignment="Center"
+                        Orientation="Horizontal">
+                        <HyperlinkButton
+                            Click="OnContactMailClick"
+                            Content="{x:Bind vm:SettingsViewModel.ContactMail}" />
+                        <HyperlinkButton
+                            Click="OnWebsiteClick"
+                            Content="www.bv2.ch" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!--
+            Rückmeldung. <b>Ohne „Speichern"</b> (ADR-045): jede Änderung wirkt,
+            sobald sie gemacht ist. Der Knopf war die Ursache des einzigen
+            Falls, in dem in nipp Arbeit verlorenging — wer ihn vergass, verlor
+            eine angelegte Nebenstelle beim Verlassen der Seite, ohne Meldung.
+        -->
+        <StackPanel Grid.Row="2" Padding="12,0,12,10" Spacing="{StaticResource NippGapMedium}">
+            <InfoBar x:Name="FeedbackBar" IsClosable="True" IsOpen="False" />
+        </StackPanel>
+    </Grid>
+</Page>

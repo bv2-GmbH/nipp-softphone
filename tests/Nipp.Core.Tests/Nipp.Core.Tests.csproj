@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Unit-Tests. Verbindlich abzudecken (NIPP-BUILD.md Paragraph 13):
+    Nummernnormalisierung, Settings-Serialisierung, Provisioning-XML-Parsing
+    (inkl. kaputtem XML), CLIP-Aufloesung, Verlaufs-Aufbewahrung.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>Nipp.Core.Tests</RootNamespace>
+    <AssemblyName>Nipp.Core.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <!-- Paragraph 4: FakeItEasy oder NSubstitute; hier NSubstitute -->
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+
+    <!--
+      FakeTimeProvider fuer die Kontaktsuche (Paragraph 21.1): sie wartet
+      300 ms, bevor sie fremde Systeme fragt. Ein Test, der das mit echter Zeit
+      prueft, dauert nicht nur laenger — er wird auf einer ausgelasteten
+      Maschine unzuverlaessig, und ein Test, der mal rot und mal gruen ist, ist
+      schlimmer als keiner.
+
+      Auf der 8er-Linie gehalten wie alle anderen Pakete: Paragraph 4 legt
+      .NET 8 LTS fest. Die 10er-Fassung baut zwar gegen net8.0, gehoert aber zu
+      einem Stack, den dieses Projekt nicht mitzieht.
+    -->
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Nipp.Core\Nipp.Core.csproj" />
+    <ProjectReference Include="..\..\src\Nipp.Provisioning\Nipp.Provisioning.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!--
+    Die synthetischen Anbietervorlagen (ADR-040). Sie liegen beim Test und
+    werden NICHT in Nipp.Core eingebettet: eine Testvorlage im Produkt waere
+    genau die Lehre dieses Arbeitspakets.
+  -->
+  <ItemGroup>
+    <Content Include="TestData\Connectors\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

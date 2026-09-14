@@ -1,0 +1,87 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Wegwerf-Spike fuer AP2.1/AP2.2 (NIPP-BUILD.md Paragraph 12, M1).
+    Frage: laedt die native DLL-Kette ueberhaupt?
+
+    Bindet den Wrapper und die DLLs direkt aus dem entpackten SDK unter sdk/
+    ein - Weg C nach ADR-005. Kein NuGet: der GitLab-Feed traegt keinen Build.
+
+    NICHT Teil der Solution. Der Spike darf schmutzig sein, die Solution nicht.
+    Wird nach M1 geloescht.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
+    <Platform>x64</Platform>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SdkProbe</RootNamespace>
+    <AssemblyName>SdkProbe</AssemblyName>
+
+    <!-- Im Spike sind Warnungen Warnungen. Hier wird probiert, nicht geliefert. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <AnalysisLevel>none</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <NoWarn>$(NoWarn);CS0618;CS0612;CS1591;CA1416;CS8600;CS8602;CS8603;CS8604;CS8618;CS8625;CA1707;CA1848;CA1305</NoWarn>
+
+    <SdkRoot>$(MSBuildThisFileDirectory)..\..\sdk\extracted\linphone-sdk\win64</SdkRoot>
+  </PropertyGroup>
+
+  <!-- Der generierte C#-Wrapper, direkt aus dem SDK -->
+  <ItemGroup>
+    <Compile Include="$(SdkRoot)\share\linphonecs\LinphoneWrapper.cs">
+      <Link>Sdk\LinphoneWrapper.cs</Link>
+    </Compile>
+  </ItemGroup>
+
+  <!--
+    Die native Kette ins Ausgabeverzeichnis. Zwei Dinge sind hier Absicht:
+
+    1. Die Haupt-DLLs kommen flach neben die EXE - so findet sie der
+       Standard-Suchpfad von Windows ohne Zutun.
+    2. Die Mediastreamer-Plugins behalten ihre relative Struktur
+       (lib/mediastreamer/plugins/), weil mediastreamer2 sie dort erwartet.
+       Genau diese Zweiteilung ist der Fallstrick aus Paragraph 14.2.
+
+    Testbibliotheken und der H.264-Codec bleiben draussen: Testcode gehoert
+    nicht ins Paket, und Video ist laut Paragraph 2 ausgeschlossen.
+  -->
+  <ItemGroup>
+    <NativeBin Include="$(SdkRoot)\bin\*.dll"
+               Exclude="$(SdkRoot)\bin\*tester*.dll" />
+    <NativePlugin Include="$(SdkRoot)\lib\mediastreamer\plugins\*.dll"
+                  Exclude="$(SdkRoot)\lib\mediastreamer\plugins\libmsopenh264.dll" />
+
+    <!--
+      Nicht nur DLLs: belr laedt Grammatiken zur Laufzeit aus Dateien. Fehlen
+      sie, bricht der Core-Start mit "bctbx-fatal: Unable to load VCARD grammar"
+      ab - eine Meldung, die nicht sagt, dass eine DATEI fehlt und keine DLL.
+      Dieser Fall steht so nicht in Paragraph 14.2 und gehoert dort ergaenzt.
+    -->
+    <SdkGrammar Include="$(SdkRoot)\share\belr\grammars\*.belr" />
+    <SdkSound Include="$(SdkRoot)\share\sounds\**\*.*" />
+  </ItemGroup>
+
+  <Target Name="CopyLinphoneNatives" AfterTargets="Build">
+    <Copy SourceFiles="@(NativeBin)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(NativePlugin)"
+          DestinationFolder="$(OutDir)lib\mediastreamer\plugins"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(SdkGrammar)"
+          DestinationFolder="$(OutDir)share\belr\grammars"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(SdkSound)"
+          DestinationFolder="$(OutDir)share\sounds\%(RecursiveDir)"
+          SkipUnchangedFiles="true" />
+    <Message Importance="high"
+             Text="Linphone kopiert: @(NativeBin->Count()) DLLs, @(NativePlugin->Count()) Plugins, @(SdkGrammar->Count()) Grammatiken, @(SdkSound->Count()) Klangdateien" />
+  </Target>
+
+</Project>

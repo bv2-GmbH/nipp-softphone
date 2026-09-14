@@ -1,0 +1,97 @@
+{
+  "_hinweis": "SYNTHETISCHE Testvorlage (ADR-040) fuer die zweite Antwortform: ein verschachteltes Objekt mit Listen darin, eine Stimmungsangabe mit Richtung und eine gekuerzte Zusammenfassung. Sie traegt ausserdem den Fall 'nur Anruferkontext, keine Suche'. Die Domain .example ist nach RFC 2606 reserviert.",
+
+  "kind": "nippConnectorTemplate",
+  "schemaVersion": 1,
+
+  "id": "gespraechsjournal",
+  "displayName": "Gespraechsjournal",
+  "summary": "Worum es im letzten Gespraech ging, offene Punkte und Stimmung. Liefert Anruferkontext.",
+  "vendor": "Muster Systems AG",
+
+  "secrets": [
+    {
+      "ref": "journal",
+      "label": "API-Token",
+      "hint": "Im Journal unter API-Tokens anlegen. Der Wert erscheint nur einmal, beim Anlegen. Das Journal nimmt 'Bearer' -- anders als Musterkontor, das 'Token' verlangt."
+    }
+  ],
+
+  "source": {
+    "id": "journal",
+    "displayName": "Gespraechsjournal",
+    "type": "http",
+    "enabled": false,
+    "priority": 20,
+
+    "http": {
+      "baseUrl": "https://journal.musterkontor.example/v1",
+      "timeoutMs": 1500,
+      "maxResponseBytes": 1048576,
+      "headers": { "Accept": "application/json" },
+      "auth": {
+        "type": "bearer",
+        "secretRef": "journal"
+      }
+    },
+
+    "lookupByPhone": {
+      "request": {
+        "method": "GET",
+        "path": "/numbers/profile",
+        "query": {
+          "phone_number": "{{number.e164}}",
+          "topics_limit": "5"
+        }
+      },
+      "emptyWhen": "status == 404 || isEmpty($.phone_number)",
+      "mapping": {
+        "displayName": { "path": "$.display_name" },
+        "totalCalls": { "path": "$.total_calls", "as": "number" },
+        "lastCall": { "path": "$.last_call", "as": "date" },
+
+        "categories": { "path": "$.common_categories[*]", "as": "list" },
+        "topics": { "path": "$.common_topics[*]", "as": "list" },
+        "themen": { "expr": "join(topics, ', ')" },
+
+        "sentiment": { "path": "$.sentiment" },
+        "sentimentDirection": { "path": "$.sentiment_direction" },
+        "stimmung": {
+          "expr": "if(sentimentDirection == 'declining', concat(sentiment, ' — Tendenz fallend'), sentiment)"
+        },
+
+        "letzteZusammenfassung": { "path": "$.last_call_detail.summary_short" },
+        "letzteZusammenfassungLang": { "path": "$.last_call_detail.summary" },
+        "letztesErgebnis": { "path": "$.last_call_detail.outcome" },
+        "letzteKategorie": { "path": "$.last_call_detail.category" },
+        "letzteRichtung": { "path": "$.last_call_detail.direction" },
+        "offeneAufgaben": { "path": "$.last_call_detail.todos[*]", "as": "list" },
+        "offeneAufgabenZeile": { "expr": "join(offeneAufgaben, ' · ')" },
+
+        "verlauf": {
+          "expr": "if(totalCalls > 1, concat(totalCalls, ' Anrufe, zuletzt ', formatDate(lastCall, 'dd.MM.yyyy')), 'erster Anruf')"
+        }
+      }
+    }
+  },
+
+  "sampleResponse": {
+    "_hinweis": "ERFUNDEN. Ausgedacht, aus keinem echten System -- eine mitgeschnittene Antwort waere ein Gespraechsinhalt.",
+    "phone_number": "+41791234567",
+    "display_name": "Hans Muster",
+    "total_calls": 4,
+    "last_call": "2026-09-05T14:32:00+02:00",
+    "common_categories": ["Support", "Bestellung"],
+    "common_topics": ["Telefonanlage", "Rechnung", "Umzug"],
+    "sentiment": "freundlich",
+    "sentiment_direction": "stable",
+    "last_call_detail": {
+      "summary_short": "Rueckfrage zur Rechnung vom August, Betrag geklaert.",
+      "summary": "Rueckfrage zur Rechnung vom August. Der Betrag war um eine Position hoeher als erwartet; die Position wurde erklaert und akzeptiert.",
+      "outcome": "erledigt",
+      "category": "Rechnung",
+      "direction": "eingehend",
+      "todos": ["Gutschrift pruefen", "Rueckruf am Montag"]
+    }
+  }
+}

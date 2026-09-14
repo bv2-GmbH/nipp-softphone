@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Nipp.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Nipp.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

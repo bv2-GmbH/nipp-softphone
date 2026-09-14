@@ -1,0 +1,84 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    ViewModels, Services und Modelle. TargetFramework, Nullable, Platform und
+    die Analyse-Einstellungen kommen aus Directory.Build.props im Repo-Root
+    und werden hier absichtlich NICHT wiederholt.
+
+    Grenze aus NIPP-BUILD.md Paragraph 6: "using Linphone" ist ausschliesslich
+    unter Services/Telephony/ erlaubt. Nipp.Architecture.Tests erzwingt das.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>Nipp.Core</RootNamespace>
+    <AssemblyName>Nipp.Core</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    Das Linphone SDK. Wrapper und native Laufzeit kommen aus einer gemeinsamen
+    Datei, damit App und Spike nicht auseinander laufen (Paragraph 14.2).
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)..\..\build\Linphone.Sdk.targets" />
+
+  <ItemGroup>
+    <!-- Paragraph 4: MVVM mit Source-Generatoren, keine eigene Bindings-Infrastruktur -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+
+    <!-- Paragraph 4: DI ueber Microsoft.Extensions, keine statischen Singletons (Paragraph 15) -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
+
+    <!-- Paragraph 10: DPAPI fuer die Zugangsdaten -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+
+    <!-- Paragraph 10: SystemEvents.PowerModeChanged fuer Standby/Resume -->
+    <PackageReference Include="Microsoft.Win32.SystemEvents" Version="8.0.0" />
+
+    <!-- Paragraph 8.3: lokale Anrufliste -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+
+    <!--
+      Paragraph 21.3 und ADR-016: JSONPath nach RFC 9535 fuer das Mapping der
+      Integrationen. Setzt auf System.Text.Json.Nodes auf — kein Newtonsoft —
+      und ist MIT-lizenziert (docs/licensing.md; die AGPL-Frage des SDK ist
+      offen, eine zweite Copyleft-Abhaengigkeit waere die falsche Richtung).
+
+      Zieht Json.More.Net als Abhaengigkeit mit, vom selben Anbieter und
+      ebenfalls MIT.
+
+      "using Json.Path" ist ausschliesslich unter Services/Integrations/Mapping/
+      erlaubt; IntegrationBoundaryTests erzwingt das, damit die Bibliothek
+      austauschbar bleibt.
+    -->
+    <PackageReference Include="JsonPath.Net" Version="3.0.2" />
+
+    <!--
+      ADR-038 und ADR-039: Installer und Update-Verteilung. MIT-lizenziert,
+      also vertraeglich mit der Regel aus docs/licensing.md.
+
+      "using Velopack" ist ausschliesslich unter Services\Updates\ erlaubt —
+      VelopackBoundaryTests erzwingt das. Der Grund ist derselbe wie beim
+      SDK und bei Json.Path: die Update-Quelle wandert (privates Repo mit
+      Token, spaeter oeffentlich, moeglicherweise ein eigener Webserver), und
+      eine Bibliothek, die ueberall steht, laesst sich nicht tauschen.
+    -->
+    <PackageReference Include="Velopack" Version="1.2.0" />
+  </ItemGroup>
+
+  <!--
+    Paragraph 21, ADR-033 und ADR-040: die mitgelieferten Anbietervorlagen.
+
+    Eine Vorlage ist seit ADR-040 EINE Datei: Kennung, Beschriftung,
+    Geheimnisse, Quellenbeschreibung und Beispielantwort zusammen. Vorher lag
+    sie in drei Teilen (Manifest, Beschreibung unter docs/, Beispielantwort),
+    und weitergeben liess sich so etwas nicht.
+
+    Mitgeliefert wird nur das allgemeine Grundgeruest. Alles Weitere kommt
+    ueber "API-Anbieter importieren ..." und liegt unter
+    %APPDATA%\nipp\connectors.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Services\Integrations\Catalog\templates\*.json" />
+  </ItemGroup>
+
+</Project>

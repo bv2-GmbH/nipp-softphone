@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  MSIX-Manifest für nipp.
+
+  Offen bleibt: Identity/Name und Publisher müssen zum Signaturzertifikat
+  passen (§16.2, AP9.2). Publisher hier und der Antragsteller im Zertifikat
+  müssen buchstabengleich sein, sonst lässt sich das Paket nicht installieren.
+  Solange das Zertifikat fehlt, signiert build/Pack-Nipp.ps1 selbstsigniert —
+  das reicht zum Entwickeln und für einen Testrechner mit importiertem
+  Zertifikat, nicht für die Auslieferung.
+
+  Protokoll-Handler und Autostart stehen unten als Extensions. Sie gelten nur
+  im installierten Zustand; unpackaged übernimmt WindowsIntegration dieselbe
+  Aufgabe über HKCU.
+-->
+
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  IgnorableNamespaces="uap uap5 rescap com desktop">
+
+  <Identity
+    Name="bv2.nipp"
+    Publisher="CN=bv2 GmbH"
+    Version="0.1.0.0" />
+
+  <mp:PhoneIdentity PhoneProductId="99EFD9D6-5414-4508-94AB-86A372106798" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+
+  <Properties>
+    <!-- §15: der Produktname schreibt sich klein, auch im Startmenü -->
+    <DisplayName>nipp</DisplayName>
+    <PublisherDisplayName>bv2 GmbH</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!--
+      MinVersion 17763 ist das Minimum des Windows App SDK (ADR-003) und deckt
+      die Anforderung aus §2 ab: Windows 10 22H2 (19045) und Windows 11.
+    -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26226.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="x-generate"/>
+  </Resources>
+
+  <Applications>
+    <Application Id="App"
+      Executable="$targetnametoken$.exe"
+      EntryPoint="$targetentrypoint$">
+      <uap:VisualElements
+        DisplayName="nipp"
+        Description="Softphone für die Telefonanlagen von bv2"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <!--
+          Alle vier Kachelgrössen. Square71x71 und Square310x310 kamen am
+          07.09.2026 dazu: ohne sie skaliert Windows im Startmenü aus der
+          150er hoch. Das Symbol der angepinnten App liegt dagegen NICHT
+          hier, sondern in der targetsize-Familie neben
+          Square44x44Logo.png — siehe tools\Build-Icons.py.
+        -->
+        <uap:DefaultTile
+          Wide310x150Logo="Assets\Wide310x150Logo.png"
+          Square71x71Logo="Assets\Square71x71Logo.png"
+          Square310x310Logo="Assets\Square310x310Logo.png" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+      </uap:VisualElements>
+
+      <Extensions>
+        <!--
+          §10 und AP7.2: Klick-to-Call. Damit wählt ein tel:-Link aus Outlook,
+          aus dem Browser und aus dem bv2Cockpit direkt, ohne dass nipp dafür
+          eine eigene Schnittstelle braucht.
+
+          Windows fragt beim ersten Klick, welche App zuständig sein soll —
+          das ist so gewollt und lässt sich nicht überspringen.
+        -->
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="tel" DesiredView="useLess">
+            <uap:DisplayName>Anruf mit nipp</uap:DisplayName>
+            <uap:Logo>Assets\Square44x44Logo.png</uap:Logo>
+          </uap:Protocol>
+        </uap:Extension>
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="sip" DesiredView="useLess">
+            <uap:DisplayName>Anruf mit nipp</uap:DisplayName>
+            <uap:Logo>Assets\Square44x44Logo.png</uap:Logo>
+          </uap:Protocol>
+        </uap:Extension>
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="sips" DesiredView="useLess">
+            <uap:DisplayName>Anruf mit nipp</uap:DisplayName>
+            <uap:Logo>Assets\Square44x44Logo.png</uap:Logo>
+          </uap:Protocol>
+        </uap:Extension>
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="callto" DesiredView="useLess">
+            <uap:DisplayName>Anruf mit nipp</uap:DisplayName>
+            <uap:Logo>Assets\Square44x44Logo.png</uap:Logo>
+          </uap:Protocol>
+        </uap:Extension>
+
+        <!--
+          AP7.4: Autostart. Anders als der HKCU-Weg lässt Windows den Benutzer
+          das im Task-Manager abschalten und baut es bei der Deinstallation
+          sauber zurück — deshalb ist das im installierten Zustand der bessere
+          Weg.
+
+          Der Zustand ist „disabled": nipp fragt beim ersten Start danach,
+          statt sich ungefragt in den Systemstart zu setzen.
+        -->
+        <uap5:Extension
+          Category="windows.startupTask"
+          Executable="Nipp.App.exe"
+          EntryPoint="Windows.FullTrustApplication">
+          <uap5:StartupTask
+            TaskId="nippAutostart"
+            Enabled="false"
+            DisplayName="nipp" />
+        </uap5:Extension>
+
+        <!--
+          §8.6 und ADR-030: Toasts im installierten Zustand.
+
+          BEFUND VOM 07.09.2026, gemessen: ohne diese beiden Erweiterungen
+          scheitert AppNotificationManager.Register() packaged mit
+          0x80004005 (E_FAIL), und ein eingehender Anruf gibt bei
+          geschlossenem Fenster KEIN Zeichen. Unpackaged legt Register() die
+          COM-Eintraege selbst an und funktioniert — genau deshalb lief der
+          Alltag unpackaged, und ADR-004 hatte die Lage genau umgekehrt
+          vermutet.
+
+          ES BRAUCHT BEIDE, mit DEMSELBEN GUID:
+          der COM-Server sagt Windows, welche EXE die Aktivierung annimmt,
+          und windows.toastNotificationActivation nennt die CLSID, unter der
+          das Benachrichtigungssystem sie sucht. Fehlt eine, ist es so gut
+          wie keine.
+
+          Der GUID ist frei gewaehlt und muss STABIL bleiben: Windows merkt
+          sich die Zuordnung. Wer ihn wechselt, bekommt Toasts, die ins Leere
+          aktivieren.
+        -->
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:ExeServer Executable="Nipp.App.exe" DisplayName="nipp">
+              <com:Class Id="2599E06F-CCE5-4248-B039-F2D88FCC2898" />
+            </com:ExeServer>
+          </com:ComServer>
+        </com:Extension>
+
+        <desktop:Extension Category="windows.toastNotificationActivation">
+          <desktop:ToastNotificationActivation
+            ToastActivatorCLSID="2599E06F-CCE5-4248-B039-F2D88FCC2898" />
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Nötig für die nativen Bibliotheken des SDK -->
+    <rescap:Capability Name="runFullTrust" />
+
+    <!--
+      §14.5: Windows fragt beim ersten Start nach der Firewall-Freigabe.
+      internetClient und privateNetworkClientServer deklarieren, was nipp
+      tatsächlich braucht: SIP nach aussen und RTP im lokalen Netz.
+    -->
+    <Capability Name="internetClient" />
+    <Capability Name="privateNetworkClientServer" />
+
+    <!-- Mikrofon für Gespräche -->
+    <DeviceCapability Name="microphone" />
+  </Capabilities>
+</Package>

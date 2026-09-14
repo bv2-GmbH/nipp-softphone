@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Erzwingt die Schichtgrenze aus NIPP-BUILD.md Paragraph 6 und Paragraph 13.
+    Der Test arbeitet als Quelltext-Scan (in Paragraph 13 ausdruecklich zugelassen)
+    und funktioniert deshalb auch, solange das SDK noch nicht eingebunden ist.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>Nipp.Architecture.Tests</RootNamespace>
+    <AssemblyName>Nipp.Architecture.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <!--
+    Der Scan braucht den Pfad zum src-Verzeichnis. Ihn zur Bauzeit einzubetten
+    ist zuverlaessiger, als zur Laufzeit vom Testverzeichnis aus nach oben zu
+    raten - das bricht, sobald jemand den Ausgabepfad aendert.
+  -->
+  <ItemGroup>
+    <AssemblyMetadata Include="RepositorySourceRoot" Value="$(MSBuildThisFileDirectory)..\..\src" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

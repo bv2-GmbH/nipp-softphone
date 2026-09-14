@@ -1,0 +1,171 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="Nipp.App.Controls.Keypad"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        Wähltastatur 3x4 mit Buchstabenzeile (§8.1).
+
+        Die Buchstaben sind nicht Zierde: Nummern auf Visitenkarten und
+        Türschildern stehen oft als Wort, und wer sie eintippt, sucht die
+        Buchstaben. Sie stehen deshalb unter der Ziffer, wie am Telefon.
+    -->
+    <UserControl.Resources>
+        <Style x:Key="KeypadButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="{StaticResource NippKeypadButtonWidth}" />
+            <!-- MinHeight: sonst schneidet die Textskalierung die Buchstaben ab -->
+            <Setter Property="MinHeight" Value="{StaticResource NippKeypadButtonHeight}" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="{StaticResource NippKeypadCornerRadius}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid
+        ColumnSpacing="{StaticResource NippGapMedium}"
+        RowSpacing="{StaticResource NippGapMedium}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Button
+            Grid.Row="0" Grid.Column="0"
+            Click="OnKeyClick" Tag="1"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Eins">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadDigitFontSize}" Text="1" />
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadLettersFontSize}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text=" " />
+            </StackPanel>
+        </Button>
+
+        <Button
+            Grid.Row="0" Grid.Column="1"
+            Click="OnKeyClick" Tag="2"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Zwei A B C">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadDigitFontSize}" Text="2" />
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadLettersFontSize}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="ABC" />
+            </StackPanel>
+        </Button>
+
+        <Button
+            Grid.Row="0" Grid.Column="2"
+            Click="OnKeyClick" Tag="3"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Drei D E F">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadDigitFontSize}" Text="3" />
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadLettersFontSize}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="DEF" />
+            </StackPanel>
+        </Button>
+
+        <Button
+            Grid.Row="1" Grid.Column="0"
+            Click="OnKeyClick" Tag="4"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Vier G H I">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadDigitFontSize}" Text="4" />
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadLettersFontSize}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="GHI" />
+            </StackPanel>
+        </Button>
+
+        <Button
+            Grid.Row="1" Grid.Column="1"
+            Click="OnKeyClick" Tag="5"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Fünf J K L">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadDigitFontSize}" Text="5" />
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadLettersFontSize}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="JKL" />
+            </StackPanel>
+        </Button>
+
+        <Button
+            Grid.Row="1" Grid.Column="2"
+            Click="OnKeyClick" Tag="6"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Sechs M N O">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadDigitFontSize}" Text="6" />
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadLettersFontSize}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="MNO" />
+            </StackPanel>
+        </Button>
+
+        <Button
+            Grid.Row="2" Grid.Column="0"
+            Click="OnKeyClick" Tag="7"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Sieben P Q R S">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadDigitFontSize}" Text="7" />
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadLettersFontSize}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="PQRS" />
+            </StackPanel>
+        </Button>
+
+        <Button
+            Grid.Row="2" Grid.Column="1"
+            Click="OnKeyClick" Tag="8"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Acht T U V">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadDigitFontSize}" Text="8" />
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadLettersFontSize}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="TUV" />
+            </StackPanel>
+        </Button>
+
+        <Button
+            Grid.Row="2" Grid.Column="2"
+            Click="OnKeyClick" Tag="9"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Neun W X Y Z">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadDigitFontSize}" Text="9" />
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadLettersFontSize}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="WXYZ" />
+            </StackPanel>
+        </Button>
+
+        <Button
+            Grid.Row="3" Grid.Column="0"
+            Click="OnKeyClick" Tag="*"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Stern">
+            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                       FontSize="{StaticResource NippKeypadDigitFontSize}" Text="*" />
+        </Button>
+
+        <Button
+            Grid.Row="3" Grid.Column="1"
+            Click="OnKeyClick" Tag="0"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Null Plus">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadDigitFontSize}" Text="0" />
+                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource NippKeypadLettersFontSize}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="+" />
+            </StackPanel>
+        </Button>
+
+        <Button
+            Grid.Row="3" Grid.Column="2"
+            Click="OnKeyClick" Tag="#"
+            Style="{StaticResource KeypadButtonStyle}" AutomationProperties.Name="Raute">
+            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                       FontSize="{StaticResource NippKeypadDigitFontSize}" Text="#" />
+        </Button>
+    </Grid>
+</UserControl>

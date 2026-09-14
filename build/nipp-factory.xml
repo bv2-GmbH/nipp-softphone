@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Auslieferungszustand von nipp (§17, AP8.1).
+
+  Diese Datei gehört bei der Installation nach
+
+      %PROGRAMDATA%\bv2\nipp\nipp-factory.xml
+
+  und wird bei jedem Start gelesen, bevor das Remote-Profil an die Reihe kommt.
+  Sie enthält bewusst KEINE Konten: was hier steht, gilt für jede Installation,
+  und Konten unterscheiden sich je Arbeitsplatz. Die kommen aus dem
+  kundenspezifischen Profil (`nippprov neu`) oder trägt der Benutzer selbst ein.
+
+  Ebenso bewusst nichts gesperrt: eine Auslieferung, die dem Benutzer von
+  vornherein die Einstellungen wegnimmt, erzeugt nur Anrufe beim Support.
+  Sperren gehören ins Kundenprofil, wo jemand entschieden hat, warum.
+
+  Die Werte hier sind die aus §9, mit den drei Korrekturen aus ADR-006 und
+  ADR-007. Wo sie vom Standard des Programms abweichen, steht der Grund daneben.
+-->
+
+<nipp-provisioning version="1" profile="bv2-auslieferung">
+
+  <settings>
+
+    <!-- §8.1: Schweiz. Bestimmt, was aus 044 512 84 30 wird. -->
+    <set path="advanced.country-prefix" value="+41" />
+
+    <!--
+      ADR-007: SRTP wird angeboten, aber nicht erzwungen.
+
+      §9.3 gibt „SRTP und erzwingen: ein" vor. Die aktuelle Anlage bietet keine
+      Verschlüsselung an — mit „erzwingen" wäre jedes Gespräch hart
+      gescheitert. Sobald die Anlage SRTP kann, gehört
+      nat.encryption-mandatory im Kundenprofil auf true, nicht hier.
+    -->
+    <set path="nat.encryption" value="Srtp" />
+    <set path="nat.encryption-mandatory" value="false" />
+
+    <!-- §9.2: ICE hilft hinter NAT, kostet aber etwas Aufbauzeit. -->
+    <set path="nat.enable-ice" value="true" />
+
+    <!--
+      §9.5, korrigiert nach docs/sdk-api-notes.md: G.729 ist im Build gar nicht
+      vorhanden und entfällt. Die Reihenfolge bestimmt, was zuerst angeboten
+      wird — opus für interne Gespräche, PCMA/PCMU als das, was jede Anlage
+      versteht.
+    -->
+    <set path="codecs.order" value="opus,G722,PCMA,PCMU" />
+    <set path="codecs.enabled" value="opus,G722,PCMA,PCMU" />
+    <set path="codecs.dtmf" value="Rfc2833" />
+
+    <!-- §9.2 -->
+    <set path="network.sip-port" value="5061" />
+    <set path="network.verify-certificate" value="true" />
+    <set path="network.keep-alive-seconds" value="30" />
+    <set path="network.rtp-port-min" value="7078" />
+    <set path="network.rtp-port-max" value="7178" />
+
+    <!-- §9.6: mit Windows starten, minimiert im Infobereich. -->
+    <set path="advanced.start-with-windows" value="true" />
+    <set path="advanced.start-minimized" value="true" />
+    <set path="advanced.global-hotkey" value="Ctrl+Shift+A" />
+    <set path="advanced.auto-answer" value="false" />
+    <set path="advanced.logging" value="Info" />
+
+    <!-- §8.3: ein Jahr Anrufliste. -->
+    <set path="advanced.history-retention-days" value="365" />
+
+    <!-- §20.4: dem Erscheinungsbild von Windows folgen. -->
+    <set path="advanced.theme" value="System" />
+    <set path="advanced.always-on-top" value="false" />
+
+    <!-- §8.4 -->
+    <set path="contacts.use-outlook" value="true" />
+    <set path="contacts.enable-blf" value="true" />
+
+    <!--
+      §9.6 und ADR-039: die Update-Prüfung. Gesucht wird beim Start, geladen
+      erst auf Knopfdruck — und nie während eines Gesprächs.
+
+      „stable" ist die abgenommene Fassung und der Standard für jeden
+      Arbeitsplatz. „beta" gehört ins Profil dessen, der Neues früher sehen
+      will, nicht hierher: was hier steht, gilt für alle.
+    -->
+    <set path="update.check-on-start" value="true" />
+    <set path="update.channel" value="stable" />
+
+    <!--
+      Das Token für das private Repo (docs/updates.md).
+
+      ES STEHT HIER NICHT, und zwar mit Absicht: diese Datei geht bei der
+      Verteilung mit und liegt dann auf jedem Arbeitsplatz unter
+      %PROGRAMDATA%, für jeden lesbar. Wer sie ins Repo eincheckt, hat das
+      Token in der Versionsgeschichte.
+
+      Der Weg: den Wert bei der Installation eintragen — nipp legt ihn dann
+      über DPAPI im SecretStore ab und liest ihn nie wieder aus dieser Datei.
+      Fein granuliert, "Contents: read", nur dieses eine Repo.
+
+          <set path="update.token" value="github_pat_..." />
+
+      Nur aus DIESER Datei oder einem lokalen Profil wird das Token
+      übernommen. Ein Profil aus dem Netz darf es nicht setzen: wer es aus der
+      Ferne bestimmen könnte, bestimmte damit, woher dieser Arbeitsplatz seine
+      nächste Fassung bezieht.
+    -->
+
+  </settings>
+
+</nipp-provisioning>

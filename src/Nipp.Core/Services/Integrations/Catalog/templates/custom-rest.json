@@ -1,0 +1,71 @@
+{
+  "_hinweis": "Grundgeruest fuer eine beliebige REST-Schnittstelle. Es ist absichtlich unfertig: Adresse, Pfade und Feldpfade muessen eingetragen werden, und danach entscheidet der Testabruf in den Einstellungen, ob es stimmt. Abgeschaltet, wie jede Vorlage -- eingeschaltet wird nach einem erfolgreichen Abruf.",
+
+  "_feldnamen": "Die Namen unter 'mapping' sind frei waehlbar, aber nicht beliebig folgenlos: nur ein katalogisierter Name bekommt eine Beschriftung, eine Rolle und damit den Toast. Die Tabelle steht in docs/integrations/feldnamen.md. Wer seine Felder frei benennt, hat eine funktionierende Karte und einen Toast, der nur die Nummer zeigt.",
+
+  "kind": "nippConnectorTemplate",
+  "schemaVersion": 1,
+
+  "id": "custom-rest",
+  "displayName": "Eigene REST-API",
+  "summary": "Ein Grundgeruest fuer eine beliebige JSON-Schnittstelle. Adresse, Anmeldung und Feldpfade werden danach eingetragen.",
+
+  "secrets": [
+    {
+      "ref": "eigene.token",
+      "label": "API-Token",
+      "hint": "Aus dem Zielsystem. Lesezugriff genuegt -- nipp schreibt in kein Fremdsystem."
+    }
+  ],
+
+  "source": {
+    "id": "eigene",
+    "displayName": "Eigene Quelle",
+    "type": "http",
+    "enabled": false,
+    "priority": 50,
+
+    "http": {
+      "baseUrl": "https://api.example.ch/v1",
+      "timeoutMs": 1500,
+      "maxResponseBytes": 1048576,
+      "headers": { "Accept": "application/json" },
+      "auth": {
+        "type": "bearer",
+        "secretRef": "eigene.token"
+      }
+    },
+
+    "lookupByPhone": {
+      "request": {
+        "method": "GET",
+        "path": "/contacts/by-phone",
+        "query": { "phone": "{{number.e164}}" }
+      },
+      "emptyWhen": "status == 404 || isEmpty($.name)",
+      "mapping": {
+        "contactName": { "path": "$.name" },
+        "company": { "path": "$.company" },
+        "contactType": { "path": "$.type" },
+        "email": { "path": "$.email" }
+      }
+    },
+
+    "searchContacts": {
+      "request": {
+        "method": "GET",
+        "path": "/contacts",
+        "query": { "q": "{{query.text}}" }
+      },
+      "itemsPath": "$.results[*]",
+      "mapping": {
+        "displayName": { "path": "$.name" },
+        "company": { "path": "$.company" },
+        "email": { "path": "$.email" },
+        "externalId": { "path": "$.id" },
+        "phoneMain": { "path": "$.phone" },
+        "phoneMobile": { "path": "$.mobile" }
+      }
+    }
+  }
+}

@@ -1,0 +1,71 @@
+nipp — Windows-Softphone
+Copyright (C) 2026 bv2 GmbH
+
+Dieses Programm ist freie Software: Sie können es unter den Bedingungen der
+GNU Affero General Public License, wie von der Free Software Foundation
+veröffentlicht, weitergeben und/oder verändern — entweder in Version 3 der
+Lizenz oder (nach Ihrer Wahl) einer späteren Version.
+
+Die Veröffentlichung erfolgt in der Hoffnung, dass es nützlich sein wird, aber
+OHNE JEDE GEWÄHRLEISTUNG — sogar ohne die implizite Gewährleistung der
+MARKTGÄNGIGKEIT oder der EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Siehe die
+GNU Affero General Public License für weitere Einzelheiten.
+
+Eine Kopie der Lizenz liegt als LICENSE bei; sonst siehe
+<https://www.gnu.org/licenses/>.
+
+
+Warum AGPLv3 und nicht etwas anderes
+------------------------------------
+
+nipp bindet das linphone-sdk (Belledonne Communications SARL), das dual
+lizenziert ist: AGPLv3 oder eine kostenpflichtige proprietäre Lizenz. Ein
+Closed-Source-Client, der weitergegeben wird, ist mit AGPLv3 nicht vereinbar —
+es sei denn, der Quelltext wird offengelegt. Genau das geschieht hier.
+
+Einzelheiten und die Lizenzen der übrigen Abhängigkeiten: docs/licensing.md
+und THIRD-PARTY-NOTICES.md.
+
+
+Wo der Quelltext des SDK liegt
+------------------------------
+
+Die AGPLv3 verlangt, dass der entsprechende Quelltext verfügbar ist — auch
+der des mitgelieferten SDK. nipp verändert das SDK nicht: es wird als
+unveränderte, von Belledonne veröffentlichte Fassung eingebunden. Der
+entsprechende Quelltext ist deshalb genau deren Veröffentlichung:
+
+  Version:    linphone-sdk 5.5.18
+  Quelltext:  https://gitlab.linphone.org/BC/public/linphone-sdk
+              Tag 5.5.18
+  Binaerpaket: https://download.linphone.org/releases/windows/sdk/
+              linphone-sdk-win64-5.5.18.zip
+
+Beide Orte waren am 14.09.2026 erreichbar. Sollte Belledonne sie eines Tages
+nicht mehr anbieten, tritt an diese Stelle ein eigener Spiegel — die Pflicht
+liegt dann bei dem, der nipp weitergibt.
+
+Wird das SDK eines Tages SELBST gebaut oder veraendert (docs/sdk-setup.md
+nennt das Weg B), reicht dieser Verweis nicht mehr: dann gehoert der
+veraenderte Quelltext mitgeliefert.
+
+
+Drittkomponenten
+----------------
+
+Die vollständige Aufstellung mit Lizenztexten steht in
+THIRD-PARTY-NOTICES.md. Die wichtigsten:
+
+  linphone-sdk                    AGPLv3 oder kommerziell (Belledonne)
+  Microsoft.WindowsAppSDK         MIT
+  CommunityToolkit.Mvvm           MIT
+  Microsoft.Extensions.*          MIT
+  Microsoft.Data.Sqlite           MIT
+  System.Security.Cryptography.ProtectedData   MIT
+  Serilog samt Sinks              Apache-2.0
+  H.NotifyIcon.WinUI              MIT
+  Velopack                        MIT
+  Json.Path                       MIT
+
+Das linphone-sdk liegt nicht in diesem Repo. Wie es beschafft wird, steht in
+docs/sdk-setup.md.
