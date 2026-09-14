@@ -613,6 +613,27 @@ Konfigurationsstelle statt verstreuter Code.
 
 ---
 
+## Ein Fix am Update-Pfad liefert sich nie selbst aus
+
+**Gelernt am 14.09.2026, nachdem derselbe Dialog dreimal auftauchte.**
+
+Den Update-Vorgang führt die **laufende** Fassung aus, nicht die neue. Wer
+etwas an `VelopackUpdateGateway.ApplyAndRestart` ändert, sieht die Wirkung
+deshalb **erst beim übernächsten Schritt**: die Fassung mit dem Fix muss
+zuerst installiert sein, und erst ihr Update auf die folgende zeigt, ob er
+gewirkt hat.
+
+    0.9.8  ->  0.9.9    das Update macht 0.9.8 — mit dem ALTEN Code
+    0.9.9  ->  0.9.10   jetzt zaehlt der Fix
+
+Dasselbe gilt für alles, was das Setup betrifft (`--splashImage`): Ein Update
+führt kein Setup aus; diese Änderung sieht nur, wer den Installer wirklich
+startet.
+
+**Wer das nicht bedenkt, baut drei Fassungen und hält den Fix für kaputt.**
+
+---
+
 ## Risiken
 
 | Risiko | Wirkung | Umgang |
