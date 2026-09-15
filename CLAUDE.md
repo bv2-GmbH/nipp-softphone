@@ -17,7 +17,7 @@ lesbar bleiben.
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
 | **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug |
 | Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
-| Abgeschlossene Pläne und Reviews | `docs/plans/` — vierzehn abgeschlossene, von `IMPLEMENTATION-PLAN.md` bis `ALLTAG-PLAN-2.md` (dessen drei Meldungen sind umgesetzt, ADR-062 bis ADR-064) |
+| Pläne und Reviews | `docs/plans/` — achtzehn Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind drei:** `BEWEIS-PLAN.md`, `ZIEHVORSCHAU-PLAN.md` (offen: V8) und `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5). Der Rest ist abgeschlossen |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
 
 ## Grenzen
@@ -185,6 +185,20 @@ lesbar bleiben.
   des XAML-Compilers (`XamlGeneratedProgram.XamlGeneratedMain()`) — nachgebaut
   wäre sie eine zweite Wahrheit. **Nichts Wartendes davor**, sonst startet nipp
   nicht.
+- **Der Startanlass hat zwei Haken, und einer allein genügt nicht.**
+  `OnFirstRun` feuert nach einer **Installation**, `OnRestarted` nach einem
+  **Update**; beide setzen nur `Program.Anlass`, und `App` zeigt daraufhin die
+  Sprechblase, sobald das Symbol im Infobereich steht — angezeigt wird in den
+  Haken selbst nichts, sie liegen vor WinUI. Wer nur den ersten setzt, schweigt
+  nach **jedem** Update; am 14.09.2026 fiel das erst auf, als der Dialog weg
+  war und gar nichts mehr zu sehen blieb.
+- **Ein Update läuft still, und dass nipp sich beendet, ist nipps Aufgabe.**
+  `ApplyUpdatesAndRestart` bringt ein eigenes Fortschrittsfenster **mit
+  OK-Knopf** mit, und dieser Knopf bricht die Installation ab. Deshalb
+  `WaitExitThenApplyUpdates(…, silent: true, restart: true)`: der Vorgang
+  wartet auf das Ende des Prozesses. Herbeigeführt wird es über
+  `UpdateService.RestartRequested`, das `App` in die eigene Abmeldung führt —
+  ein Prozess, der seine DLLs offen hält, lässt jedes Update scheitern.
 - **Eine Anbietervorlage ist genau eine Datei, und der Leser lehnt ab** (ADR-040).
   Mitgeliefert wird nur `Catalog/templates/custom-rest.json`; alles andere kommt
   über „API-Anbieter importieren" und liegt unter `%APPDATA%\nipp\connectors`.
@@ -230,7 +244,23 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   Kommentar, der ihn erklärt, und entfernt BOMs in sechzig unbeteiligten
   Dateien.
 - Setup bauen: `.\build\Release-Nipp.ps1 -Version 0.9.0 -Channel stable`
-  (Velopack, ADR-038; mit `-Publish` nach GitHub). Details: docs/updates.md
+  (Velopack, ADR-038; mit `-Publish` nach GitHub, `-UploadRepo` wählt das Ziel
+  und steht auf dem öffentlichen Repo). Details: docs/updates.md.
+  **Ein Fix am Update-Pfad liefert sich nie selbst aus:** den Vorgang führt die
+  **laufende** Fassung aus, die Wirkung zeigt sich erst beim übernächsten
+  Schritt — und was das **Setup** betrifft, sieht nur, wer den Installer
+  wirklich startet (`docs/plans/RELEASE-PLAN.md`). Wer das nicht bedenkt, baut
+  drei Fassungen und hält den Fix für kaputt.
+- Oberfläche maschinell prüfen: `. .\tools\Test-Ui.ps1` — liest den
+  UIA-Baum (`Get-NippTree`), bedient Elemente (`Invoke-NippElement`) und zeigt,
+  was ein Bildschirmleser vorlesen würde (`Test-NippAccessibleNames`).
+  Ruckeln, Farben und abgeschnittene Beschriftungen bleiben am Menschen.
+  **Setzen ist nicht Tippen:** `Set-NippText` schreibt über `ValuePattern`, und
+  das klemmt einen Wert ausserhalb des Bereichs auf das Maximum **und
+  übernimmt ihn** — beim Tippen bleibt er stehen und wird gar nicht
+  gespeichert. Wer eine Eingabeprüfung so prüft, misst das Bedienelement statt
+  der Regel. **Und es schreibt in die echten Einstellungen** — am 14.09.2026
+  hat es so den SIP-Port des Benutzers verstellt. Vorher sichern.
 - MSIX (nicht ausgeliefert, wartet auf T110 und AP9.2): docs/packaging.md
 
 Nie ein blankes `dotnet build` — siehe „Bauen auf dieser Maschine".
@@ -453,8 +483,9 @@ erfüllt. Details: docs/environment.md.
 | Wie stelle ich eine Karte zusammen? | `docs/integrations/karten.md` |
 | Welcher Feldname bedeutet was? | `docs/integrations/feldnamen.md` (aus dem `FieldCatalog` erzeugt) |
 | Was hat uns schon einmal Tage gekostet? | **`docs/lehren.md`** — Telefonie, Audio, WinUI, Windows-Integration, Konfiguration, Bauen, packaged |
-| Was ist am Gerät zu prüfen? | `docs/test-matrix.md` |
-| Wie liefere ich aus und verteile Updates? | **`docs/updates.md`** — Setup, Kanäle, Token, kaputtes Release |
+| Was ist am Gerät zu prüfen? | `docs/test-matrix.md` — was davon ohne Anlage geht, nimmt `tools/Test-Ui.ps1` ab |
+| Wie liefere ich aus und verteile Updates? | **`docs/updates.md`** — Setup, Kanäle, Token, kaputtes Release. Wie es dazu kam: `docs/plans/RELEASE-PLAN.md` |
+| Warum ist das Repo öffentlich, und was hing daran? | `docs/plans/OEFFENTLICH-PLAN.md` — die sechs Schritte, alle erledigt |
 | Wie baue und paketiere ich? | `docs/packaging.md` (MSIX), `docs/environment.md` |
 | Wo weicht die SDK-API von der Spezifikation ab? | `docs/sdk-api-notes.md` |
 | Unter welcher Lizenz steht nipp? | `LICENSE` (AGPLv3), `NOTICE`, `docs/licensing.md` — und was bis zum öffentlichen Repo fehlt |
