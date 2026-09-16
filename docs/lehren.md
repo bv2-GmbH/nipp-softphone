@@ -240,6 +240,39 @@ niemandem.
   `ToneCardChooser` liefert deshalb mehrere Kandidaten, und der Aufrufer nimmt
   den ersten, der sich setzen lässt. Am Gerät bestätigt: seither steht dort
   `WASAPI: Default Playback` statt `Default Playback`.
+- **Die Filterstatistik des SDK ist das Messgerät für Audioprobleme, und
+  niemand hatte je hineingesehen.** Am 16.09.2026 war „teilweise starkes
+  Rauschen" gemeldet; gefunden wurde die Ursache nicht am Gerät, sondern in
+  den Zeilen `FILTER USAGE STATISTICS`, die auf Debug ohnehin im Protokoll
+  stehen. Dort stand `MSNoiseSuppressor` mit **max 77,24 ms je Tick** — bei
+  einem Ticker, der alle **10 ms** läuft. Die Folge steht drei Zeilen weiter
+  im selben Protokoll: `Ticker: We are late of 136 miliseconds`, dann
+  `Could not get buffer from the MSWASAPI audio output interface`, dann ein
+  Jitterpuffer, der von 40 auf 154 ms springt. **Wer ein Audioproblem sucht,
+  liest zuerst diese Tabelle** — sie nennt den Filter, der den Tick überzieht,
+  und damit meistens schon die Antwort.
+- **„Kostet 80 Prozent" und „ist zu langsam" sind nicht dasselbe.** Derselbe
+  Filter stand in der CPU-Spalte immer bei 77 bis 87 % — aber sein **Mittel**
+  lag bei 0,7 bis 0,9 ms von 10 ms, und in vier von sechs Gesprächen blieb
+  auch sein Maximum unter 6,2 ms, darunter eines über acht Minuten. Er ist
+  also normalerweise harmlos; **nur zweimal schoss er auf fast genau denselben
+  Wert** (77,24 und 77,76 ms). Bei einem Mittel von 0,7 ms ist das Faktor 110
+  — kein Rechenaufwand, sondern ein Stillstand, vermutlich der x64-Emulator.
+  Die erste Fassung dieses Befundes schrieb „kostet 77 bis 87 Prozent der
+  Rechenzeit"; das war wörtlich richtig (die Spalte nennt den Anteil **an der
+  Kette**) und hätte beinahe zur falschen Konsequenz geführt, nämlich den
+  Filter im Standard abzuschalten. **Ein Mittelwert und ein Maximum
+  beantworten verschiedene Fragen.**
+- **Die Rauschunterdrückung wirkt nur auf das, was gesendet wird.** In der
+  Kette steht sie ausschliesslich in der Senderichtung
+  (`MSWASAPIRead → MSNoiseSuppressor → … → MSRtpSend`); empfangen wird über
+  `MSRtpRecv → MSUlawDec → MSAudioMixer → MSGenericPLC → MSAudioFlowControl →
+  MSDtmfGen → MSResample → MSWASAPIWrite` — **kein Rauschfilter darin**. Wer
+  den Schalter gegen ein Rauschen im eigenen Hörer betätigt, ändert nichts.
+  Einstellbar ist daran auch nichts weiter: `msnoisesuppressor.h` kennt genau
+  zwei Methoden, Bypass ein und Bypass aus. Seit dem 16.09.2026 sagt die
+  Beschreibung in den Einstellungen, worauf der Schalter wirkt — dieselbe
+  Antwort, die ADR-006 Punkt 2 der Echounterdrückung gegeben hat.
 
 ### WinUI und XAML
 

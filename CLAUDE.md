@@ -17,7 +17,7 @@ lesbar bleiben.
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
 | **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug |
 | Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
-| Pläne und Reviews | `docs/plans/` — achtzehn Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind drei:** `BEWEIS-PLAN.md`, `ZIEHVORSCHAU-PLAN.md` (offen: V8) und `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5). Der Rest ist abgeschlossen |
+| Pläne und Reviews | `docs/plans/` — neunzehn Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind vier:** `BEWEIS-PLAN.md`, `ZIEHVORSCHAU-PLAN.md` (offen: V8), `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5) und `AUDIOQUALITAET-PLAN.md` (Runde A offen). Der Rest ist abgeschlossen |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
 
 ## Grenzen
@@ -320,6 +320,17 @@ Nie ein blankes `dotnet build` — siehe „Bauen auf dieser Maschine".
   es geprüft, es stimmte nicht, und das Ziehen zwischen Gruppen hat deshalb nie
   funktioniert — gemerkt hat es niemand, weil der Fehlerfall schwieg (ADR-065).
   **Ein ADR ist keine Messung.**
+- **Eine gemessene Zahl kann richtig sein und trotzdem die falsche Frage
+  beantworten** (16.09.2026, `docs/plans/AUDIOQUALITAET-PLAN.md`). Der
+  Rauschfilter stand in der Filterstatistik des SDK bei «77 bis 87 Prozent» —
+  das ist der Anteil **an der Filterkette**, und daraus wurde erst «der Filter
+  ist zu teuer». Sein **Mittel** lag bei 0,7 bis 0,9 ms von 10 ms, sein
+  Maximum in vier von sechs Gesprächen unter 6,2 ms; nur zweimal schoss es auf
+  77 ms. Das ist kein Rechenaufwand, sondern ein Stillstand — und die
+  Konsequenz aus der ersten Lesart (den Filter im Standard abschalten) hätte
+  jeden ausgelieferten Arbeitsplatz verschlechtert. **Wer eine Zahl zitiert,
+  sagt dazu, worauf sie sich bezieht** — und ein Mittelwert und ein Maximum
+  beantworten nie dieselbe Frage.
 - **Was an ein System weitergereicht wird, das darauf handelt, wird vorher
   verglichen** (ADR-060). Eine Meldung an `Core.NetworkReachable` ist keine
   Auskunft, sondern ein Auftrag — sie kostet eine Neuregistrierung; ein
@@ -460,6 +471,13 @@ Es braucht dafür kein eigenes Gerät: T38 und AP7.8 sind an einem Nachmittag
 auf einer geliehenen Maschine abzuarbeiten. Wer einmal Zugang zu einer hat —
 ein Kundengerät bei einer Installation, ein Testrechner —, sollte ihn dafür
 benutzen.
+
+**Und seit dem 16.09.2026 gibt es dafür eine konkrete Zeile.** Ein Gespräch
+führen, im Protokoll die Tabelle `FILTER USAGE STATISTICS` suchen und den Wert
+`max` von `MSNoiseSuppressor` ablesen: hier schiesst er sporadisch auf 77 ms
+bei einem Ticker, der alle 10 ms läuft — und genau dann setzt das Audio aus.
+**Bleibt er auf echter Hardware unter 6 ms, war es die Emulation** und T38 ist
+beantwortet. Die ganze Kette steht in `docs/plans/AUDIOQUALITAET-PLAN.md`.
 
 Packaged und unpackaged laufen beide (ADR-008). Voraussetzung:
 Entwicklermodus (AllowDevelopmentWithoutDevLicense=1), sonst scheitert die

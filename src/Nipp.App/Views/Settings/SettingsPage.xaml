@@ -360,11 +360,22 @@
                             Message="Bei Gesprächen mit 8-kHz-Codecs (PCMU, PCMA — also bei den meisten externen Anrufen) schaltet sich die Echounterdrückung selbst ab. Das ist eine Eigenschaft des SDK, keine Fehlfunktion."
                             Severity="Informational" />
 
-                        <ToggleSwitch
-                            Header="Rauschunterdrückung"
-                            IsOn="{x:Bind ViewModel.NoiseSuppression, Mode=TwoWay}"
-                            OffContent="Aus"
-                            OnContent="Ein" />
+                        <!--
+                            Am 16.09.2026 aus der Filterkette des SDK gelesen: der
+                            Rauschfilter steht ausschliesslich in der Senderichtung
+                            (MSWASAPIRead -> MSNoiseSuppressor -> ... -> MSRtpSend).
+                            In der Empfangsrichtung steht keiner. Wer den Schalter
+                            gegen ein Rauschen im Hoerer betaetigt, aendert nichts —
+                            deshalb sagt die Beschreibung, worauf er wirkt.
+                        -->
+                        <controls:SettingCard
+                            Description="Filtert Hintergrundgeräusche aus dem, was gesendet wird. Auf das, was die Gegenseite schickt, wirkt sie nicht — ein Rauschen im Hörer bleibt."
+                            Header="Rauschunterdrückung">
+                            <ToggleSwitch
+                                IsOn="{x:Bind ViewModel.NoiseSuppression, Mode=TwoWay}"
+                                OffContent="Aus"
+                                OnContent="Ein" />
+                        </controls:SettingCard>
 
                         <!-- ADR-011: das SDK nennt den Algorithmus selbst experimentell -->
                         <controls:SettingCard
