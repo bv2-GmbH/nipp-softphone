@@ -236,7 +236,19 @@ zitierten Protokollzeile — setzt sie zusammen, statt sie auszuschreiben.
 Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
 
 ## Befehle
-- Bauen: `.\build.ps1 build Nipp.sln -c Debug`
+- Bauen: `.\build.ps1 build Nipp.sln -c Debug` — **das pruefen Compiler und
+  Tests, es erzeugt aber keine startbare App.** Wer nipp danach startet,
+  sieht es **sofort sterben**, mit `REGDB_E_CLASSNOTREG` im
+  Ereignisprotokoll und **ohne eine einzige Zeile im eigenen Protokoll** —
+  der Fehler faellt im Modul-Initialisierer des Windows App SDK, vor jedem
+  eigenen Code. **Zum Starten gehoert der unpackaged Build:**
+
+      .\build.ps1 --% build src\Nipp.App -c Debug -p:WindowsPackageType=None -t:Rebuild
+
+  **Beides gehoert dazu**: ohne `-t:Rebuild` warnt `build.ps1`, und die App
+  stirbt trotzdem. Am 16.09.2026 hat genau diese Zeile eine halbe Stunde
+  gekostet — gesucht wurde der Fehler im frisch umgebauten XAML, und er lag
+  im Build-Befehl, der hier stand. Details: docs/packaging.md.
 - Tests: `.\build.ps1 test Nipp.sln`
 - Formatieren: **nur die eigenen Dateien** —
   `dotnet format --include <pfad> ...`. Ein `dotnet format` auf die ganze

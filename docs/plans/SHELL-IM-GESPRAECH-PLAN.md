@@ -113,6 +113,33 @@ ohne Neustart. Rüstzeug `S`, gehört damit in die Schreibtisch-Runde A1 des
 
 # Teil B — Das Gespräch in der linken Spalte
 
+> **Nachtrag 16.09.2026, 23:22 — zum ersten Mal am Fenster gesehen, und es
+> traegt.** Breites Fenster, ausgehender Anruf: die Gespraechsansicht stand
+> links, die Kacheln blieben rechts, nach dem Auflegen kam die linke Spalte
+> zurueck. **Keine Ausnahme, kein Absturz, keine Zeile `[ERR] Nipp.App`.**
+>
+> **Was damit NICHT geprueft ist — und das ist die Haelfte, auf die es
+> ankommt.** Der Anruf ging `Dialing → Ringing → Ended` in 2,6 Sekunden;
+> **`Connected` gab es nie**, und `StreamsRunning` auch nicht. Geprueft ist
+> also der **Aufbau und Abbau** der eingebetteten Ansicht, nicht das laufende
+> Gespraech. `HasActiveCall` steht schon beim Waehlen auf wahr (`calls.Count >
+> 0`), deshalb sah es richtig aus.
+>
+> **Das ist woertlich die Lehre aus T78** (`docs/lehren.md`): *ein Rufzustand,
+> den es nie gab, kann nicht abgenommen werden.* Dort galt der Rufton als
+> bestanden, obwohl die geprueften Anrufe nie `Ringing` erreichten; hier waere
+> es spiegelbildlich. **T312 bleibt offen**, und T313 bis T317 sind gar nicht
+> beruehrt.
+>
+> | Zeile | Stand |
+> |---|---|
+> | T312 Gespraech im breiten Fenster | **teilweise** — Aufbau und Abbau gesehen, kein verbundenes Gespraech |
+> | T313 Kachel im Gespraech | offen |
+> | T314 Layoutwechsel im Gespraech | offen |
+> | T315 DTMF im breiten Layout | offen |
+> | T316 Anruf vor dem ersten Messen | offen |
+> | T317 Zwei Gespraeche breit | offen |
+
 > **Stand 16.09.2026, nachts: gebaut, aber noch nicht gesehen.** Build ohne
 > Warnungen, 1 252 Komponenten- und 34 Architekturtests grün — **das sagt über
 > das Aussehen nichts.** `Nipp.App` hat kein Testprojekt, und der eingebettete
