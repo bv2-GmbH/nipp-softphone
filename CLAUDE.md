@@ -17,7 +17,7 @@ lesbar bleiben.
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
 | **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug |
 | Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
-| Pläne und Reviews | `docs/plans/` — neunzehn Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind vier:** `BEWEIS-PLAN.md`, `ZIEHVORSCHAU-PLAN.md` (offen: V8), `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5) und `AUDIOQUALITAET-PLAN.md` (Runde A offen). Der Rest ist abgeschlossen |
+| Pläne und Reviews | `docs/plans/` — zwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind fünf:** `BEWEIS-PLAN.md`, `ZIEHVORSCHAU-PLAN.md` (offen: V8), `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5), `AUDIOQUALITAET-PLAN.md` (offen: das lange Gespräch und A7) und `SHELL-IM-GESPRAECH-PLAN.md` (ganz offen). Der Rest ist abgeschlossen |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
 
 ## Grenzen
