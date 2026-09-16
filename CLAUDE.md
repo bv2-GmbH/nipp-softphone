@@ -140,6 +140,25 @@ lesbar bleiben.
   weg:** der Inhalt füllt das Fenster, und breit ist die linke Spalte **fest**
   480 statt gedeckelt — zwei Sternspalten mit Höchstbreiten liessen den
   Restplatz verfallen. `ApplyLayout` zeichnet nur, `ApplyWidth` entscheidet.
+- **Wo ein laufendes Gespräch steht, entscheidet genau eine Stelle:**
+  `ShellPage.ApplyCallView` — aus **zwei** Eigenschaften, `IsWide` und
+  `HasActiveCall`. **Breit** steht das Gespräch in der linken Spalte (der
+  `CallFrame` nimmt dieselbe `ActiveCallPage` auf, kein zweites XAML),
+  während rechts die Nebenstellen mit ihren Lampen stehen bleiben und
+  anklickbar sind; **schmal** navigiert `MainWindow` wie bisher auf die
+  ganze Seite. **`MainWindow` liest das Layout, es entscheidet es nicht**
+  (`IstBreit()` fragt `ShellViewModel`) — sonst stünde die Schwelle aus
+  ADR-047 ein zweites Mal da. Wird das Fenster **während** eines Gesprächs
+  schmal, navigiert `ApplyCallView` selbst: diesen Wechsel merkt sonst
+  niemand, denn `MainWindow` navigiert nur bei Beginn und Ende.
+  **Zwei Dinge bleiben dabei stehen, und beide mit Grund:** die
+  Meldungszeile (`MessagePanel`) — wer im Gespräch eine dritte Nebenstelle
+  anklickt, bekommt die Ablehnung aus §8.2, und ohne diese Ausnahme
+  passierte scheinbar nichts —, und der Hinweis auf ein gewechseltes
+  Audiogerät, der im Gespräch **wichtiger** ist als sonst. Die übrige linke
+  Spalte wird **über die Spalte** ausgeblendet und nicht über eine
+  Namensliste, damit ein später hinzugefügtes Element nicht vergessen wird.
+  Plan und offene Prüfungen: `docs/plans/SHELL-IM-GESPRAECH-PLAN.md`.
 - **Wie der Gesprächspartner heisst, entscheidet genau eine Stelle:**
   `Integrations/Context/CallPartyResolver.cs` (ADR-043) — und sie beantwortet
   **zwei** Fragen, die nicht dieselbe sind: `NameOf` gibt einen Namen oder

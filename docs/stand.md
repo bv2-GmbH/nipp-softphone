@@ -13,6 +13,75 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**Stand 16.09.2026, nachts.** Build ohne Warnungen, **1252 Komponententests**
+und **34 Architekturtests** grün. Zweig `main`, gepusht. **Release 0.9.12
+veröffentlicht** (Kanal `win-stable`, Delta von 0.9.11, unsigniert wie
+bisher).
+
+**Der Tag hatte drei Stränge, und zwei davon fingen mit einer Meldung aus dem
+Alltag an.**
+
+**1 — «Teilweise starkes Rauschen» (`docs/plans/AUDIOQUALITAET-PLAN.md`).**
+Gefunden wurde die Ursache nicht am Gerät, sondern in den Zeilen
+`FILTER USAGE STATISTICS`, die auf Debug ohnehin im Protokoll stehen und in
+die noch nie jemand gesehen hat.
+
+- **`MSNoiseSuppressor` überzieht sporadisch den Tick**: max **77,24 ms** bei
+  einem Ticker, der alle **10 ms** läuft. Die Folge steht im selben
+  Protokoll — `Ticker: We are late of 136 miliseconds`, dann
+  `Could not get buffer`, dann ein Jitterpuffer, der von 40 auf 154 ms
+  springt. Jeder Sprung folgt drei bis sechs Sekunden auf eine Verspätung.
+- **Die Gegenprobe (T304) hat es belegt:** ohne den Filter keine
+  Ticker-Verspätung, Spitzenlast 11,99 statt 77,24 ms, Jitterpuffer stabil —
+  und das Geräusch weg.
+- **Der Filter steht nur in der Senderichtung.** Der Schalter in den
+  Einstellungen konnte gegen ein Rauschen im eigenen Hörer nie etwas
+  ausrichten; seit heute sagt die Beschreibung das auch.
+- **Der Standard bleibt trotzdem «ein».** In vier von sechs Gesprächen blieb
+  das Maximum unter 6,2 ms, in einem davon über acht Minuten — der Filter ist
+  normalerweise unauffällig, und was hier passiert, sieht nach der Emulation
+  aus. Ihn überall abzuschalten verschlechterte jeden Arbeitsplatz wegen
+  eines Problems, das es dort womöglich gar nicht gibt. **T38 hat damit
+  endlich eine konkrete Zeile**: auf echter x64-Hardware den `max`-Wert
+  ablesen, unter 6 ms heisst «es war die Emulation».
+
+**2 — Eine ergänzte Mobilnummer erschien erst nach einem Neustart.**
+`SameContacts` verglich nur Kennung und Gruppe, und die Kennung einer
+Nebenstelle ist `team:{zähler}:{kurzwahl}` — eine Mobilnummer ändert sie
+nicht. Dieselbe Lücke verschluckte einen geänderten **Namen** und eine
+korrigierte **SIP-Adresse** (dort blieb zusätzlich die Lampe aus). Es war der
+dritte Anlauf an der Stelle, deshalb vergleicht sie jetzt den **ganzen**
+Datensatz statt eines weiteren Feldes. Sieben Tests, davon vier Gegenproben.
+
+**3 — Das Gespräch im breiten Layout** (`docs/plans/SHELL-IM-GESPRAECH-PLAN.md`).
+Bisher ersetzte ein Gespräch die ganze Seite; jetzt steht es breit in der
+linken Spalte, und rechts bleiben die Nebenstellen mit ihren Lampen sichtbar
+und anklickbar. **T312 ist am Gerät bestanden** (23:28, 13,6 Sekunden
+verbunden, keine Ausnahme). **Zwei Dinge brauchten keinen Code:** der zweite
+Anruf per Kachel steht schon im `SipService`, und die DTMF-Regel fällt
+vermutlich aus dem Ereignisbaum — *vermutlich*, denn gemessen ist sie nicht.
+
+**Was am Gerät aussteht:** T313 bis T317 (Kachelklick im Gespräch,
+Layoutwechsel **während** eines Gesprächs, DTMF, Anruf vor dem ersten Messen,
+zwei Gespräche breit) — und aus dem Audioplan **ein langes Gespräch** ohne
+Rauschunterdrückung: zweimal versucht, zweimal waren es 13 und 23 Sekunden.
+
+**Ein Befund, der sich dreimal bestätigt hat und offen bleibt (A7):** zwischen
+`Ringing` und `Connected` wirft WASAPI jedes Mal einen Schwung
+`Could not get buffer` — 13, 2 und 14 Mal, **unabhängig vom Rauschfilter**.
+Immer im Rufton, nie im Gespräch.
+
+**Und eine Zeile in `CLAUDE.md` hat eine halbe Stunde gekostet:** unter
+«Befehle» stand `build.ps1 build Nipp.sln -c Debug` als *der* Bauen-Befehl.
+Das prüfen Compiler und Tests, erzeugt aber **keine startbare App** — nipp
+stirbt dann sofort mit `REGDB_E_CLASSNOTREG`, ohne eine einzige Zeile im
+eigenen Protokoll. Gesucht wurde der Fehler im frisch umgebauten XAML;
+gefunden hat ihn die Gegenprobe mit der Release-Exe vom 14.09. Die Zeile
+nennt jetzt beides.
+
+---
+
+
 **Stand 14.09.2026, nachmittags.** Build ohne Warnungen, **1237
 Komponententests** und **34 Architekturtests** grün.
 
