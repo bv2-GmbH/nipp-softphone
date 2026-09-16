@@ -113,6 +113,30 @@ ohne Neustart. Rüstzeug `S`, gehört damit in die Schreibtisch-Runde A1 des
 
 # Teil B — Das Gespräch in der linken Spalte
 
+> **Stand 16.09.2026, nachts: gebaut, aber noch nicht gesehen.** Build ohne
+> Warnungen, 1 252 Komponenten- und 34 Architekturtests grün — **das sagt über
+> das Aussehen nichts.** `Nipp.App` hat kein Testprojekt, und der eingebettete
+> Zustand braucht ein laufendes Gespräch: er ist ohne Anlage nicht auszulösen.
+> **T312 bis T317 sind offen, und bis dahin ist Teil B unbewiesen.**
+>
+> | | Stand |
+> |---|---|
+> | **B1** Frame in der linken Spalte | gebaut — `CallFrame` in `ShellPage.xaml`, `ApplyCallView` entscheidet |
+> | **B2** Wer navigiert | gebaut — `MainWindow.IstBreit()` liest `ShellViewModel.IsWide`, im breiten Layout wird nicht navigiert |
+> | **B3** Wechsel im Gespräch | gebaut — breit → schmal navigiert `ApplyCallView` selbst auf die ganze Seite |
+> | **B4** Kacheln im Gespräch | **kein Code nötig.** Der zweite Anruf mit Halten steht im `SipService` (§8.2), und der Kachel-Klick läuft durch dieselbe Kette. Es genügte, die Kacheln stehen zu lassen |
+> | **B5** Tastatur | **vermutlich kein Code nötig** — siehe unten. Ungemessen |
+> | **B6** Zurück-Pfeil, Anrufleiste | gebaut — der Pfeil über den Navigationsparameter, die Leiste steht in der linken Spalte und verschwindet mit ihr |
+>
+> **Ein Befund aus dem Bauen, der im Plan noch nicht stand:** die Meldungszeile
+> der Shell (Fehler und Hinweise) steht ebenfalls in der linken Spalte und wäre
+> mit ihr verschwunden. Wer im Gespräch eine dritte Nebenstelle anklickt,
+> bekommt die Ablehnung aus §8.2 — und hätte sie nicht gesehen: *es passiert
+> scheinbar nichts*, die Fehlerklasse, die dieses Projekt zweimal bezahlt hat.
+> Sie ist jetzt von der Ausblendung ausgenommen und liegt über dem
+> Gesprächsrahmen. Dasselbe gilt für den Hinweis «Audiogerät gewechselt», der
+> im Gespräch *wichtiger* ist als sonst.
+
 ## Wie es heute ist
 
 `MainWindow.OnCallStateChanged` navigiert bei einem Gespräch den
@@ -222,8 +246,18 @@ darf keine Kachel auswählen; umgekehrt darf die Eingabetaste auf einer Kachel
 keinen Ton senden.
 
 **Die Regel, die dafür gilt:** DTMF nimmt Zeichen nur an, solange der Fokus in
-der linken Spalte liegt. Das ist zu bauen **und zu prüfen** (T315) — es ist
-der einzige Punkt in Teil B, an dem ein Fehler im laufenden Gespräch weh tut.
+der linken Spalte liegt.
+
+**Nachtrag vom 16.09.2026: dafür ist vermutlich kein Code nötig.**
+`CharacterReceived` hängt am `Grid` **innerhalb** der Gesprächsansicht, und ein
+Routed Event steigt vom fokussierten Element im Baum auf. Liegt der Fokus auf
+einer Kachel, führt sein Weg nicht durch dieses Grid — das Zeichen erreicht die
+Gesprächsansicht gar nicht. Die gewünschte Regel fiele damit aus der Struktur.
+
+**Das ist gelesen und nicht gemessen** (CLAUDE.md: wer nicht gemessen hat,
+schreibt «vermutlich» hin). **T315 muss es zeigen**, und bis dahin wird hier
+nichts gebaut: eine Fokusregel auf Verdacht wäre eine zweite Wahrheit neben
+der, die der Baum schon herstellt.
 
 ## B6 — Was klein bleibt
 

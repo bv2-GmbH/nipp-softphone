@@ -6,6 +6,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Navigation;
 using Nipp.App.Diagnostics;
 using Nipp.Core.Diagnostics;
 using Nipp.Core.Services.Integrations.Cards;
@@ -43,6 +44,24 @@ public sealed partial class ActiveCallPage : Page
     /// <summary>Für die Protokollzeile, wenn ein Handler scheitert (ADR-053).</summary>
     private readonly ILogger<ActiveCallPage> _logger;
 
+    /// <summary>
+    /// Der Navigationsparameter, mit dem die Hauptansicht diese Seite in ihre
+    /// linke Spalte holt (breites Layout).
+    ///
+    /// <para><b>Warum ueberhaupt ein Parameter.</b> Eingebettet gilt zweierlei
+    /// anders: der Zurueck-Pfeil hat keine Bedeutung — die Waehltastatur ist
+    /// nicht weg, sie steht nur hinter dem Gespraech —, und er wuerde in den
+    /// <i>inneren</i> Frame navigieren, also die Hauptansicht in sich selbst.
+    /// Ein <c>const string</c> und kein <c>bool</c>, weil der Parameter im
+    /// Protokoll und im Fehlerfall lesbar sein soll.</para>
+    /// </summary>
+    public const string Eingebettet = "eingebettet";
+
+    /// <summary>
+    /// Ob die Seite in der linken Spalte der Hauptansicht steht.
+    /// </summary>
+    private bool _eingebettet;
+
     public ActiveCallPage()
     {
         var services = ((App)Application.Current).Services;
@@ -73,6 +92,22 @@ public sealed partial class ActiveCallPage : Page
         // Ansicht zeigte weiterhin die Gegenstelle des vorherigen Gespraechs.
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+    }
+
+    /// <summary>
+    /// Nimmt entgegen, ob diese Seite eingebettet steht (<see cref="Eingebettet"/>).
+    ///
+    /// <para>Die Seite wird zwischengespeichert (<c>NavigationCacheMode</c>),
+    /// die Instanz ueberlebt also den Wechsel — deshalb wird der Zustand bei
+    /// <b>jeder</b> Navigation neu gesetzt und nicht nur beim ersten Mal.</para>
+    /// </summary>
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+
+        _eingebettet = e?.Parameter as string == Eingebettet;
+
+        BackButton.Visibility = _eingebettet ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)

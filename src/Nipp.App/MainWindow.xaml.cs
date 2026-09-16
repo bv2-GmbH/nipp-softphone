@@ -216,7 +216,16 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        if (ContentFrame.CurrentSourcePageType != typeof(ActiveCallPage))
+        // <b>Im breiten Layout wird nicht navigiert.</b> Dort zeigt die
+        // Hauptansicht das Gespraech selbst — in ihrer linken Spalte, waehrend
+        // rechts die Nebenstellen mit ihren Lampen stehen bleiben
+        // (ShellPage.ApplyCallView). Wuerde hier trotzdem navigiert, staende
+        // die Gespraechsansicht zweimal im Baum, und die Shell haette
+        // niemanden mehr, der ihre Breite misst.
+        //
+        // <b>Gefragt wird das ViewModel und nicht das Fenster</b>: welches
+        // Layout gilt, entscheidet ApplyWidth an genau einer Stelle (ADR-047).
+        if (!IstBreit() && ContentFrame.CurrentSourcePageType != typeof(ActiveCallPage))
         {
             ContentFrame.Navigate(typeof(ActiveCallPage));
         }
@@ -256,6 +265,18 @@ public sealed partial class MainWindow : Window
             ShowWithoutStealingFocus();
         }
     }
+
+    /// <summary>
+    /// Ob gerade das breite Layout gilt — <b>gelesen und nicht selbst
+    /// entschieden</b>.
+    ///
+    /// <para>Die Schwelle steht in <c>ShellViewModel.ApplyWidth</c>, und zwar
+    /// dort allein (ADR-047, §23). Dieses Fenster fragt nur nach; eine eigene
+    /// Breitenrechnung hier waere die zweite Wahrheit ueber dasselbe.</para>
+    /// </summary>
+    private static bool IstBreit() =>
+        ((App)Application.Current).Services
+            .GetService<Nipp.Core.ViewModels.ShellViewModel>() is { IsWide: true };
 
     /// <summary>
     /// Ob ein eingehender Anruf auch ohne dieses Fenster sichtbar wird (C2).

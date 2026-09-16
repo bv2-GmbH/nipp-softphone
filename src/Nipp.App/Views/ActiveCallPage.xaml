@@ -75,7 +75,15 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
+            <!--
+                <b>Im breiten Layout gibt es ihn nicht.</b> Dort steht diese
+                Ansicht in der linken Spalte der Hauptansicht, und die
+                Waehltastatur ist keine zwei Zentimeter entfernt — ein Pfeil
+                „zurueck" zeigte auf etwas, das schon zu sehen ist. Geschaltet
+                wird er in OnNavigatedTo.
+            -->
             <Button
+                x:Name="BackButton"
                 Click="OnBackClick"
                 ToolTipService.ToolTip="Zurück zur Wähltastatur — das Gespräch läuft weiter"
                 AutomationProperties.Name="Zurück zur Wähltastatur">

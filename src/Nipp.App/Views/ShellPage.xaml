@@ -1572,7 +1572,20 @@
             die Liste, und traten sie gleichzeitig auf, ueberlagerten sie sich
             gegenseitig.
         -->
-        <StackPanel Grid.Row="4" Spacing="{StaticResource NippGapSmall}">
+        <!--
+            <b>Diese Zeile bleibt auch dann stehen, wenn links ein Gespraech
+            steht</b> (breites Layout). Die uebrigen Inhalte der linken Spalte
+            werden dann ausgeblendet — eine Fehlermeldung aber gehoert gesehen,
+            gerade im Gespraech: wer eine dritte Nebenstelle anklickt, bekommt
+            die Ablehnung aus §8.2, und ohne diese Leiste passierte scheinbar
+            nichts. Der ZIndex hebt sie ueber den Gespraechsrahmen; ausgenommen
+            wird sie in ShellPage.LinkeSpalteAnzeigen.
+        -->
+        <StackPanel
+            x:Name="MessagePanel"
+            Grid.Row="4"
+            Canvas.ZIndex="1"
+            Spacing="{StaticResource NippGapSmall}">
             <!-- Fehlermeldung nach §15: Ursache und Abhilfe -->
             <InfoBar
                 x:Name="ErrorBar"
@@ -1892,5 +1905,30 @@
                 </StackPanel>
             </ToggleButton>
         </Grid>
+
+        <!--
+            Das laufende Gespraech im breiten Layout — <b>an der Stelle der
+            linken Spalte</b>, waehrend rechts die Nebenstellen stehen bleiben.
+
+            <b>Ein Frame und keine zweite Abschrift der Gespraechsansicht.</b>
+            ActiveCallPage haengt an genau einer Stelle an ihrem Frame (dem
+            Zurueck-Pfeil), und der hat hier keine Bedeutung — deshalb genuegt
+            es, sie hierher zu navigieren, statt ihre 820 Zeilen ein zweites
+            Mal zu fuehren. Die Doppelwahrheit waere sonst ausgerechnet die
+            Ansicht, die der Benutzer bei jedem Anruf sieht.
+
+            <b>Zuletzt im Raster</b>, also oben in der Z-Ordnung: die Elemente
+            der linken Spalte werden zwar ausgeblendet, aber ein Rest, der es
+            einmal nicht wird, liegt dann darunter und nicht darueber.
+
+            Im schmalen Layout bleibt alles, wie es war: dort fuellt die
+            Gespraechsansicht das Fenster, und dieser Frame bleibt leer.
+        -->
+        <Frame
+            x:Name="CallFrame"
+            Grid.Row="0"
+            Grid.RowSpan="6"
+            Grid.Column="0"
+            Visibility="Collapsed" />
     </Grid>
 </Page>

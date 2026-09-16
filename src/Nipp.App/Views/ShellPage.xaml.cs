@@ -2177,6 +2177,119 @@ public sealed partial class ShellPage : Page
         {
             HintBar.IsOpen = false;
         }
+
+        // <b>Zuletzt</b>, und das ist keine Geschmacksfrage: ApplyCallView
+        // blendet die ganze linke Spalte aus, und alles darueber setzt
+        // Sichtbarkeiten darin. Stuende es vorn, machte der Rest von Refresh
+        // Teile davon wieder sichtbar.
+        ApplyCallView();
+    }
+
+    /// <summary>
+    /// Ob das laufende Gespraech gerade <b>in</b> der linken Spalte steht.
+    /// <c>null</c> heisst „noch nie entschieden".
+    /// </summary>
+    private bool? _gespraechEingebettet;
+
+    /// <summary>
+    /// Zeigt ein laufendes Gespraech im breiten Layout in der linken Spalte —
+    /// waehrend rechts die Nebenstellen mit ihren Lampen stehen bleiben.
+    ///
+    /// <para><b>Die eine Stelle, die es entscheidet</b>, und sie entscheidet
+    /// aus zwei Eigenschaften des ViewModels: <c>IsWide</c> (und das gehoert
+    /// laut ADR-047 ganz <c>ApplyWidth</c>) und <c>HasActiveCall</c>. Im
+    /// schmalen Layout aendert sich nichts — dort navigiert <c>MainWindow</c>
+    /// wie bisher auf die ganze Seite.</para>
+    ///
+    /// <para><b>Warum die Elemente einzeln ausgeblendet werden und nicht ein
+    /// Behaelter um sie herum.</b> Ein Behaelter waere strukturell besser: ein
+    /// Ding, das man ausblendet, statt einer Schleife, die alle findet. Er
+    /// bedeutet aber, rund 1 270 Zeilen XAML umzuhaengen, und das Ergebnis
+    /// sieht man erst am laufenden Fenster. <b>Der Umbau gehoert an einen
+    /// Tag, an dem jemand davorsitzt</b> — bis dahin sammelt die Schleife
+    /// zuverlaessig auch Elemente ein, die spaeter dazukommen: sie fragt die
+    /// Spalte ab und nicht eine Namensliste.</para>
+    ///
+    /// <para><b>Das Wiederherstellen laeuft ueber <see cref="Refresh"/></b> und
+    /// nicht ueber gemerkte Sichtbarkeiten. Zwei Elemente haben eine eigene
+    /// Regel — die Kontoauswahl haengt an <c>HasAccounts</c>, die Waehltastatur
+    /// am Abschnitt —, und ein gemerkter Zustand waere beim naechsten
+    /// hinzukommenden Element wieder unvollstaendig. Der Rekursionsschutz ist
+    /// der Vergleich oben: beim zweiten Durchlauf steht der Zustand schon.</para>
+    /// </summary>
+    private void ApplyCallView()
+    {
+        var eingebettet = ViewModel.IsWide && ViewModel.HasActiveCall;
+
+        if (_gespraechEingebettet == eingebettet)
+        {
+            return;
+        }
+
+        _gespraechEingebettet = eingebettet;
+
+        LinkeSpalteAnzeigen(!eingebettet);
+
+        if (eingebettet)
+        {
+            CallFrame.Visibility = Visibility.Visible;
+
+            // Der Parameter sagt der Seite, dass sie eingebettet ist: ihr
+            // Zurueck-Pfeil haette hier keine Bedeutung — und er wuerde in
+            // diesen Frame navigieren, also die Shell in sich selbst.
+            CallFrame.Navigate(typeof(ActiveCallPage), ActiveCallPage.Eingebettet);
+            return;
+        }
+
+        CallFrame.Content = null;
+        CallFrame.Visibility = Visibility.Collapsed;
+
+        // <b>Schmal geworden, waehrend das Gespraech laeuft.</b> Dann gehoert
+        // es auf die ganze Seite — und niemand sonst merkt diesen Wechsel:
+        // MainWindow navigiert nur, wenn ein Gespraech beginnt oder endet,
+        // nicht, wenn jemand das Fenster schmaler zieht.
+        //
+        // <b>Das Gespraech darf davon nichts merken</b> (T314). Es haengt am
+        // SipService und am ActiveCallViewModel, nicht an der Seite; beide
+        // sind Singletons und ueberleben die Navigation.
+        if (ViewModel.HasActiveCall)
+        {
+            Frame.Navigate(typeof(ActiveCallPage));
+            return;
+        }
+
+        // Die beiden Elemente mit eigener Sichtbarkeitsregel stehen danach
+        // richtig, ohne dass diese Stelle sie kennen muss.
+        Refresh();
+    }
+
+    /// <summary>
+    /// Blendet die Inhalte der linken Spalte aus oder wieder ein — <b>ueber die
+    /// Spalte und nicht ueber eine Namensliste</b>, damit ein spaeter
+    /// hinzugefuegtes Element nicht vergessen wird.
+    ///
+    /// <para><b>Zwei Ausnahmen, und beide sind begruendet:</b> der
+    /// Gespraechsrahmen selbst, und die Meldungszeile. Eine Fehlermeldung
+    /// gehoert gesehen, gerade im Gespraech — wer eine dritte Nebenstelle
+    /// anklickt, bekommt die Ablehnung aus §8.2, und ohne diese Ausnahme
+    /// passierte scheinbar nichts. Dasselbe gilt fuer den Hinweis, dass ein
+    /// Audiogeraet gewechselt hat: im Gespraech ist er <i>wichtiger</i> als
+    /// sonst.</para>
+    /// </summary>
+    private void LinkeSpalteAnzeigen(bool sichtbar)
+    {
+        var wert = sichtbar ? Visibility.Visible : Visibility.Collapsed;
+
+        foreach (var kind in RootGrid.Children)
+        {
+            if (kind is FrameworkElement element
+                && !ReferenceEquals(element, CallFrame)
+                && !ReferenceEquals(element, MessagePanel)
+                && Grid.GetColumn(element) == 0)
+            {
+                element.Visibility = wert;
+            }
+        }
     }
 
     /// <summary>
