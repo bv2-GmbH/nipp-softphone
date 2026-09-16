@@ -133,12 +133,27 @@ ohne Neustart. Rüstzeug `S`, gehört damit in die Schreibtisch-Runde A1 des
 >
 > | Zeile | Stand |
 > |---|---|
-> | T312 Gespraech im breiten Fenster | **teilweise** — Aufbau und Abbau gesehen, kein verbundenes Gespraech |
+> | T312 Gespraech im breiten Fenster | **bestanden 23:28** — siehe Nachtrag unten |
 > | T313 Kachel im Gespraech | offen |
 > | T314 Layoutwechsel im Gespraech | offen |
 > | T315 DTMF im breiten Layout | offen |
 > | T316 Anruf vor dem ersten Messen | offen |
 > | T317 Zwei Gespraeche breit | offen |
+>
+> **Nachtrag 23:28 — T312 ist bestanden, und diesmal mit `Connected`.**
+> Anruf `25906373`: `Dialing → Ringing` 23:27:59, **`Connected` 23:28:02**,
+> beendet 23:28:15 — **13,6 Sekunden verbunden**, im breiten Fenster, mit der
+> Gespraechsansicht in der linken Spalte. **Keine Ausnahme, keine Zeile
+> `[ERR] Nipp.App`, kein Absturz beim Ein- und Ausblenden.**
+>
+> Das Gespraech selbst war auch technisch sauber: **null Ticker-Verspaetungen**,
+> Jitterpuffer 53 → 55 → 46 → 40 → 39,8 ms (sauber eingeschwungen), teuerster
+> Filter `MSResample` mit **max 3,37 ms** je Tick. Der Rauschfilter ist weiter
+> aus — `MSNoiseSuppressor` kommt im ganzen Abschnitt nicht vor.
+>
+> **Offen bleiben T313 bis T317.** Und was das Aussehen angeht, ist die Quelle
+> Dominic am Fenster: das Protokoll belegt ein verbundenes Gespraech ohne
+> Fehler, ueber die Darstellung sagt es nichts.
 
 > **Stand 16.09.2026, nachts: gebaut, aber noch nicht gesehen.** Build ohne
 > Warnungen, 1 252 Komponenten- und 34 Architekturtests grün — **das sagt über

@@ -361,6 +361,27 @@ der Pegel: um 10:04:09 von −43,3 auf −4,1 dBm0 und die Bandbreite von 10,7 a
 schickt erst einen leisen, dann den eigentlichen. Ob der Ausgabepuffer diesen
 Wechsel nicht verkraftet, ist **Vermutung und nicht gemessen**.
 
+**Zum dritten Mal beobachtet, am 16.09.2026 um 23:28** (Anruf `25906373`):
+**14 Mal `Could not get buffer`**, dazu `cannot write output buffer` und ein
+Puffer-Reset — alle zwischen 23:28:00,951 und 23:28:01,043, also zwischen
+`Ringing` (23:27:59) und `Connected` (23:28:02). **Wieder ohne Rauschfilter,
+wieder nur im Rufton.** Damit steht es dreimal, in jeder Konstellation:
+
+| Zeit | Rauschfilter | Fehler | Lage |
+|---|---|---|---|
+| 10:04:09,6 | an | 13 | Early Media |
+| 21:56:25,8 | aus | 2 | Early Media |
+| **23:28:00,9** | **aus** | **14** | **Early Media** |
+
+**Das Gespräch danach war sauber:** null Ticker-Verspätungen, Jitterpuffer auf
+40 ms eingeschwungen, teuerster Filter 3,37 ms je Tick. Der Befund gehört also
+ausschliesslich der Aufbauphase — und die Zahl schwankt (13, 2, 14), ohne
+erkennbaren Zusammenhang mit dem Filter.
+
+**Neu und noch ungedeutet:** beim Beenden steht
+`sound/wall clock skew was in average=-169,87 ms` — deutlich mehr als die
+−69 bis −70 ms vom Vormittag. Ob das zur Sache gehört, ist **nicht gemessen**.
+
 Betroffen ist der **Rufton**, nicht das Gespräch. Das macht es klein — aber
 `RingbackWatch` entscheidet aus genau diesen Werten (ADR-029, Nachtrag vom
 10.09.2026), und ein Puffer, der in dieser Phase zurückgesetzt wird, ist
