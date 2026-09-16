@@ -813,8 +813,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Ob zwei Zeilenfolgen dieselben Kontakte in derselben Reihenfolge zeigen.
-    /// Über die Kennung, nicht über die Zeilen: die tragen die Präsenz, und die
-    /// ändert sich im Sekundentakt, ohne dass die Liste neu gebaut gehört.
+    ///
+    /// <para><b>Über den Kontakt, nicht über die Zeile.</b> Die Zeile traegt die
+    /// Praesenz, und die aendert sich im Sekundentakt — waere sie Teil des
+    /// Vergleichs, baute jede BLF-Meldung die Liste neu auf. Genau dafuer gibt
+    /// es <see cref="ContactRow"/> (siehe <c>UpdatePresence</c>).</para>
     /// </summary>
     private static bool SameContacts(
         IReadOnlyList<ContactRow> current,
@@ -827,16 +830,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
         for (var i = 0; i < current.Count; i++)
         {
-            if (!string.Equals(current[i].Contact.Id, wanted[i].Contact.Id, StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            // <b>Die Gruppe gehoert dazu.</b> Sonst rutscht genau ein Fall
-            // durch: wer den letzten Eintrag von Gruppe A an den Anfang von
-            // Gruppe B zieht, aendert die flache Reihenfolge nicht — die
-            // Pruefung meldete "gleich", und die Gruppensicht bliebe stehen.
-            if (!string.Equals(current[i].Contact.Group, wanted[i].Contact.Group, StringComparison.Ordinal))
+            if (!SameContact(current[i].Contact, wanted[i].Contact))
             {
                 return false;
             }
@@ -844,6 +838,50 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
         return true;
     }
+
+    /// <summary>
+    /// Ob zwei Kontakte dasselbe zeigen — <b>in allen Feldern</b>.
+    ///
+    /// <para><b>Warum nicht Feld fuer Feld.</b> Hier stand bis zum 16.09.2026
+    /// ein Vergleich aus zwei Zeilen: Kennung und Gruppe. Die Kennung einer
+    /// Nebenstelle ist <c>team:{zaehler}:{kurzwahl}</c> — <b>eine hinzugefuegte
+    /// Mobilnummer aendert sie nicht</b>, und die Gruppe auch nicht. Der
+    /// Vergleich meldete „gleich", die Sammlung blieb stehen, und die Nummer
+    /// erschien erst nach einem Neustart von nipp. Dasselbe galt fuer einen
+    /// geaenderten Namen und — am unangenehmsten — fuer eine korrigierte
+    /// SIP-Adresse: die Zeile blieb unveraendert <i>und</i> bekam weiter keine
+    /// Praesenz.</para>
+    ///
+    /// <para><b>Es war der dritte Anlauf.</b> Zuerst stand hier nur die
+    /// Kennung; ADR-042 trug die Gruppe nach, weil sonst ein Zug ueber die
+    /// Gruppengrenze stumm blieb. Ein Vergleich, der Feld fuer Feld
+    /// nachgeruestet wird, ist beim naechsten Feld wieder zu grob — deshalb
+    /// vergleicht diese Fassung den <b>ganzen</b> Datensatz. Ein Feld, das
+    /// spaeter an <see cref="Contact"/> dazukommt, ist damit von selbst
+    /// dabei.</para>
+    ///
+    /// <para><b>Die beiden Listen muessen trotzdem einzeln.</b>
+    /// <c>Numbers</c> und <c>Origins</c> sind <c>IReadOnlyList</c>, und die
+    /// vergleicht sich nach <i>Referenz</i> — zwei frisch gebaute, inhaltlich
+    /// gleiche Kontakte waeren sonst immer „ungleich", und die Liste wuerde bei
+    /// jeder Einstellungsaenderung neu aufgebaut. Das kostet Auswahl, Bildlauf
+    /// und trifft einen laufenden Ziehvorgang. Ihre Elemente sind
+    /// <c>record</c>s, <c>SequenceEqual</c> vergleicht also den Inhalt.</para>
+    /// </summary>
+    private static bool SameContact(Contact current, Contact wanted) =>
+        current.Numbers.SequenceEqual(wanted.Numbers)
+        && SameOrigins(current.Origins, wanted.Origins)
+        && (current with { Numbers = [], Origins = null })
+            == (wanted with { Numbers = [], Origins = null });
+
+    /// <summary>
+    /// Die Herkunftsliste, bei der <c>null</c> und leer dasselbe bedeuten:
+    /// „nur aus <c>SourceId</c>" (siehe <see cref="Contact.Origins"/>).
+    /// </summary>
+    private static bool SameOrigins(
+        IReadOnlyList<ContactOrigin>? current,
+        IReadOnlyList<ContactOrigin>? wanted) =>
+        (current ?? []).SequenceEqual(wanted ?? []);
 
     /// <summary>
     /// Ob die Team-Reihenfolge geändert werden darf.
