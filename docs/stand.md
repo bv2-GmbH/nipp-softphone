@@ -21,8 +21,22 @@ grün — **lokal.** Die CI ist es nicht, und das ist der erste Punkt.
 Am Abend des 17.09.2026 sind die beiden Aufbauten, die seit dem Nachmittag
 fertig danebenlagen, benutzt worden — der Provisionierungsserver und die lokale
 REST-Attrappe —, und daran anschliessend der Karten-Designer.
-**Einundzwanzig Zeilen haben ein Ergebnis, sechzehn bestanden, fünf
-teilweise.** Offen sind damit **201 von 303**, davon 80 am Schreibtisch.
+**Siebenundzwanzig Zeilen haben ein Ergebnis, zweiundzwanzig bestanden, fünf
+teilweise.** Offen sind damit **195 von 303**, davon 74 am Schreibtisch.
+
+## Und das Layout im breiten Fenster hält ebenfalls
+
+**Sechs Zeilen: T213, T214, T217, T218, T221, T254**, gemessen mit vierzig
+erfundenen Nebenstellen in vier Gruppen. Der Gruppenumbruch stimmt auf die
+Reihe, das Kachelfeld steht beim Bereichswechsel auf den Pixel still, zwei
+Verschiebungen hintereinander sitzen und überleben den Neustart (die
+Gegenprobe zu T176), und ein maximiertes Fenster kommt maximiert zurück —
+`WindowPlacement` speichert dafür das Wort `maximized` statt vier Zahlen.
+
+**Zwei Dinge sind bewusst nicht gemessen worden:** «Enter wählt» hätte einen
+echten Wählversuch über die Anlage ausgelöst, und das Ziehen mit der Maus ist
+seit ADR-065 ein eigener Vorgang, der sich mit synthetischen Zeigerereignissen
+nicht verlässlich nachstellen lässt. Beides steht mit Grund in der Matrix.
 
 ## Der Karten-Designer trägt
 

@@ -231,6 +231,52 @@ ins Protokoll. Und die Vorschau vergisst die echte Antwort beim Neustart, wie
 - **T102 und T105** sind `P`: sie brauchen einen echten Anruf.
 - Die zweite Hälfte von **T106** braucht einen echten Toast.
 
+#### Die Layoutrunde, zum Abschluss des Abends
+
+**Sechs Zeilen: T213, T214, T217, T218, T221 und T254.** Alle sechs bestanden,
+zwei mit einer Einschränkung, die an der Sache liegt und nicht am Programm.
+Damit stehen **74 S-Zeilen offen**, 195 insgesamt.
+
+**Gemessen mit vierzig erfundenen Nebenstellen in vier Gruppen**, eingespielt
+bei beendetem nipp (die Lehre vom Nachmittag) und hinterher zurückgesetzt. Die
+SIP-Adressen zeigen auf `pbx.example.ch`, eine Domain, die es nicht gibt —
+damit baut nipp keine vierzig Präsenz-Abos gegen die echte Anlage auf, und der
+Zustand bleibt «unbekannt», was für T218 ein gültiger Zustand ist.
+
+**Was dabei gut aussah:**
+
+- **Der Gruppenumbruch stimmt auf die Reihe** (T254). Sechs Kacheln, dann vier,
+  dann ein neuer Gruppenkopf auf einer neuen Reihe — Köpfe bei Y=97, 543, 988,
+  1434, Kachelreihen sauber dazwischen. Keine Gruppe teilt sich eine Reihe mit
+  einer anderen.
+- **Das Kachelfeld steht beim Bereichswechsel auf den Pixel still** (T213):
+  X=761, Y=79, Breite 2087 — vorher wie nachher. Die Umschaltleiste endet bei
+  X=496 und liegt damit nur unter der linken Spalte.
+- **Zwei Züge hintereinander sitzen und überleben den Neustart** (T214), über
+  das Kontextmenü. Das ist die Gegenprobe zu T176, wo der zweite Zug stumm
+  verloren ging.
+- **`WindowPlacement` speichert `maximized` als Wort** und nicht als Viererpaar
+  (T221). Genau daran hing der Fehler, den die Zeile prüft: ein maximiertes
+  Fenster kam sonst als «beinahe volles Fenster mit Rand ringsum» zurück.
+- **Der UIA-Name einer Kachel nennt die Gruppe mit** (T218): «Alina Ammann,
+  Support, 201, unbekannt».
+
+**Zwei Dinge sind bewusst nicht gemessen worden, und beide aus demselben
+Grund — sie greifen nach draussen:**
+
+- **«Enter wählt»** aus T217 hätte einen echten Wählversuch über die
+  angemeldete Anlage ausgelöst. Die Zeile gehört insoweit an den Test-Trunk.
+- **Das Ziehen mit der Maus** aus T214. Der Zug gehört seit ADR-065 uns und
+  beginnt nach acht Pixeln Bewegung; mit synthetischen Zeigerereignissen ist
+  das nicht verlässlich nachzustellen. Gemessen ist der Weg ohne Maus, der
+  dieselbe Funktion (`TeamLayout.Move`) benutzt.
+
+**Und einmal beinahe ein Befund, der keiner war:** zwischen Kachel und
+Nummernknopf liegt ein Tab-Stopp ohne Namen. Nachgesehen statt gemeldet — es
+ist ein `InputSiteWindowClass`-Pane von WinUI über den ganzen Bildschirm, kein
+Bedienelement der App. **Das ist die Gegenprobe, die A1-1 und der namenlose
+«Entfernen»-Knopf aus T157 bestanden haben und dieses hier nicht.**
+
 ### Befunde aus A1
 
 Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
