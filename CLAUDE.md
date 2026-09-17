@@ -15,9 +15,9 @@ lesbar bleiben.
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
-| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug |
+| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 läuft seit dem 17.09.2026**; dort stehen auch die Befunde daraus und die Einordnung aller S-Zeilen. Gezählt: **222 offen von 303** |
 | Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
-| Pläne und Reviews | `docs/plans/` — zwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind fünf:** `BEWEIS-PLAN.md`, `ZIEHVORSCHAU-PLAN.md` (offen: V8), `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5), `AUDIOQUALITAET-PLAN.md` (offen: das lange Gespräch und A7) und `SHELL-IM-GESPRAECH-PLAN.md` (ganz offen). Der Rest ist abgeschlossen |
+| Pläne und Reviews | `docs/plans/` — zwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind fünf:** `BEWEIS-PLAN.md` (A1 läuft), `ZIEHVORSCHAU-PLAN.md` (V8: T292–T296 sind bestanden, **offen bleiben der Zug auf einen Gruppenkopf und hell bei 150 %**), `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5 und T300), `AUDIOQUALITAET-PLAN.md` (**das lange Gespräch ist beantwortet, A8** — offen bleiben A7, die Senderichtung und T38) und `SHELL-IM-GESPRAECH-PLAN.md` (offen: T313–T317). Der Rest ist abgeschlossen |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
 
 ## Grenzen
@@ -249,7 +249,10 @@ Linien — `review-umsetzung` und `main-archiv-06-09` sind die alten, sie
 bleiben liegen.
 
 **Was das für jede Änderung heisst:** `PublicRepositoryTests` ist ab jetzt kein
-Formalismus mehr, sondern die letzte Kontrolle vor der Öffentlichkeit. Wer
+Formalismus mehr, sondern die letzte Kontrolle vor der Öffentlichkeit — und
+**sie greift derzeit nur lokal**, weil die CI vor ihr abbricht (siehe „SDK
+beschaffen"). Also vor jedem Push `.\build.ps1 test Nipp.sln` laufen lassen;
+ein grüner Haken von GitHub gibt es dort nicht zu holen. Wer
 über die verbotenen Muster schreibt — in einem ADR, einem Plan, einer
 zitierten Protokollzeile — setzt sie zusammen, statt sie auszuschreiben.
 Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
@@ -292,6 +295,20 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   gespeichert. Wer eine Eingabeprüfung so prüft, misst das Bedienelement statt
   der Regel. **Und es schreibt in die echten Einstellungen** — am 14.09.2026
   hat es so den SIP-Port des Benutzers verstellt. Vorher sichern.
+  Es kann ausserdem ein **zweites Fenster** ansprechen (`Get-NippWindow
+  -Titel`, für den Karten-Designer — sonst misst man stillschweigend das
+  Hauptfenster), liefert je Element das **Rechteck** und ob es überhaupt
+  dargestellt wird, und zieht das Fenster auf eine **logische** Breite
+  (`Set-NippWindowSize`). **Die Rechtecke sind physisch, die Matrix ist
+  logisch** — `Get-NippSkalierung` nennt den Faktor (hier 150 %).
+- **nipp beenden, dann die Datei schreiben, dann starten** — in dieser
+  Reihenfolge. **nipp schreibt `settings.json` beim Beenden vollständig
+  zurück**, und eine Änderung an der laufenden Datei ist danach weg
+  (gemessen am 17.09.2026: vierzig von Hand eingetragene Nebenstellen waren
+  nach dem Neustart wieder zehn). Das gilt für jede Prüfung, die eine
+  Konfiguration einspielt. Sauber beendet wird über das Infobereich-Menü,
+  nicht über `Stop-Process`; das Symbol ist über UI Automation erreichbar
+  (`Shell_TrayWnd`, Button `nipp nipp — angemeldet`).
 - MSIX (nicht ausgeliefert, wartet auf T110 und AP9.2): docs/packaging.md
 
 Nie ein blankes `dotnet build` — siehe „Bauen auf dieser Maschine".
@@ -380,6 +397,15 @@ Nie ein blankes `dotnet build` — siehe „Bauen auf dieser Maschine".
   **Wer das am Gerät prüft, meldet Fehlschläge, die keine sind** — und das ist
   teurer als der Strich, der hier fehlte. Eine gestrichene Zeile trägt `~~…~~`,
   den Grund und die Zeile, die sie ersetzt.
+- **Wer in einem Plan eine Prüfzeile formuliert, trägt sie im selben Commit in
+  `docs/test-matrix.md` ein.** Am 17.09.2026 standen **vierzehn** Zeilen
+  (T304 bis T317) in zwei Plänen und in der Matrix gar nicht — **T312 galt
+  derweil als bestanden**, im Plan, nicht in der Matrix. Wer die Matrix
+  abarbeitet, hätte das Gespräch im breiten Fenster nie geprüft, und die
+  Zählung «wie viel ist offen» war vier Tage lang zu niedrig. Ein Plan
+  **begründet** eine Zeile; die Matrix ist die Stelle, an der sie **steht** —
+  das ist dieselbe Regel wie überall sonst hier, und sie gilt für Prüfzeilen
+  genauso wie für Feldnamen und Zustandswörter.
 - **Eine Zahl in einer Testzeile nennt die Grösse, die sie meint.** «ab 960
   Pixeln» ist keine Angabe, solange nicht dasteht, ob Fenster oder Seite
   gemeint ist — siehe die Schwelle oben. Dasselbe gilt für logisch gegen
@@ -397,6 +423,16 @@ GitLab-NuGet-Feed ist unzuverlässig (ADR-005) — deshalb das Prebuilt-ZIP:
 
     https://download.linphone.org/releases/windows/sdk/linphone-sdk-win64-5.5.18.zip
     -> nach sdk/ herunterladen, nach sdk/extracted/ entpacken
+
+**Unter dieser URL liegt seit dem 07.09.2026 eine andere Datei als die, mit
+der hier gebaut wird** — dieselbe Versionsnummer, 198 342 Bytes mehr, ein
+stilles Neuablegen desselben Release. **Deshalb ist jeder CI-Lauf im
+öffentlichen Repo rot, vom ersten Commit an**, und deshalb läuft dort
+`PublicRepositoryTests` **nie**: der Build bricht vorher ab. Dasselbe gilt für
+`release.yml`. **Die Prüfsumme nachzuziehen ist keine Formsache** — sie ist
+die Kontrolle dagegen, dass ein unbesehen verändertes SDK in den Build kommt
+(dieselbe Überlegung wie ADR-040). Wer sie anfasst, sieht vorher nach, was
+sich geändert hat. Stand und die zwei Wege: `docs/stand.md`, 17.09.2026.
 
 SHA256 und Layout in docs/sdk-setup.md. Der Wrapper landet dann unter
 `sdk/extracted/linphone-sdk/win64/share/linphonecs/LinphoneWrapper.cs`
