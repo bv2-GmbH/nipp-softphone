@@ -151,8 +151,7 @@ braucht **kein** Headset, sondern keins — und gerade steckt eines.
 #### Die Provisionierungsrunde, am Abend des 17.09.2026
 
 **Sieben Zeilen an einem Aufbau: T29, T30, T31, T167, T245, T257 und T258.**
-Fünf bestanden, zwei teilweise. Damit stehen **94 S-Zeilen offen**, 215
-insgesamt.
+Fünf bestanden, zwei teilweise.
 
 **Der Aufbau hat sich gerechnet.** Er lag seit dem Nachmittag fertig daneben —
 Werksdatei, Profilserver auf `127.0.0.1:8099`, fünf Profile, ein Skript zum
@@ -178,6 +177,28 @@ ist der Aufwand, sondern das Umrüsten.
   Provisioning-Adresse der Maschine, alle sechs Einträge in `UserOverrides`,
   zehn Nebenstellen, keine graue Gruppe, keine Leiste. Nachgesehen, nicht
   angenommen.
+
+#### Die Attrappenrunde, unmittelbar danach
+
+**Vier Zeilen an der lokalen REST-Attrappe: T40, T43, T44 und T45.** Drei
+bestanden, eine teilweise. Damit stehen **90 S-Zeilen offen**, 211 insgesamt.
+
+**Was dabei gut war — und es ist die Hälfte, die sonst niemand sieht:** die
+Entprellung und die Generationen arbeiten genau wie beschrieben. Sechs
+Anschläge in einer halben Sekunde ergeben **eine** Anfrage je Quelle mit dem
+vollständigen Suchtext, und eine überholte Antwort einer langsamen Quelle
+verwirft sich selbst — eigens dafür gemessen, indem mitten in die
+Fünf-Sekunden-Antwort hinein umgetippt wurde. Eine langsame Quelle hält die
+schnelle nicht auf; die Trefferliste stand nach 839 ms, während darüber noch
+«Attrappe langsam wird gefragt …» lief.
+
+**Was nicht gut war, steht als A1-8 unten** und betrifft den Fall, für den die
+ganze Vorsicht gebaut wurde: eine Quelle, die annimmt und schweigt.
+
+**Und eine Grenze dieser Maschine:** «lokale Treffer sofort» aus T43 ist hier
+kaum prüfbar, weil es ohne Outlook fast keine lokalen Kontakte gibt (ADR-018).
+Gemessen ist die Nebenläufigkeit der beiden fremden Quellen, nicht das
+Verhältnis lokal gegen fremd.
 
 ### Befunde aus A1
 
@@ -286,6 +307,51 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   **Und eine Warnung für jede weitere Messung am Gerät:** wer einen Wert über
   die Oberfläche setzt und gleich danach die Datei liest, misst den alten Wert
   und hält ihn für einen Fehlschlag. So ist dieser Befund entstanden.
+
+- **A1-8 — Eine Quelle, die annimmt und schweigt, wird «übersprungen» genannt,
+  schweigend protokolliert und vom Schutzschalter nicht gezählt.** Gemessen an
+  einer lokalen Attrappe, die die Verbindung annimmt und nie antwortet:
+  - **Die Oberfläche sagt «Attrappe tot übersprungen»** — Quelle ohne Grund und
+    ohne Hinweis, was zu tun ist. Der Zustand `SearchState.Timeout` mit der
+    Meldung «antwortet nicht» **ist gebaut** (`ShellPage.xaml.cs:831`) und wird
+    hier nicht erreicht. Zum Vergleich: dieselbe Quelle **ganz weg** meldet
+    sauber «Attrappe schnell ist nicht erreichbar. Netzwerk und Adresse prüfen.»
+  - **Im Protokoll steht nichts.** Die ganze nipp-Sitzung enthält zu diesen
+    Anfragen keine einzige Zeile — auch nicht auf Debug. Das ist genau die
+    stille Rückgabe, gegen die `QuietFailures` (W1.7) gebaut wurde.
+  - **Der Schutzschalter greift nicht.** Sieben Anfragen in rund vierzig
+    Sekunden, alle in die Zeitgrenze, und die achte ging genauso hinaus —
+    `FailuresBeforeBreak = 5` hätte nach der fünften eine Minute Pause bedeutet.
+  **Vermutliche Ursache, an einer Stelle:** `IntegrationHttpClient` hat zwei
+  Zweige für `OperationCanceledException` (Zeile 286 und 291). Der erste,
+  `when (cancellationToken.IsCancellationRequested)`, liefert `Skipped` **ohne**
+  Meldung, **ohne** Protokollzeile und **ohne** `ReportFailure` — gedacht für
+  «das Gespräch ist vorbei oder die Suche überholt». Der zweite liefert
+  `Timeout` mit allem dreien. Gemessen ist, dass hier der erste greift; **warum
+  das äussere Token gesetzt ist, wenn in Wahrheit die eigene Zeitgrenze
+  zuschlägt, ist nicht gemessen.**
+  **Warum das mehr ist als eine Formulierung:** der Schutzschalter ist genau
+  für die tote Quelle gebaut, und sie ist der Fall, in dem er nicht zählt. Und
+  wer im Support danach sucht, findet im Protokoll keine Spur.
+
+- **A1-9 — Eine Provisionierungsrunde nimmt das gespeicherte Passwort mit, und
+  `settings.json` zurückzuspielen holt es nicht zurück.** Beim ersten Start mit
+  einem Profil, das ein `<accounts>` mitbringt, wurde
+  die Geheimnisdatei unter `%LOCALAPPDATA%` überschrieben (422 → 374 Bytes, Zeitstempel
+  genau der Moment des Profilabrufs). Nach dem Rückweg über
+  `-Aktion Wiederherstellen` stand das eigene Konto wieder in der Konfiguration,
+  aber nipp meldete «Zugangsdaten abgelehnt» — das Geheimnis fehlte. Behoben,
+  indem `secrets.dat` aus der Sicherung von 17:54 zurückgespielt wurde; danach
+  meldet sich nipp wieder an.
+  **Ob das ein Fehler ist, ist offen:** ein Profil **ersetzt** die Kontenliste,
+  und dass die Geheimnisse der ersetzten Konten mitgehen, ist vertretbar.
+  **Was nicht vertretbar ist: es steht nirgends.** Weder sagt nipp es, noch
+  nennt es die Provisionierungsdokumentation, und der Rückweg des Aufbaus
+  sichert die Datei nicht — dass sie hier vorlag, war der A1-Sicherung zu
+  verdanken und kein Verdienst des Verfahrens.
+  **Für jeden weiteren Gerätetag:** wer ein Profil einspielt, sichert
+  `secrets.dat` mit. `Sichern-Und-Zuruecksetzen.ps1` und seine LIESMICH gehören
+  entsprechend ergänzt.
 
 **Was die Runde sich selbst beigebracht hat:** **Wer `settings.json` bei
 laufendem nipp ändert, verliert die Änderung.** Beim Beenden schreibt nipp

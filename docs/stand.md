@@ -16,11 +16,42 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 **Stand 17.09.2026, abends.** 1252 Komponententests und 34 Architekturtests
 grün — **lokal.** Die CI ist es nicht, und das ist der erste Punkt.
 
-## Die Provisionierungsrunde ist durch — sieben Zeilen, zwei neue Befunde
+## Zwei Aufbauten abgearbeitet — elf Zeilen, vier neue Befunde
 
-**T29, T30, T31, T167, T245, T257 und T258**, alle an einem Aufbau, der seit
-dem Nachmittag fertig danebenlag und ungenutzt war. Fünf bestanden, zwei
-teilweise. **Offen sind damit 215 von 303**, davon 94 am Schreibtisch.
+Am Abend des 17.09.2026 sind die beiden Aufbauten, die seit dem Nachmittag
+fertig danebenlagen, benutzt worden: der Provisionierungsserver und die lokale
+REST-Attrappe. **Elf Zeilen haben ein Ergebnis, acht bestanden, drei
+teilweise.** Offen sind damit **211 von 303**, davon 90 am Schreibtisch.
+
+## Die Attrappenrunde — was trägt und was nicht
+
+**T40, T43, T45 bestanden, T44 teilweise.** Die Entprellung und die Generationen
+arbeiten genau wie beschrieben: sechs Anschläge in einer halben Sekunde ergeben
+**eine** Anfrage je Quelle mit dem vollständigen Suchtext, und eine überholte
+Antwort verwirft sich selbst — eigens gemessen, indem mitten in eine
+Fünf-Sekunden-Antwort hinein umgetippt wurde. Eine langsame Quelle hält die
+schnelle nicht auf.
+
+**Aber der Fall, für den die ganze Vorsicht gebaut ist, hat einen Befund
+(A1-8):** eine Quelle, die die Verbindung annimmt und dann schweigt, heisst in
+der Oberfläche «übersprungen» — **ohne Grund und ohne Hinweis, was zu tun
+ist** —, hinterlässt im Protokoll **keine einzige Zeile**, und wird vom
+Schutzschalter **nicht gezählt**: sieben Anfragen in vierzig Sekunden, wo nach
+fünf eine Minute Pause gelten sollte. Der Zustand «antwortet nicht» ist
+gebaut und wird nicht erreicht. Zum Vergleich: dieselbe Quelle **ganz weg**
+meldet sauber «ist nicht erreichbar. Netzwerk und Adresse prüfen.»
+
+**Und ein Befund, der dem Verfahren gilt (A1-9):** ein Profil, das ein Konto
+mitbringt, überschreibt die Geheimnisdatei — nach dem Rückweg stand das eigene
+Konto wieder da, aber nipp meldete «Zugangsdaten abgelehnt». Repariert aus der
+Sicherung von 17:54. **`settings.json` zurückzuspielen genügt nicht**, und das
+steht nirgends: weder sagt nipp es, noch nennt es die Dokumentation, noch
+sichert der Aufbau die Datei. Wer einen Gerätetag mit Profilen fährt, muss das
+wissen.
+
+## Die Provisionierungsrunde — sieben Zeilen, zwei neue Befunde
+
+**T29, T30, T31, T167, T245, T257 und T258.** Fünf bestanden, zwei teilweise.
 
 **Was jetzt am laufenden Programm bewiesen ist:** ADR-054 in beide Richtungen.
 Ein von Hand eingestellter Keep-Alive-Wert überlebt ein Profil, das etwas
