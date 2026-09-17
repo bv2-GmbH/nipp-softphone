@@ -16,6 +16,52 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 **Stand 17.09.2026, abends.** 1252 Komponententests und 34 Architekturtests
 grün — **lokal.** Die CI ist es nicht, und das ist der erste Punkt.
 
+## Die Provisionierungsrunde ist durch — sieben Zeilen, zwei neue Befunde
+
+**T29, T30, T31, T167, T245, T257 und T258**, alle an einem Aufbau, der seit
+dem Nachmittag fertig danebenlag und ungenutzt war. Fünf bestanden, zwei
+teilweise. **Offen sind damit 215 von 303**, davon 94 am Schreibtisch.
+
+**Was jetzt am laufenden Programm bewiesen ist:** ADR-054 in beide Richtungen.
+Ein von Hand eingestellter Keep-Alive-Wert überlebt ein Profil, das etwas
+anderes will, und das Protokoll sagt auf Debug, dass es ihn übersprungen hat;
+eine **Sperre** holt den Profilwert zurück und löscht die Markierung, und beim
+nächsten Start bleibt es dabei; eine Konfiguration von vor dem 13.09.2026 — ohne
+das Feld `UserOverrides` — lässt das Profil gewinnen. Das stand bisher nur in
+Komponententests. Dazu: ein Profil richtet ein Konto vollständig ein (T29),
+Gruppen entstehen in der Reihenfolge des Profils (T167), ein nicht erreichbarer
+Server hält nipp nicht vom Start ab und sagt es in der Oberfläche (T30), und
+`integrations` grautet beide Gruppen aus, die dazugehören (T245).
+
+**Zwei neue Befunde, beide liegen gelassen** (Regel der Runde), vollständig in
+`docs/plans/BEWEIS-PLAN.md`:
+
+- **A1-6 — das Schloss an einem gesperrten Feld kommt zu spät.** Nach frischem
+  Start und einmaligem Aufklappen der Gruppe fehlt es; zu- und wieder
+  aufklappen, dann steht es da. Reproduziert, mit Bildbeleg. Die **Sperre**
+  wirkt dabei von Anfang an — es geht nur um die Anzeige. Der Kommentar über
+  `FindSettingCards` sagt das Problem richtig voraus und beschreibt eine
+  Abhilfe, die nicht greift.
+- **A1-7 — ein getippter Zahlenwert wirkt nicht beim Verlassen des Feldes.**
+  Dreimal gemessen: das Feld zeigt den neuen Wert, der Fokus ist weiter, und
+  Datei **und Modell** tragen den alten («Nichts zu speichern» im Protokoll).
+  Geschrieben wird er erst bei einem späteren Anlass — beim Zuklappen der
+  Gruppe oder beim Beenden. Betroffen sind die **vier** `NumberBox`-Felder,
+  darunter SIP-Port und die Dauer der Anmeldung. ADR-045 verspricht das
+  Gegenteil.
+  **Und es ist zugleich eine Warnung für jede weitere Messung:** wer einen Wert
+  über die Oberfläche setzt und gleich danach die Datei liest, misst den alten
+  Stand.
+
+**Ausserdem korrigiert:** T167 nannte `nippprov show`. Den Befehl gibt es
+nicht — gemeint ist `pruefen`. Eine Zeile, die so stehen bleibt, produziert
+einen Fehlschlag, der keiner ist.
+
+**Der Rückweg wurde ganz gegangen:** `-Aktion Wiederherstellen` hat den
+Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
+Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
+graue Gruppe, keine Leiste, Werksdatei gelöscht.
+
 ## Die CI im öffentlichen Repo hat nie grün gebaut
 
 **Alle 17 Läufe seit dem ersten Commit am 14.09.2026 sind rot**, und jeder

@@ -148,6 +148,37 @@ Pfad nie, weil `UpdateService.CheckAsync` bei `!IsInstalled` sofort zurückkehrt
 Anbieter-API. Und **T86** ist in die andere Richtung falsch gestempelt: es
 braucht **kein** Headset, sondern keins — und gerade steckt eines.
 
+#### Die Provisionierungsrunde, am Abend des 17.09.2026
+
+**Sieben Zeilen an einem Aufbau: T29, T30, T31, T167, T245, T257 und T258.**
+Fünf bestanden, zwei teilweise. Damit stehen **94 S-Zeilen offen**, 215
+insgesamt.
+
+**Der Aufbau hat sich gerechnet.** Er lag seit dem Nachmittag fertig daneben —
+Werksdatei, Profilserver auf `127.0.0.1:8099`, fünf Profile, ein Skript zum
+Sichern und Zurücksetzen. Die Rüstzeit bis zur ersten Messung betrug damit
+wenige Minuten statt einer Stunde, und sieben Zeilen liefen dahinter durch.
+**Das ist die Begründung für A0 am konkreten Fall:** nicht die Zahl der Zeilen
+ist der Aufwand, sondern das Umrüsten.
+
+**Was dabei sonst noch abgefallen ist:**
+
+- **`nippprov show` gibt es nicht** — T167 nennt den Befehl, das Werkzeug kennt
+  `neu`, `pruefen` und `schema`. Die Zeile ist korrigiert, nicht gestrichen:
+  gemeint war `pruefen`. Hätte jemand sie am Gerät abgearbeitet, wäre ein
+  Fehlschlag gemeldet worden, der keiner ist — derselbe Fall wie die vier
+  Mailbox-Zeilen aus A0.
+- **ADR-054 trägt.** Beide Richtungen sind jetzt am laufenden Programm belegt:
+  der Handwert schlägt das Profil (T257 Stufe 1), die Sperre holt ihn zurück und
+  löscht die Markierung (Stufe 2), und eine Konfiguration ohne `UserOverrides`
+  lässt das Profil gewinnen (T258). Das war bis heute nur in Komponententests
+  bewiesen.
+- **Der Rückweg ist trocken **und** nass geprüft.** `-Aktion Wiederherstellen`
+  hat den Ausgangszustand vollständig hergestellt: Keep-Alive 30, die
+  Provisioning-Adresse der Maschine, alle sechs Einträge in `UserOverrides`,
+  zehn Nebenstellen, keine graue Gruppe, keine Leiste. Nachgesehen, nicht
+  angenommen.
+
 ### Befunde aus A1
 
 Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
@@ -192,6 +223,15 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   **acht** Sekunden nicht genügt», der Wächter wartet aber **drei**
   (`App.xaml.cs:1007`). Zwei Zahlen für dieselbe Sache, und die falsche steht
   in der Meldung, die der Support zu sehen bekäme.
+  **Nachtrag vom Abend des 17.09.2026, aus der Provisionierungsrunde:** die
+  Datei reicht weiter zurück als oben steht — die erste Zeile trägt den
+  **13.09.2026**, nicht den 14., und bis zum Abend stehen **dreizehn** Paare
+  darin. Die Runde hat nipp achtmal über das Infobereich-Menü beendet und dabei
+  die Zeit gestoppt: **1,38 bis 1,40 Sekunden** bis zum Verschwinden des
+  Prozesses, jedes Mal, und zwischen «Dienste freigegeben» und der Exit-Zeile
+  liegen 42 bis 190 ms. **Damit spricht mehr gegen den Drei-Sekunden-Wächter
+  als vorher:** acht Messungen unter 1,5 s, keine einzige Meldung des Wächters.
+  Was den Prozess beendet, bleibt ungemessen.
 - **A1-5 — Gruppen ohne Treffer verschwinden nicht.** T248 verlangt es; mit 40
   Nebenstellen in vier Gruppen und einem Treffer in einer davon stehen die
   drei anderen als «HRN (0)», «Hotline (0)», «Testgruppe (0)» weiter da,
@@ -199,6 +239,53 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   («1 von 40 · Filter aufheben») und der Verweis selbst arbeiten richtig.
   Nur wenn **gar keine** Nebenstelle passt, verschwinden alle Köpfe — der
   Fall, den T250 abdeckt und der deshalb bestanden aussah.
+
+- **A1-6 — Das Schloss an einem gesperrten Feld erscheint erst beim zweiten
+  Aufklappen der Gruppe.** Gemessen an «Serverzertifikat prüfen»
+  (`network.verify-certificate`) mit einem Profil, das `network` sperrt: nach
+  frischem Start und **einmaligem** Aufklappen von «Netzwerk und
+  Verschlüsselung» steht rechts nur der ausgegraute Schalter, kein Schloss.
+  Gruppe zu, Gruppe auf — **jetzt** steht es da. Nach einem Neustart
+  reproduziert, beide Male mit Bildbeleg.
+  **Die Sperre selbst wirkt sofort und vollständig**: alle Bedienelemente der
+  Gruppe sind von Anfang an `IsEnabled=false`, es geht allein um die Anzeige.
+  **Vermutliche Ursache:** `SettingsPage.ApplyPolicy` findet die Karten über
+  den visuellen Baum, und der Inhalt eines nie aufgeklappten `Expander` steht
+  noch nicht darin. `OnGroupExpanding` ist genau dafür gebaut und verschiebt
+  die Frage mit `DispatcherQueue.TryEnqueue` um einen Durchlauf — **gemessen
+  ist, dass das nicht reicht**; warum, ist es nicht. `Expanded` statt
+  `Expanding` wäre der naheliegende Versuch.
+  **Was daran zählt:** der Kommentar über `FindSettingCards` sagt das Problem
+  richtig voraus («der Inhalt … ist unter Umständen noch nicht erzeugt.
+  Deshalb wird zusätzlich beim Aufklappen erneut gefragt») — die Abhilfe steht
+  da, greift aber nicht, und niemand hat nachgesehen. Das ist dieselbe Sorte
+  Satz wie in Befund A8 der Welle 2.7.
+
+- **A1-7 — Ein getippter Zahlenwert wirkt beim Verlassen des Feldes nicht; er
+  erreicht die Datei erst beim Beenden.** Dreimal am Keep-Alive-Feld gemessen
+  (Werte 20, 25, 45): tippen, Tab auf das nächste Feld — das Feld zeigt den
+  neuen Wert, der Fokus ist nachweislich weiter, und `settings.json` trägt
+  **weiterhin den alten**. Im Protokoll steht dazu auf Debug «Nichts zu
+  speichern — die Einstellungen sind unveraendert», also hat auch das **Modell**
+  den Wert nicht. Erst ein späterer Anlass schreibt ihn: einmal das Zu- und
+  Aufklappen der Gruppe (dann sofort «Einstellungen gespeichert»), einmal das
+  Beenden von nipp — nach dem Neustart stand 45 in der Datei.
+  **Der Wert geht also nicht verloren, aber er wirkt nicht, wenn er soll**, und
+  das ist genau die Zusage aus ADR-045 («jede Änderung wirkt, sobald sie gemacht
+  ist; Zahlenfelder beim Verlassen des Feldes»). Wer nipp danach hart beendet,
+  verliert ihn doch.
+  **Vermutliche Ursache:** `OnLosingFocus` ruft `ViewModel.ApplyEdits()`, und
+  `FocusManager.LosingFocus` läuft **vor** `LostFocus` — eine `NumberBox`
+  überträgt ihren getippten Text aber erst mit `LostFocus` in `Value` und damit
+  in die Bindung. `ApplyEdits` liest dann noch den alten Stand. Gemessen ist die
+  Wirkung und die Code-Stelle, **nicht die Ereignisreihenfolge**.
+  **Tragweite: vier Felder**, alle `NumberBox` — «Dauer der Anmeldung
+  (Sekunden)», «Anrufliste aufbewahren (Tage)», «SIP-Port» und «Keep-Alive».
+  Bei Freitextfeldern stellt sich die Frage nicht, dort steht der Text schon
+  während des Tippens in der Bindung.
+  **Und eine Warnung für jede weitere Messung am Gerät:** wer einen Wert über
+  die Oberfläche setzt und gleich danach die Datei liest, misst den alten Wert
+  und hält ihn für einen Fehlschlag. So ist dieser Befund entstanden.
 
 **Was die Runde sich selbst beigebracht hat:** **Wer `settings.json` bei
 laufendem nipp ändert, verliert die Änderung.** Beim Beenden schreibt nipp
