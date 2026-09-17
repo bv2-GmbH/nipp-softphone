@@ -117,6 +117,107 @@ kommen gesammelt nach A1; danach laufen die betroffenen Zeilen erneut.
 
 **Fertig, wenn:** jede S-Zeile ein Ergebnis, ein Datum und einen Build trägt.
 
+### Der Stand der Runde (17.09.2026)
+
+**Gemessen wird gegen den Debug-Build von `4a7427b`**, der seit dem 16.09.2026
+um 23:40 läuft und mit `HEAD` codegleich ist — die drei Commits dazwischen
+fassen nur Dokumentation an. Vor dem ersten Schreibzugriff sind `%APPDATA%\nipp`
+und die teuren Dateien aus `%LOCALAPPDATA%\nipp` (`history.db`, `secrets.dat`)
+gesichert; der Rückweg liegt als `Wiederherstellen.ps1` daneben und ist trocken
+geprüft.
+
+**Die Einordnung der 107 offenen S-Zeilen**, nach dem, was sie wirklich
+brauchen — nicht nach dem Stempel:
+
+| | Zeilen | Was das heisst |
+|---|---|---|
+| **maschinell** | 55 | über den UIA-Baum, die Dateien und das Protokoll abnehmbar |
+| **gemeinsam** | 35 | ein Teil messbar, ein Teil braucht Augen, Hände oder einen Eingriff ins System |
+| **nur am Menschen** | 8 | Farbe, Kontrast, Ruckeln, abgeschnittene Beschriftungen |
+| **hier nicht prüfbar** | 9 | das Rüstzeug fehlt trotz Stempel `S` — siehe unten |
+
+**Neun Zeilen tragen `S` und sind es nicht.** Vier hängen an Outlook-Kontakten,
+die es auf dieser Maschine nicht gibt (ADR-018): **T42** und **T46** sind damit
+gar nicht herstellbar, **T219** und **T220** ebenso. **T101** ist kein Testfall,
+solange K4 nicht gebaut ist — die Erwartung sagt es selbst. **T228** verlangt
+echtes Wählen, unter anderem der `112`, und die Anlage ist von hier aus
+erreichbar; die Zeile gehört an den Test-Trunk. **T132** erreicht den geprüften
+Pfad nie, weil `UpdateService.CheckAsync` bei `!IsInstalled` sofort zurückkehrt
+— sie gehört zu `F`, und ihre Erwartung («privates Repo») ist seit dem
+14.09.2026 ohnehin fraglich. **T169** endet beim Testabruf an einer echten
+Anbieter-API. Und **T86** ist in die andere Richtung falsch gestempelt: es
+braucht **kein** Headset, sondern keins — und gerade steckt eines.
+
+### Befunde aus A1
+
+Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
+
+- **A1-1 — Die beiden Schieberegler in der Audio-Gruppe haben keinen
+  vorlesbaren Namen.** `SettingsPage.xaml:346` und `:348`: «Wiedergabelautstärke»
+  und «Mikrofonpegel» stehen als eigener `TextBlock` daneben statt als `Header`
+  oder `AutomationProperties.Name`. Im UIA-Baum sind es die **einzigen zwei
+  bedienbaren Elemente ohne Namen** — geprüft über alle drei Reiter und alle
+  sieben Einstellungsgruppen, sonst trägt jedes einen. Eine Sprachausgabe liest
+  dort einen Wert ohne die Grösse, zu der er gehört (§8.4). Es sind auch die
+  einzigen zwei `Slider` im ganzen Projekt.
+- **A1-2 — Das Symbol im Infobereich wird doppelt angesagt.** Der Name lautet
+  «nipp nipp — angemeldet»; `TrayIconHost.cs:346` setzt «nipp — angemeldet»,
+  und der Anzeigename kommt **vermutlich** von Windows davor — gemessen ist nur
+  das Ergebnis, nicht die Ursache.
+- **A1-3 — «Präsenz setzen» fehlt im Infobereich-Menü**, und damit ist
+  **Befund C8 aus `REVIEW-2026-09-12.md` am laufenden Programm bestätigt.**
+  Das Menü trägt: Öffnen · Stumm schalten · Wiedergabe · die Wahl des
+  Wiedergabegeräts · «Klingelton stumm für 30/60 Minuten» (ADR-055) · Beenden.
+  §10 verlangt die Präsenz; sie ist nicht da. Der Entscheid steht aus — bauen
+  oder aus §10 streichen.
+
+- **A1-4 — «Exit() ist zurückgekehrt, ohne den Prozess zu beenden» steht bei
+  jedem einzelnen Beenden da, und niemand hat hingesehen.** Der Kommentar in
+  `App.xaml.cs:1098` sagt über die Zeile danach: *«Hierher kommt niemand, und
+  genau das ist die Aussage.»* `Application.Exit()` verlässt die
+  Nachrichtenschleife des Hauptthreads und kehrt nicht zurück, **wenn es
+  wirkt**. In `%LOCALAPPDATA%\nipp\logs\beenden.txt` steht die Zeile
+  fünfmal — am 14.09. (zweimal), 15.09., 16.09. und 17.09.2026, jedes Mal 42
+  bis 77 ms nach «Dienste freigegeben, der Prozess endet jetzt regulär».
+  **Der Fehler vom 07. bis 12.09.2026, der als behoben gilt** (`docs/lehren.md`,
+  ADR zu `Application.Exit()` auf dem falschen Thread), **erfüllt damit weiter
+  seine eigene Anzeigebedingung.**
+  Was den Prozess dann beendet, ist **nicht gemessen**: der Drei-Sekunden-
+  Wächter kommt als Erklärung in Frage, seine Meldung («Beenden hat drei
+  Sekunden nicht genügt») steht aber in derselben Datei **nicht**. Es kann
+  ebenso das reguläre Auslaufen des Prozesses sein. Die beiden Messungen von
+  heute — **4,1 s** und **1,5 s** bis zum Prozessende — sprechen eher gegen
+  den Wächter, denn 1,5 s ist vor seinen drei.
+  **Nebenbefund im selben Pfad:** `AppLog.ExitForced` meldet «Beenden hat
+  **acht** Sekunden nicht genügt», der Wächter wartet aber **drei**
+  (`App.xaml.cs:1007`). Zwei Zahlen für dieselbe Sache, und die falsche steht
+  in der Meldung, die der Support zu sehen bekäme.
+- **A1-5 — Gruppen ohne Treffer verschwinden nicht.** T248 verlangt es; mit 40
+  Nebenstellen in vier Gruppen und einem Treffer in einer davon stehen die
+  drei anderen als «HRN (0)», «Hotline (0)», «Testgruppe (0)» weiter da,
+  jeweils mit einem echten Rechteck von 48 Pixeln Höhe. Die Zählzeile
+  («1 von 40 · Filter aufheben») und der Verweis selbst arbeiten richtig.
+  Nur wenn **gar keine** Nebenstelle passt, verschwinden alle Köpfe — der
+  Fall, den T250 abdeckt und der deshalb bestanden aussah.
+
+**Was die Runde sich selbst beigebracht hat:** **Wer `settings.json` bei
+laufendem nipp ändert, verliert die Änderung.** Beim Beenden schreibt nipp
+seinen Stand vollständig zurück — die vierzig Nebenstellen waren nach dem
+Neustart wieder zehn. Das gilt für jede Zeile, die eine Datei einspielt
+(T116, T168, T231, T258, T280): **erst beenden, dann schreiben, dann
+starten.** Dass Dominics eigene Konfiguration diesen Fehlgriff unbeschadet
+überstanden hat, war Glück und keine Vorsichtsmassnahme.
+
+**Am Werkzeug nachgerüstet**, weil ohne das rund zehn Zeilen nicht messbar
+waren: `Test-Ui.ps1` kann jetzt ein **zweites Fenster** ansprechen
+(`Get-NippWindow -Titel`, für den Karten-Designer), liefert je Element das
+**Rechteck** und ob es überhaupt dargestellt wird, kennt den
+**Skalierungsfaktor** (150 % auf dieser Maschine — jede Zahl der Matrix ist
+logisch gemeint) und kann das Fenster auf eine **logische Breite** ziehen.
+Dabei gemessen: ein Element, das gerade nicht dargestellt wird, liefert kein
+Rechteck, sondern `Rect.Empty` mit vier unendlichen Werten — ohne Prüfung
+wirft die Umwandlung, und zwar je Element einmal.
+
 ## A2 — Der Tag an der Anlage · 1 Tag · Test-Trunk
 
 **Nur der Test-Trunk auf der Test-PBX. Nie ein Kundentenant** (§13). Vorher

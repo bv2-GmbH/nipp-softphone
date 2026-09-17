@@ -387,6 +387,56 @@ Betroffen ist der **Rufton**, nicht das Gespräch. Das macht es klein — aber
 10.09.2026), und ein Puffer, der in dieser Phase zurückgesetzt wird, ist
 dort schon einmal teuer gewesen.
 
+### A8 — Das lange Gespräch · **gemessen am 17.09.2026**
+
+**Es hat niemand führen müssen — es stand schon im Protokoll.** Am 17.09.2026
+liegen elf Gespräche mit aufgebauter Audiokette im Tagesprotokoll, darunter
+eines über **30 Minuten** (14:53:59 bis 15:24:05) und drei weitere über zehn
+(13,8 / 11,7 / 11,0 Minuten). Alle **ohne** Rauschunterdrückung — die Kette
+beginnt durchgehend `MSWASAPIRead → MSResample`, ein `MSNoiseSuppressor` kommt
+in keiner Filterstatistik des Tages vor.
+
+Damit ist Punkt 1 aus «Der nächste Schritt» beantwortet: der Alltagsbeleg, der
+zweimal an 13 und 23 Sekunden gescheitert war.
+
+**Die Filterstatistik des 30-Minuten-Gesprächs** (14 168 Ticks):
+
+| Filter | mean | **max** |
+|---|---|---|
+| `MSResample` | 0,19 ms | 3,44 ms |
+| `MSRtpSend` | 0,10 ms | **9,37 ms** |
+| `MSRtpRecv` | 0,06 ms | 7,01 ms |
+| `MSWASAPIRead` | 0,04 ms | 2,02 ms |
+| `MSWASAPIWrite` | 0,02 ms | 2,85 ms |
+
+**Kein einziger Filter überzieht den 10-ms-Tick** — gegen 77,24 ms mit
+Rauschfilter. Das ist die Gegenprobe über eine Alltagslänge, und sie hält.
+
+**Und trotzdem stehen fünf Ticker-Verspätungen im Gespräch**, verteilt über die
+halbe Stunde: 14:57:20 (79 ms), 14:59:11 (62 ms), 14:59:17 (76 ms), 14:59:21
+(53 ms), 15:18:56 (73 ms).
+
+**Das ist neu, und es korrigiert die bisherige Lesart.** A6 hatte «0 Ticker-
+Verspätungen ohne Filter» gemessen — an einem Gespräch von 23 Sekunden. Über
+30 Minuten sind es fünf. Der Filter war also **die häufige Ursache, nicht die
+einzige**; ohne ihn wird es selten statt nie.
+
+**Woher sie dann kommen, ist nicht gemessen** — aber eine Zahl grenzt es ein:
+eine Verspätung von 79 ms entsteht in einer Kette, deren **teuerster Filter
+9,37 ms** braucht und deren Summe im Mittel unter 0,5 ms liegt. **Der Ticker
+wird also von aussen aufgehalten, nicht von der Arbeit, die er tut.**
+Was ihn aufhält — Zeitscheibe, Emulation, ein anderer Thread, die
+Speicherbereinigung —, sagt dieses Protokoll nicht. Es ist damit **derselbe
+Verdacht wie bei T38**, und dieselbe Zeile auf echter x64-Hardware beantwortet
+beide.
+
+**A7 zum vierten Mal, und wieder nur im Aufbau.** Die 15 `Could not get buffer`
+dieses Gesprächs stehen **alle in einer einzigen Millisekunde** (14:54:01,585
+und ,586), also zwei Sekunden nach dem Aufbau der Kette, dazu ein
+`cannot write output buffer` und ein Puffer-Reset. **Danach 30 Minuten lang
+nichts.** Die Reihe steht jetzt bei 13 / 2 / 14 / **15** — unabhängig vom
+Filter, unabhängig von der Gesprächslänge, immer im Early Media.
+
 ### A5 — Intern gegen extern
 
 Ein internes Gespräch (G.722 oder Opus, 16/48 kHz) unmittelbar gegen ein
@@ -512,9 +562,11 @@ Neue Zeilen ab **T304** (T303 ist die höchste vergebene):
 Fehlersuche mehr, sondern eine **Entscheidung** — und drei Messungen, die sie
 tragen müssen:
 
-1. **Ein langes Gespräch ohne den Filter.** 23 Sekunden belegen den Vergleich
-   mit den 22 Sekunden vom Vormittag, nicht den Alltag. Kostet nichts: der
-   Filter ist ohnehin aus.
+1. ~~**Ein langes Gespräch ohne den Filter.**~~ **Erledigt am 17.09.2026, siehe
+   A8** — und zwar aus dem Protokoll eines Tages, an dem ohnehin telefoniert
+   wurde: 30 Minuten, kein Filter über dem Tick. **Mit einem Nachtrag, der die
+   Lesart ändert:** fünf Ticker-Verspätungen sind trotzdem da. Der Filter war
+   die häufige Ursache, nicht die einzige.
 2. **Die Senderichtung.** Jemanden fragen, ob es lauter im Hintergrund ist.
    Das ist der Preis, den niemand gemessen hat.
 3. **Die Filterstatistik auf echter x64-Hardware.** Ein Gespräch, eine Zeile

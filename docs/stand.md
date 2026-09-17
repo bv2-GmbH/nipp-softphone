@@ -13,6 +13,72 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**Stand 17.09.2026, abends.** 1252 Komponententests und 34 Architekturtests
+grün. **Die Schreibtisch-Runde A1 hat angefangen** — der Teil des Gerätetags,
+der weder Anlage noch Headset noch einen zweiten Rechner braucht.
+
+**Zuerst hat die Runde einen Befund über sich selbst hervorgebracht.**
+**Vierzehn Zeilen — T304 bis T317 — waren in zwei Plänen ausformuliert und nie
+in `docs/test-matrix.md` übertragen** (`AUDIOQUALITAET-PLAN.md` und
+`SHELL-IM-GESPRAECH-PLAN.md`). **T312 galt derweil als bestanden** — im Plan,
+nicht in der Matrix. Wer die Matrix abgearbeitet hätte, hätte das Gespräch im
+breiten Fenster nie geprüft. Sie stehen jetzt drin; die Zählung geht damit von
+252 von 282 auf **222 offen von 303**. Eine Zeile, die nur im Plan steht, ist
+keine Zeile.
+
+**Zehn Zeilen haben ein Ergebnis**, sieben davon heute gemessen: T134, T209,
+T215, T243, T247, T248, T250. **Fünf Befunde**, alle eingetragen und liegen
+gelassen, wie die Regel der Runde es verlangt — vollständig in
+`docs/plans/BEWEIS-PLAN.md` unter «Befunde aus A1».
+
+**Der unangenehme ist A1-4.** In `%LOCALAPPDATA%\nipp\logs\beenden.txt` steht
+bei **jedem** Beenden «Exit() ist zurückgekehrt, ohne den Prozess zu beenden»
+— fünfmal, vom 14. bis zum 17.09.2026. Der Kommentar über der Zeile sagt:
+*«Hierher kommt niemand, und genau das ist die Aussage.»* `Application.Exit()`
+kehrt nicht zurück, wenn es wirkt. **Der Fehler vom 07. bis 12.09.2026, der
+als behoben gilt, erfüllt weiter seine eigene Anzeigebedingung** — und
+niemand hat die Datei je angesehen, obwohl sie genau dafür geschrieben wurde.
+Was den Prozess dann beendet, ist **nicht gemessen**: der Drei-Sekunden-
+Wächter käme in Frage, aber seine Meldung fehlt in derselben Datei, und einmal
+war der Prozess schon nach 1,5 Sekunden weg.
+
+Die übrigen vier: die beiden Schieberegler der Audio-Gruppe haben **keinen
+vorlesbaren Namen** (die einzigen zwei bedienbaren Elemente ohne, über alle
+Reiter und alle sieben Gruppen geprüft); das Infobereich-Symbol wird als
+«nipp nipp — angemeldet» **doppelt angesagt**; **«Präsenz setzen» fehlt** im
+Infobereich-Menü, womit Befund C8 des Reviews am laufenden Programm bestätigt
+ist; und **leere Gruppen verschwinden beim Filtern nicht** — bei einem Treffer
+in einer von vier Gruppen stehen die anderen drei als «(0)» da, je 48 Pixel
+hoch, obwohl T248 das Gegenteil verlangt.
+
+**Und das lange Gespräch aus dem Audioplan stand längst im Protokoll.** Am
+17.09.2026 liegen elf Gespräche im Tagesprotokoll, darunter eines über **30
+Minuten**, alle ohne Rauschfilter — der Alltagsbeleg, an dem A6 zweimal
+gescheitert war (13 und 23 Sekunden). **Kein Filter überzieht den 10-ms-Tick**
+(teuerster `MSRtpSend`, max 9,37 ms gegen 77,24 mit Filter). **Aber fünf
+Ticker-Verspätungen stehen trotzdem drin**, 53 bis 79 ms über die halbe
+Stunde: der Rauschfilter war die **häufige** Ursache, nicht die einzige. Eine
+Verspätung von 79 ms in einer Kette, deren teuerster Schritt 9,37 ms braucht,
+kommt nicht aus der Rechenarbeit — **derselbe Verdacht wie bei T38**, und
+dieselbe Zeile auf echter x64-Hardware beantwortet beide. A7 steht damit bei
+13 / 2 / 14 / **15**, immer im Early Media, danach 30 Minuten sauber.
+
+**Was die Runde sich selbst beigebracht hat:** wer `settings.json` bei
+laufendem nipp ändert, verliert die Änderung — beim Beenden schreibt nipp
+seinen Stand vollständig zurück. Vierzig von Hand eingetragene Nebenstellen
+waren nach dem Neustart wieder zehn.
+
+**Was am Gerät aussteht:** rund 95 der S-Zeilen. Zwei Aufbauten liegen fertig
+bereit und sind noch ungenutzt — eine lokale REST-Attrappe (T43, T44, T45) und
+ein Provisionierungs-Server samt Profilen (T29, T30, T31, T167, T245, T257,
+T258). Dabei sind schon zwei Befunde abgefallen, ohne dass eine Zeile lief:
+**`nippprov show` aus T167 gibt es nicht** (das Werkzeug kennt `neu`,
+`pruefen`, `schema`), und das Keep-Alive-Feld trägt kein Schloss, weil ihm der
+`SettingPath` fehlt.
+
+---
+
+
 **Stand 16.09.2026, nachts.** Build ohne Warnungen, **1252 Komponententests**
 und **34 Architekturtests** grün. Zweig `main`, gepusht. **Release 0.9.12
 veröffentlicht** (Kanal `win-stable`, Delta von 0.9.11, unsigniert wie
