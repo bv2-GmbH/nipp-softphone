@@ -200,6 +200,37 @@ kaum prüfbar, weil es ohne Outlook fast keine lokalen Kontakte gibt (ADR-018).
 Gemessen ist die Nebenläufigkeit der beiden fremden Quellen, nicht das
 Verhältnis lokal gegen fremd.
 
+#### Die Designer-Runde, am selben Abend
+
+**Zehn Zeilen: T100, T103, T104, T106, T107, T119, T156, T157, T158, T283.**
+Acht bestanden, zwei mit einer offenen Hälfte. Damit stehen **80 S-Zeilen
+offen**, 201 insgesamt.
+
+**Der Karten-Designer trägt.** Das ist die Nachricht, und sie war nicht
+selbstverständlich: er ist der grösste Einzelteil, den niemand je systematisch
+geprüft hatte. Der Rückgängig-Stapel stimmt auf den Schritt genau — 55
+Eingaben, 50 Schritte zurück, fünf Stände aus dem Stapel gefallen, nichts
+abgestürzt. Die Mindestbreite greift für alle vier Kartenarten, die Palette
+liegt bei 1000 logischen Pixeln um zwölf Pixel über dem ersten Knopf statt
+darunter. Alle vier Löschwege entfernen denselben Baustein. Ein abbrechender
+Ausdruck sperrt das Speichern und nennt die Stelle; dieselbe Karte von Hand in
+die Datei geschrieben, und nipp nimmt die mitgelieferte und schreibt den Grund
+ins Protokoll. Und die Vorschau vergisst die echte Antwort beim Neustart, wie
+§21.2 es verlangt.
+
+**Was offen bleibt und warum:**
+
+- **T288** (Antwort über 8 KB) braucht eine Quelle, die eine grosse Antwort
+  liefert. Die Attrappe hat acht erfundene Kontakte und kommt nicht annähernd
+  hin; das ist ein eigener kleiner Aufbau. **Die halbe Erwartung ist trotzdem
+  gemessen** — die Statuszeile sagt «übernommen» und nicht «geantwortet»
+  (siehe T158).
+- **T108** (Quelle entfernen, neu anlegen, Token bleibt) braucht eine Quelle
+  **mit** Token. Die Attrappe hat bewusst keins (ADR-040), und die beiden
+  echten Quellen sind die des Arbeitsplatzes — daran wird nicht geübt.
+- **T102 und T105** sind `P`: sie brauchen einen echten Anruf.
+- Die zweite Hälfte von **T106** braucht einen echten Toast.
+
 ### Befunde aus A1
 
 Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
@@ -352,6 +383,47 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   **Für jeden weiteren Gerätetag:** wer ein Profil einspielt, sichert
   `secrets.dat` mit. `Sichern-Und-Zuruecksetzen.ps1` und seine LIESMICH gehören
   entsprechend ergänzt.
+
+- **A1-10 — Strg+Z und Strg+Y im Karten-Designer wirken genau einmal, dann
+  hängt der Fokus im Vorschaufeld.** Gemessen: drei Bausteine eingefügt, Fokus
+  nachweislich auf einer Zeile im Aufbau, dann dreimal Strg+Z hintereinander —
+  **ein** Schritt ging zurück, die anderen zwei taten nichts. Nach jedem
+  Tastendruck steht der Fokus auf «Rufnummer für die Vorschau», einem Textfeld,
+  und dort greifen die Kurzbefehle nicht mehr. Setzt man den Fokus von Hand
+  zurück in den Aufbau, wirkt der nächste Tastendruck wieder — auch das
+  gemessen, in beide Richtungen.
+  **Die Knöpfe «Rückgängig» und «Wiederholen» sind davon nicht betroffen** und
+  arbeiten über fünfzig Schritte tadellos (T103). Es geht allein um die
+  Tastatur, und die ist der Weg, den jemand benutzt, der gerade tippt.
+  **Vermutliche Ursache:** die beiden `KeyboardAccelerator` hängen am Grid
+  (`CardDesignerWindow.xaml`, Zeilen 30–39) und gelten damit nur, solange der
+  Fokus in ihrem Bereich liegt. Nach dem Rückgängigmachen wird der Aufbau neu
+  erzeugt, das fokussierte Element verschwindet, und WinUI vergibt den Fokus
+  weiter. **Gemessen ist der Fokussprung und seine Folge, nicht die Zuständigkeit
+  der Accelerators.**
+  **Nebenbefund an derselben Stelle:** der Knopf «Entfernen» im
+  Eigenschaftenbereich trägt **keinen** UIA-Namen — die Beschriftung liegt als
+  eigener Text darin. Dieselbe Sorte wie A1-1.
+
+- **A1-11 — Der Ausdruckstext einer ausgewählten Zeile im Karten-Designer hat
+  1,16:1 Kontrast, und zwar in beiden Themen.** Gemessen an den Pixeln des
+  laufenden Programms, nach der Formel aus `ThemedBrushTests`:
+
+  | | Beschriftung | Ausdruck darunter |
+  |---|---|---|
+  | **dunkel** | schwarz auf `#4CC2FF` — **10,47:1** | `#C5C5C5` auf `#4CC2FF` — **1,16:1** |
+  | **hell** | weiss auf `#0067C0` — **5,67:1** | `#5D5D5D` auf `#0067C0` — **1,16:1** |
+
+  Die Beschriftung schaltet also korrekt auf die Akzentfläche um, **die zweite
+  Zeile nicht**: sie behält ihre Sekundärfarbe aus dem Thema. Verlangt sind
+  4,5:1 für Schrift.
+  **Das ist ADR-044 wörtlich, an einer neuen Stelle:** «Als Fläche erbt der Text
+  seine Farbe vom Thema und stand im Dunkeln fast weiss auf `#FCE100` — rund
+  1,4:1.» Dort war es ein Statuston, hier die Auswahlfarbe einer Liste; der
+  Mechanismus ist derselbe, und die Zahl ist sogar schlechter.
+  **Warum es zählt:** der Ausdruck ist die einzige Stelle, an der dasteht, was
+  eine Zeile **tut** — und lesbar ist er genau dann nicht, wenn man sie
+  bearbeitet.
 
 **Was die Runde sich selbst beigebracht hat:** **Wer `settings.json` bei
 laufendem nipp ändert, verliert die Änderung.** Beim Beenden schreibt nipp

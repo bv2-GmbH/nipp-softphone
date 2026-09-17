@@ -19,9 +19,40 @@ grün — **lokal.** Die CI ist es nicht, und das ist der erste Punkt.
 ## Zwei Aufbauten abgearbeitet — elf Zeilen, vier neue Befunde
 
 Am Abend des 17.09.2026 sind die beiden Aufbauten, die seit dem Nachmittag
-fertig danebenlagen, benutzt worden: der Provisionierungsserver und die lokale
-REST-Attrappe. **Elf Zeilen haben ein Ergebnis, acht bestanden, drei
-teilweise.** Offen sind damit **211 von 303**, davon 90 am Schreibtisch.
+fertig danebenlagen, benutzt worden — der Provisionierungsserver und die lokale
+REST-Attrappe —, und daran anschliessend der Karten-Designer.
+**Einundzwanzig Zeilen haben ein Ergebnis, sechzehn bestanden, fünf
+teilweise.** Offen sind damit **201 von 303**, davon 80 am Schreibtisch.
+
+## Der Karten-Designer trägt
+
+**Zehn Zeilen: T100, T103, T104, T106, T107, T119, T156, T157, T158, T283.**
+Das war nicht selbstverständlich — er ist der grösste Einzelteil, den niemand
+je systematisch geprüft hatte, und sein Zustand liegt seit ADR-046 im Kern,
+weil `Nipp.App` kein Testprojekt hat.
+
+Der Rückgängig-Stapel stimmt auf den Schritt genau: 55 Eingaben, 50 Schritte
+zurück, die fünf ältesten Stände aus dem Stapel gefallen, nichts abgestürzt.
+Die Mindestbreite von 1000 logischen Pixeln greift für alle vier Kartenarten,
+und die Palette liegt dort **über** dem ersten Knopf statt darunter. Alle vier
+Löschwege entfernen denselben Baustein. Ein abbrechender Ausdruck sperrt das
+Speichern und nennt die Stelle; dieselbe Karte von Hand in die Datei
+geschrieben, und nipp nimmt die mitgelieferte und schreibt den Grund ins
+Protokoll. Die Vorschau vergisst die echte Antwort beim Neustart (§21.2). Und
+mit offenem Designer folgt das **Hauptfenster** einem Themenwechsel — die
+Stelle, an der `ThemeService` sein Wurzelelement hätte verlieren können.
+
+**Zwei Befunde daraus:**
+
+- **A1-10 — Strg+Z und Strg+Y wirken genau einmal.** Jeder Tastendruck wirft
+  den Fokus in das Vorschau-Textfeld, und dort greifen die Kurzbefehle nicht
+  mehr: dreimal Strg+Z hintereinander nahm **einen** Schritt zurück. Die
+  Knöpfe sind davon nicht betroffen.
+- **A1-11 — 1,16:1 Kontrast, in beiden Themen.** Der Ausdruckstext einer
+  ausgewählten Zeile behält seine Sekundärfarbe, während die Beschriftung
+  daneben korrekt auf die Akzentfläche umschaltet (10,47:1 dunkel, 5,67:1
+  hell). Das ist ADR-044 wörtlich an einer neuen Stelle — und die Zahl ist
+  schlechter als die 1,4:1, die damals den Anlass gaben.
 
 ## Die Attrappenrunde — was trägt und was nicht
 
