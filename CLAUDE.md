@@ -15,7 +15,7 @@ lesbar bleiben.
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
-| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 läuft seit dem 17.09.2026**; dort stehen auch die Befunde daraus und die Einordnung aller S-Zeilen. Gezählt: **190 offen von 303** |
+| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 läuft seit dem 17.09.2026** und hat an fünf Runden 32 Zeilen abgenommen; dort stehen die **zwölf Befunde A1-1 bis A1-12** und die Einordnung aller S-Zeilen. Gezählt: **190 offen von 303**, davon 69 am Schreibtisch. **Die Befunde sind absichtlich unbehoben** — repariert wird gesammelt, wenn A1 durch ist, sonst prüft die halbe Runde gegen einen anderen Build als die andere |
 | Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
 | Pläne und Reviews | `docs/plans/` — zwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind fünf:** `BEWEIS-PLAN.md` (A1 läuft), `ZIEHVORSCHAU-PLAN.md` (V8: T292–T296 sind bestanden, **offen bleiben der Zug auf einen Gruppenkopf und hell bei 150 %**), `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5 und T300), `AUDIOQUALITAET-PLAN.md` (**das lange Gespräch ist beantwortet, A8** — offen bleiben A7, die Senderichtung und T38) und `SHELL-IM-GESPRAECH-PLAN.md` (offen: T313–T317). Der Rest ist abgeschlossen |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
@@ -108,6 +108,13 @@ lesbar bleiben.
   Fläche erbt der Text seine Farbe vom Thema und stand im Dunkeln fast weiss
   auf `#FCE100` — rund 1,4:1. Als Vordergrund sind dieselben Pinsel in beiden
   Themen geprüft.
+  **Dasselbe gilt für jede Akzentfläche, auf der Text steht** — auch für die
+  Auswahlfarbe einer Liste. Am 17.09.2026 an den Pixeln gemessen (Befund
+  A1-11): auf einer ausgewählten Zeile des Karten-Designers schaltet die
+  Beschriftung korrekt um (10,47:1 dunkel, 5,67:1 hell), **die Zeile darunter
+  nicht** — sie behält ihre Sekundärfarbe und steht bei **1,16:1**, in beiden
+  Themen. Wer einen zweiten Text auf eine Auswahlfläche setzt, gibt ihm einen
+  eigenen Pinsel, der mitschaltet.
 - **Der Detailbereich der Kontakte steht an einer Stelle** — seit ADR-048 **in
   der Zeile**, für alle drei Listen gleich. Der Ort hat dreimal gewechselt
   (ADR-041 unten, ADR-042 in der Zeile nur fürs Team, ADR-046 wieder unten);
@@ -301,6 +308,13 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   dargestellt wird, und zieht das Fenster auf eine **logische** Breite
   (`Set-NippWindowSize`). **Die Rechtecke sind physisch, die Matrix ist
   logisch** — `Get-NippSkalierung` nennt den Faktor (hier 150 %).
+  **Wer einen Wert über die Oberfläche setzt und gleich danach die Datei liest,
+  misst den alten Stand** (Befund A1-7, 17.09.2026). Neun Felder der
+  Einstellungen stehen in `ErstBeimVerlassen` und kommen beim Verlassen des
+  Feldes **nicht** in `settings.json` — bei einer `NumberBox` erst bei einem
+  späteren Anlass oder beim Beenden, bei einem Textfeld **gar nicht**. Also:
+  das Feld selbst ablesen, nicht die Datei, und einen Datei-Befund erst
+  melden, wenn das Feld dasselbe sagt.
 - **nipp beenden, dann die Datei schreiben, dann starten** — in dieser
   Reihenfolge. **nipp schreibt `settings.json` beim Beenden vollständig
   zurück**, und eine Änderung an der laufenden Datei ist danach weg
@@ -308,7 +322,22 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   nach dem Neustart wieder zehn). Das gilt für jede Prüfung, die eine
   Konfiguration einspielt. Sauber beendet wird über das Infobereich-Menü,
   nicht über `Stop-Process`; das Symbol ist über UI Automation erreichbar
-  (`Shell_TrayWnd`, Button `nipp nipp — angemeldet`).
+  (`Shell_TrayWnd`, Button `nipp nipp — angemeldet`) — **der Name fängt mit
+  `nipp nipp` an**, ein `-like 'nipp*'` erwischt zuerst das angeheftete
+  Taskleistensymbol.
+- **Wer ein Provisionierungsprofil einspielt, sichert die Geheimnisdatei mit**
+  (Befund A1-9). Ein Profil mit `<accounts>` **ersetzt die Kontenliste und
+  nimmt die gespeicherten Passwörter mit**; `settings.json` zurückzuspielen
+  holt sie nicht zurück, und nipp meldet danach «Zugangsdaten abgelehnt». Am
+  17.09.2026 hat das eine Anmeldung gekostet. Die Datei liegt neben
+  `history.db` unter `%LOCALAPPDATA%`.
+- **Die Aufbauten für den Gerätetag liegen neben dem Repo**, nicht darin:
+  `C:\dev_claude\nipp-testaufbauten\` — ein Provisionierungsserver mit fünf
+  Profilen, eine lokale REST-Attrappe (schnell, langsam, tot) und die
+  Sicherungen der jeweils angefassten Dateien. Jeder Aufbau hat eine
+  `LIESMICH.md`, die sagt, welche Zeile womit geprüft wird. **Vor dem
+  Neubauen dort nachsehen** — die Rüstzeit ist der eigentliche Aufwand des
+  Gerätetags, und sie ist für diese beiden schon bezahlt.
 - MSIX (nicht ausgeliefert, wartet auf T110 und AP9.2): docs/packaging.md
 
 Nie ein blankes `dotnet build` — siehe „Bauen auf dieser Maschine".
