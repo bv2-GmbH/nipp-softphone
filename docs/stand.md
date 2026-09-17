@@ -14,8 +14,44 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 
 
 **Stand 17.09.2026, abends.** 1252 Komponententests und 34 Architekturtests
-grün. **Die Schreibtisch-Runde A1 hat angefangen** — der Teil des Gerätetags,
-der weder Anlage noch Headset noch einen zweiten Rechner braucht.
+grün — **lokal.** Die CI ist es nicht, und das ist der erste Punkt.
+
+## Die CI im öffentlichen Repo hat nie grün gebaut
+
+**Alle 17 Läufe seit dem ersten Commit am 14.09.2026 sind rot**, und jeder
+scheitert an derselben Stelle: der Prüfsumme des Linphone-SDK.
+
+**Gemessen am 17.09.2026:** Unter der URL aus `docs/sdk-setup.md` liegt eine
+**andere Datei** als die, mit der hier gebaut wird — dieselbe Adresse,
+dieselbe Versionsnummer **5.5.18**, aber `Last-Modified: 07.09.2026 20:19
+GMT` und **313 666 099 Bytes** gegen die 313 467 757 der Fassung vom
+04.09.2026. **198 342 Bytes Unterschied**, `Content-Type: application/zip` —
+also **keine Fehlerseite, sondern ein stilles Neuablegen desselben Release.**
+Das lokale ZIP trägt weiterhin genau den Wert, der in `ci.yml`, `release.yml`
+und `docs/sdk-setup.md` steht.
+
+**Was daran zählt, ist nicht der rote Haken.** Erstens: `PublicRepositoryTests`
+ist laut `CLAUDE.md` «ab jetzt kein Formalismus mehr, sondern die letzte
+Kontrolle vor der Öffentlichkeit» — und sie **läuft in der CI nie**, weil der
+Build vorher abbricht. Seit dem Repo-Wechsel hat sie nur noch lokal gegriffen.
+Zweitens: `release.yml` trägt dieselbe Prüfsumme, **ein Release über GitHub
+Actions würde genauso scheitern.**
+
+**Die Prüfsumme einfach auf den neuen Wert zu setzen, wäre die falsche
+Antwort** — sie ist die Kontrolle, die verhindert, dass ein unbesehen
+verändertes SDK in den Build kommt, und dieselbe Überlegung wie in ADR-040
+(«Was in einer fremden Datei steht, hat niemand geprüft»). Zwei Wege stehen
+zur Wahl, und die Entscheidung ist offen: **(a)** das neue ZIP holen, den
+Unterschied zur Fassung vom 04.09. ansehen und ihn bewusst übernehmen — dann
+bauen CI und Arbeitsplatz wieder dasselbe; **(b)** das geprüfte ZIP unter
+eigene Kontrolle bringen (eigenes Release-Asset), womit ADR-005 zu Ende
+gedacht wäre: dort steht schon, dass der Feed des Herstellers unzuverlässig
+ist.
+
+## Die Schreibtisch-Runde A1 hat angefangen
+
+Der Teil des Gerätetags, der weder Anlage noch Headset noch einen zweiten
+Rechner braucht.
 
 **Zuerst hat die Runde einen Befund über sich selbst hervorgebracht.**
 **Vierzehn Zeilen — T304 bis T317 — waren in zwei Plänen ausformuliert und nie
