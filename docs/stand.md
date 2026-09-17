@@ -21,8 +21,30 @@ grün — **lokal.** Die CI ist es nicht, und das ist der erste Punkt.
 Am Abend des 17.09.2026 sind die beiden Aufbauten, die seit dem Nachmittag
 fertig danebenlagen, benutzt worden — der Provisionierungsserver und die lokale
 REST-Attrappe —, und daran anschliessend der Karten-Designer.
-**Siebenundzwanzig Zeilen haben ein Ergebnis, zweiundzwanzig bestanden, fünf
-teilweise.** Offen sind damit **195 von 303**, davon 74 am Schreibtisch.
+**Zweiunddreissig Zeilen haben ein Ergebnis.** Offen sind damit **190 von
+303**, davon 69 am Schreibtisch.
+
+## Die Tastaturrunde findet die Wurzel von A1-7
+
+**T190, T191, T233, T237, T239.** Der Fokus bleibt beim Tippen auf der
+Wähltastatur, Escape und Alt+Links navigieren zurück, «Abbrechen» trägt in den
+destruktiven Dialogen den Fokus und Enter wählt ihn, und die Nummernknöpfe
+sagen die Art der Nummer statt nur die Ziffern.
+
+**Zwei Dinge halten nicht, und sie hängen zusammen:**
+
+- **A1-12 (neu):** nach einem **Mausklick** auf die Wähltastatur bleibt der
+  Fokus auf dem Knopf, und die nächste getippte Ziffer geht verloren. Die
+  Tastaturseite derselben Regel ist in Ordnung — die Korrektur vom 12.09.2026
+  hält. Der Kommentar über der Stelle behauptet allerdings, mit der Maus sei
+  der Rücksprung «richtig»; das ist die Absicht, nicht das Verhalten.
+- **A1-7 ist grösser als gedacht.** Der STUN-Server kommt beim Verlassen des
+  Feldes nicht an — **und auch beim Beenden nicht**. Damit ist die Vermutung
+  widerlegt, es gehe nur um `NumberBox`-Felder: betroffen sind **alle neun**
+  aus `ErstBeimVerlassen` (SIP-Port, Keep-Alive, STUN, Landesvorwahl,
+  Aufnahmeordner, Aufbewahrungsdauer, beide Tastenkürzel, Provisioning-Adresse),
+  und genau diese Felder sind vom automatischen Speichern ausgenommen. Läuft
+  `ApplyEdits` zu früh, gibt es keinen zweiten Weg auf die Platte.
 
 ## Und das Layout im breiten Fenster hält ebenfalls
 

@@ -277,6 +277,46 @@ ist ein `InputSiteWindowClass`-Pane von WinUI über den ganzen Bildschirm, kein
 Bedienelement der App. **Das ist die Gegenprobe, die A1-1 und der namenlose
 «Entfernen»-Knopf aus T157 bestanden haben und dieses hier nicht.**
 
+#### Die Tastaturrunde
+
+**Fünf Zeilen: T190, T191, T233, T237, T239.** Eine bestanden, vier mit einer
+Hälfte, die hält, und einer, die nicht herstellbar war oder durchfällt. Damit
+stehen **69 S-Zeilen offen**, 190 insgesamt.
+
+**Was hält:** der Fokus bleibt beim Tippen auf der Wähltastatur (T190, erste
+Hälfte). Escape und Alt+Links navigieren von der Einstellungsseite zurück
+(T233). «Abbrechen» trägt in den destruktiven Dialogen den Tastaturfokus, und
+Enter wählt ihn — an zwei Dialogen belegt (T191). Die Nummernknöpfe sagen die
+**Art** der Nummer, nicht nur die Ziffern, und zwar in Zeile und Kachel gleich
+(T239).
+
+**Was nicht hält, ist zweimal dieselbe Wurzel:**
+
+- **A1-12** (neu): nach einem Mausklick auf die Wähltastatur geht die nächste
+  getippte Ziffer verloren.
+- **A1-7** (erweitert): der STUN-Server kommt beim Verlassen des Feldes nicht
+  an — **und auch beim Beenden nicht**. Damit ist die Vermutung widerlegt, der
+  Befund betreffe nur `NumberBox`-Felder; es sind **alle neun** aus
+  `ErstBeimVerlassen`, und sie haben keinen zweiten Weg auf die Platte.
+
+**Was mit diesen Mitteln nicht zu prüfen war, und warum:**
+
+- **T237, erste Hälfte:** das Kürzelfeld nimmt nur einen **echten**
+  Tastendruck; `SendKeys` lässt es leer, und ein über `ValuePattern` gesetzter
+  Wert wird beim «Übernehmen» nicht gelesen. Das ist die Warnung «Setzen ist
+  nicht Tippen» in Reinform.
+- **T191, zwei der vier Dialoge:** «Quelle entfernen» hätte an den echten
+  Quellen des Arbeitsplatzes geübt, «Vorlage ersetzen» braucht einen Import.
+- **T239, zwei der vier Orte:** ein Flyout «+1 Nummer» und ein Menü bei
+  mehreren Nummern gibt es in dieser Konfiguration nicht — stehen zwei Nummern
+  an einem Kontakt, sind beide direkt als Knöpfe da.
+
+**Und ein Hinweis an den Arbeitsplatz, der keine Sache von nipp ist:** eine der
+eingetragenen Mobilnummern ist **eine Ziffer zu kurz**. Sie erscheint deshalb
+unformatiert, während die anderen gruppiert stehen — nipp formatiert nur, was
+es als gültige Nummer erkennt. Der Knopf bleibt trotzdem wählbar, und der
+Hinweis darauf ist sehr leise.
+
 ### Befunde aus A1
 
 Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
@@ -377,10 +417,20 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   überträgt ihren getippten Text aber erst mit `LostFocus` in `Value` und damit
   in die Bindung. `ApplyEdits` liest dann noch den alten Stand. Gemessen ist die
   Wirkung und die Code-Stelle, **nicht die Ereignisreihenfolge**.
-  **Tragweite: vier Felder**, alle `NumberBox` — «Dauer der Anmeldung
-  (Sekunden)», «Anrufliste aufbewahren (Tage)», «SIP-Port» und «Keep-Alive».
-  Bei Freitextfeldern stellt sich die Frage nicht, dort steht der Text schon
-  während des Tippens in der Bindung.
+  **Tragweite: neun Felder — alle, die in `ErstBeimVerlassen` stehen.** Der
+  erste Befund nannte vier `NumberBox`-Felder und vermutete, Freitextfelder
+  seien nicht betroffen, weil ihr Text schon während des Tippens in der Bindung
+  stehe. **Das ist am 17.09.2026 abends widerlegt worden** (T233): in
+  «STUN-Server» getippt, Feld zeigt den Text, dann Escape — und der Wert steht
+  danach **nirgends**: nicht in der Datei, nicht nach dem Zu- und Aufklappen der
+  Gruppe, **nicht einmal nach dem Beenden**. Mit Tab statt Escape dasselbe.
+  **Beim Textfeld ist es also schlimmer als bei der Zahl:** dort kam der Wert
+  wenigstens beim Beenden an. Die Liste umfasst `SipPort`, `KeepAliveSeconds`,
+  `StunServer`, `CountryPrefix`, `RecordingDirectory`, `HistoryRetentionDays`,
+  `GlobalHotkey`, `MuteHotkey` und `ProvisioningUri`
+  (`SettingsViewModel.cs:93`) — und **genau diese Felder sind vom automatischen
+  Speichern ausgenommen** (ebenda, Zeile 400), werden also allein über
+  `ApplyEdits` geschrieben. Läuft das zu früh, gibt es keinen zweiten Weg.
   **Und eine Warnung für jede weitere Messung am Gerät:** wer einen Wert über
   die Oberfläche setzt und gleich danach die Datei liest, misst den alten Wert
   und hält ihn für einen Fehlschlag. So ist dieser Befund entstanden.
@@ -470,6 +520,25 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   **Warum es zählt:** der Ausdruck ist die einzige Stelle, an der dasteht, was
   eine Zeile **tut** — und lesbar ist er genau dann nicht, wenn man sie
   bearbeitet.
+
+- **A1-12 — Nach einem Mausklick auf die Wähltastatur bleibt der Fokus auf dem
+  Knopf, und die nächste getippte Ziffer geht verloren.** Gemessen: Fokus im
+  Nummernfeld, echter Mausklick auf die «5» — danach liegt der Fokus auf «Fünf
+  J K L», nicht im Feld. Eine anschliessend getippte «7» landet **nirgends**;
+  das Nummernfeld bleibt stehen.
+  **Die Tastaturseite derselben Regel ist in Ordnung** (T190, erste Hälfte): mit
+  Tab auf «Eins», dreimal Leertaste, und der Fokus bleibt — das war die
+  Korrektur vom 12.09.2026, und sie hält.
+  **Die Ursache ist hier nicht Vermutung, sondern Schluss aus der Messung.**
+  `OnKeypadKeyPressed` (`ShellPage.xaml.cs:611`) prüft, ob der Fokus schon auf
+  der Tastatur liegt, und springt nur dann **nicht** ins Feld zurück. Da der
+  Fokus nach dem Mausklick nachweislich auf dem Knopf steht und der Rücksprung
+  ausblieb, war diese Prüfung auch bei der Maus wahr: **Windows setzt den Fokus
+  auf den Knopf, bevor `Click` feuert.**
+  **Und der Kommentar darüber behauptet das Gegenteil:** «Mit Maus und Finger
+  ist der Rücksprung dagegen richtig — dort will man nach dem Tippen im Feld
+  stehen.» Er beschreibt die Absicht, nicht das Verhalten. Das ist dieselbe
+  Sorte Satz wie in Befund A8 der Welle 2.7, zum vierten Mal.
 
 **Was die Runde sich selbst beigebracht hat:** **Wer `settings.json` bei
 laufendem nipp ändert, verliert die Änderung.** Beim Beenden schreibt nipp
