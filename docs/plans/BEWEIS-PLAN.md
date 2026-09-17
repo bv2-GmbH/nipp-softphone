@@ -337,8 +337,14 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   **Befund C8 aus `REVIEW-2026-09-12.md` am laufenden Programm bestätigt.**
   Das Menü trägt: Öffnen · Stumm schalten · Wiedergabe · die Wahl des
   Wiedergabegeräts · «Klingelton stumm für 30/60 Minuten» (ADR-055) · Beenden.
-  §10 verlangt die Präsenz; sie ist nicht da. Der Entscheid steht aus — bauen
-  oder aus §10 streichen.
+  §10 verlangte die Präsenz; sie ist nicht da.
+  **Erledigt am 17.09.2026, ohne eine Zeile Code: Dominic hat gestrichen.**
+  ADR-055 hatte «Nicht stören» schon am 13.09.2026 als stummen Klingelton auf
+  Zeit entschieden und §10 für «erfüllt in der kleinen Fassung» erklärt — nur
+  stand in §10 weiter der alte Wortlaut, und deshalb ist dieser Befund
+  überhaupt entstanden. Jetzt steht dort, was das Menü wirklich trägt; C8 ist
+  mitgeschlossen. **Die Lehre steht im Nachtrag zu ADR-055:** wer eine
+  Fähigkeit streicht, streicht sie in der Spezifikation, nicht nur im ADR.
 
 - **A1-4 — «Exit() ist zurückgekehrt, ohne den Prozess zu beenden» steht bei
   jedem einzelnen Beenden da, und niemand hat hingesehen.** Der Kommentar in

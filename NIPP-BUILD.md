@@ -493,7 +493,7 @@ DTMF-Modus: RFC 2833 (Standard) / SIP INFO / Inband → `Core.Rfc2833DtmfsEnable
 | Single-Instance | `AppInstance.FindOrRegisterForKey`, Weiterleitung der Aktivierungsargumente an die laufende Instanz |
 | Protokoll-Handler | `tel:`, `sip:`, `callto:` per MSIX-Manifest; bei unpackaged Build über HKCU-Registry. Aktivierung mit URI → direkt wählen, keine Rückfrage |
 | Autostart | MSIX `StartupTask`; unpackaged über `HKCU\...\Run` |
-| Infobereich | `H.NotifyIcon.WinUI` mit Kontextmenü: Öffnen, Präsenz setzen, Stumm, Beenden. Schliessen des Fensters beendet die App nicht |
+| Infobereich | `H.NotifyIcon.WinUI` mit Kontextmenü: Öffnen, Stumm, Wiedergabegerät, «Klingelton stumm für 30/60 Minuten», Beenden. Schliessen des Fensters beendet die App nicht. **«Präsenz setzen» ist am 17.09.2026 gestrichen worden** — entschieden in ADR-055, dort steht der Grund |
 | Toasts | `AppNotificationManager` mit Buttons und Aktivierungs-Argumenten |
 | Globaler Hotkey | `RegisterHotKey` per P/Invoke auf einem versteckten Fenster; Konflikte abfangen und melden |
 | Zugangsdaten | DPAPI (`ProtectedData`, CurrentUser-Scope), Datei unter `%LOCALAPPDATA%`; **niemals Klartext in `linphonerc`** — wenn möglich HA1 statt Passwort ablegen |

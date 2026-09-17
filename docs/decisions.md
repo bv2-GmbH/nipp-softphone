@@ -1147,6 +1147,27 @@ liefe er auseinander, sobald jemand den Klingelton wechselt.
   Klingelton erzeugt.
 - **Am Gerät abzunehmen: T274.**
 
+**Nachtrag vom 17.09.2026 — die Spezifikation zieht nach.** Dieser Entscheid
+liess §10 stehen, wie er war, und erklärte ihn für «erfüllt in der kleinen
+Fassung». Das hat vier Tage später Arbeit gekostet: die Schreibtisch-Runde A1
+hat das Infobereich-Menü am laufenden Programm durchgegangen, «Präsenz setzen»
+nicht gefunden und es als **Befund A1-3** eingetragen — mit dem Vermerk, C8 aus
+`REVIEW-2026-09-12.md` sei damit am Programm bestätigt. Beides stimmte, und
+beides war überflüssig: die Entscheidung stand längst hier, nur nicht dort, wo
+jemand nachsieht.
+
+**Dominic hat am 17.09.2026 gestrichen.** In §10 steht jetzt, was das Menü
+wirklich trägt — Öffnen, Stumm, Wiedergabegerät, «Klingelton stumm für 30/60
+Minuten», Beenden —, und daneben der Verweis hierher. **C8 und A1-3 sind damit
+geschlossen**, ohne dass eine Zeile Code entstanden ist.
+
+**Die Lehre ist nicht neu, aber hier steht sie mit einem Preis:** ein ADR, der
+eine Vorgabe für «im Geiste erfüllt» erklärt, statt sie zu ändern, lässt die
+Vorgabe als offenen Punkt stehen. Wer danach prüft, prüft gegen den alten Text
+und meldet einen Fehlschlag, der keiner ist — dieselbe Sorte wie die vier
+Mailbox-Zeilen aus A0. **Wer eine Fähigkeit streicht, streicht sie in der
+Spezifikation, nicht nur im ADR.**
+
 ---
 
 ## ADR-054 — Der Benutzer gewinnt, und die Einstellungen wissen, was er angefasst hat
