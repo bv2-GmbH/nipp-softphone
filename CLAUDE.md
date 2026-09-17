@@ -15,7 +15,7 @@ lesbar bleiben.
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
-| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 läuft seit dem 17.09.2026** und hat an fünf Runden 32 Zeilen abgenommen; dort stehen die **zwölf Befunde A1-1 bis A1-12** und die Einordnung aller S-Zeilen. Gezählt: **190 offen von 303**, davon 69 am Schreibtisch. **Die Befunde sind absichtlich unbehoben** — repariert wird gesammelt, wenn A1 durch ist, sonst prüft die halbe Runde gegen einen anderen Build als die andere |
+| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 läuft seit dem 17.09.2026** und hat an fünf Runden 32 Zeilen abgenommen; dort stehen die Befunde A1-1 bis A1-12 — **elf davon offen**, A1-3 ist am 17.09.2026 mit der Streichung in §10 erledigt (ADR-055, Nachtrag) — und die Einordnung aller S-Zeilen. Gezählt: **190 offen von 303**, davon 69 am Schreibtisch. **Die Befunde sind absichtlich unbehoben** — repariert wird gesammelt, wenn A1 durch ist, sonst prüft die halbe Runde gegen einen anderen Build als die andere |
 | Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
 | Pläne und Reviews | `docs/plans/` — zwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind fünf:** `BEWEIS-PLAN.md` (A1 läuft), `ZIEHVORSCHAU-PLAN.md` (V8: T292–T296 sind bestanden, **offen bleiben der Zug auf einen Gruppenkopf und hell bei 150 %**), `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5 und T300), `AUDIOQUALITAET-PLAN.md` (**das lange Gespräch ist beantwortet, A8** — offen bleiben A7, die Senderichtung und T38) und `SHELL-IM-GESPRAECH-PLAN.md` (offen: T313–T317). Der Rest ist abgeschlossen |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
@@ -448,20 +448,27 @@ Nie ein blankes `dotnet build` — siehe „Bauen auf dieser Maschine".
 
 ## SDK beschaffen (nach einem frischen Klon nötig)
 Das Linphone SDK liegt **nicht im Repo** (299 MB, gitignoriert). Der
-GitLab-NuGet-Feed ist unzuverlässig (ADR-005) — deshalb das Prebuilt-ZIP:
+GitLab-NuGet-Feed ist unzuverlässig (ADR-005) — deshalb das Prebuilt-ZIP, und
+seit dem 17.09.2026 **aus dem eigenen Abhängigkeits-Repo** (ADR-069):
 
-    https://download.linphone.org/releases/windows/sdk/linphone-sdk-win64-5.5.18.zip
+    https://github.com/bv2-GmbH/nipp-build-deps/releases/download/linphone-sdk-5.5.18/linphone-sdk-win64-5.5.18.zip
     -> nach sdk/ herunterladen, nach sdk/extracted/ entpacken
 
-**Unter dieser URL liegt seit dem 07.09.2026 eine andere Datei als die, mit
-der hier gebaut wird** — dieselbe Versionsnummer, 198 342 Bytes mehr, ein
-stilles Neuablegen desselben Release. **Deshalb ist jeder CI-Lauf im
-öffentlichen Repo rot, vom ersten Commit an**, und deshalb läuft dort
-`PublicRepositoryTests` **nie**: der Build bricht vorher ab. Dasselbe gilt für
-`release.yml`. **Die Prüfsumme nachzuziehen ist keine Formsache** — sie ist
-die Kontrolle dagegen, dass ein unbesehen verändertes SDK in den Build kommt
-(dieselbe Überlegung wie ADR-040). Wer sie anfasst, sieht vorher nach, was
-sich geändert hat. Stand und die zwei Wege: `docs/stand.md`, 17.09.2026.
+**Warum nicht mehr von `download.linphone.org`:** dort lag ab dem 07.09.2026
+eine **andere Datei** unter derselben Adresse und derselben Versionsnummer —
+198 342 Bytes mehr, ein stilles Neuablegen desselben Release. Damit brach jeder
+CI-Lauf im öffentlichen Repo an der Prüfsumme ab, **siebzehn Läufe lang vom
+ersten Commit an**, und zwar bevor `PublicRepositoryTests` lief: die letzte
+Kontrolle vor der Öffentlichkeit hat seit dem Repo-Wechsel nur noch lokal
+gegriffen. **Die Prüfsumme nachzuziehen wäre die falsche Antwort gewesen** —
+sie ist die Kontrolle dagegen, dass ein unbesehen verändertes SDK in den Build
+kommt (dieselbe Überlegung wie ADR-040). Jetzt liegt das geprüfte ZIP
+unverändert unter eigener Kontrolle, mit derselben Prüfsumme wie bisher.
+
+**Beim nächsten SDK-Wechsel** wird die neue Fassung erst geholt, angesehen und
+gegen die alte verglichen; dann liegt sie im Abhängigkeits-Repo, und erst dann
+wandern Version, Adresse und Prüfsumme in `ci.yml`, `release.yml` und
+`docs/sdk-setup.md` — **drei Stellen, die zusammen gepflegt werden.**
 
 SHA256 und Layout in docs/sdk-setup.md. Der Wrapper landet dann unter
 `sdk/extracted/linphone-sdk/win64/share/linphonecs/LinphoneWrapper.cs`

@@ -21,8 +21,16 @@ env:
   # Das SDK liegt nicht im Repo (299 MB, gitignoriert). Version, Adresse und
   # Pruefsumme stehen in docs/sdk-setup.md und hier — beide Stellen gehoeren
   # zusammen gepflegt.
+  #
+  # GEHOLT WIRD AUS DEM EIGENEN ABHAENGIGKEITS-REPO, nicht von
+  # download.linphone.org. Dort lag ab dem 07.09.2026 eine ANDERE Datei unter
+  # derselben Adresse und derselben Versionsnummer (198 342 Bytes mehr) — ein
+  # stilles Neuablegen desselben Release. Jeder CI-Lauf brach seither an der
+  # Pruefsumme ab, noch bevor PublicRepositoryTests lief. Die Pruefsumme
+  # nachzuziehen waere die falsche Antwort gewesen: sie ist die Kontrolle
+  # dagegen, dass ein unbesehen veraendertes SDK in den Build kommt.
   LINPHONE_SDK_VERSION: 5.5.18
-  LINPHONE_SDK_URL: https://download.linphone.org/releases/windows/sdk/linphone-sdk-win64-5.5.18.zip
+  LINPHONE_SDK_URL: https://github.com/bv2-GmbH/nipp-build-deps/releases/download/linphone-sdk-5.5.18/linphone-sdk-win64-5.5.18.zip
   LINPHONE_SDK_SHA256: 4C69440CFFD843DA324C7AEDA9A2EA54C9E699AE199AB0A9F102AC26F55BE023
 
 jobs:

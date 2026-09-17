@@ -1,4 +1,4 @@
-# SDK-Setup
+﻿# SDK-Setup
 
 Wie das Linphone SDK in dieses Projekt kommt. Reproduzierbarkeit ist hier wichtiger als Eleganz (§5) — deshalb steht unten die Prüfsumme.
 
@@ -8,7 +8,8 @@ Begründung: **ADR-005** (löst ADR-002 ab). Der NuGet-Feed ist zwar anonym lesb
 
 | Angabe | Wert |
 |---|---|
-| Quelle | `https://download.linphone.org/releases/windows/sdk/linphone-sdk-win64-5.5.18.zip` |
+| Quelle | `https://github.com/bv2-GmbH/nipp-build-deps/releases/download/linphone-sdk-5.5.18/linphone-sdk-win64-5.5.18.zip` — **das eigene Abhängigkeits-Repo**, siehe unten |
+| Ursprung | `https://download.linphone.org/releases/windows/sdk/linphone-sdk-win64-5.5.18.zip` (Belledonne), bezogen am 04.09.2026 |
 | Version | **5.5.18** (Tag-Datum 03.09.2026) |
 | Ablage | `sdk/` im Repo-Wurzelverzeichnis — **gitignoriert, nicht eingecheckt** |
 | Bezogen am | 04.09.2026, Download in 42 s (7,1 MB/s) |
@@ -16,6 +17,43 @@ Begründung: **ADR-005** (löst ADR-002 ab). Der NuGet-Feed ist zwar anonym lesb
 | **SHA256** | `4C69440CFFD843DA324C7AEDA9A2EA54C9E699AE199AB0A9F102AC26F55BE023` |
 | Wrapper | `share/linphonecs/LinphoneWrapper.cs` — 62.253 Zeilen, 2.726 öffentliche Deklarationen, 105 Klassen, 103 Enums |
 | Commit-Hash des SDK | *im Paket nicht ersichtlich* |
+
+### Warum die Quelle seit dem 17.09.2026 das eigene Repo ist
+
+**Unter der Adresse des Herstellers lag ab dem 07.09.2026 eine andere Datei** —
+dieselbe Versionsnummer 5.5.18, aber `Last-Modified: 07.09.2026 20:19 GMT` und
+**313 666 099 Bytes** gegen die 313 467 757 der Fassung vom 04.09.2026, mit der
+hier gebaut wird. **198 342 Bytes Unterschied**, `Content-Type: application/zip`
+— also keine Fehlerseite, sondern ein stilles Neuablegen desselben Release.
+
+**Die Folge war nicht bloss ein roter Haken.** Jeder CI-Lauf im oeffentlichen
+Repo brach an der Pruefsumme ab — vom ersten Commit am 14.09.2026 an,
+**siebzehn Laeufe** —, und zwar bevor `PublicRepositoryTests` ueberhaupt lief:
+die Kontrolle, die verhindert, dass firmeneigene Systemnamen nach draussen
+geraten. `release.yml` trug dieselbe Pruefsumme; ein Release ueber GitHub
+Actions waere genauso gescheitert.
+
+**Die Pruefsumme einfach nachzuziehen waere die falsche Antwort gewesen.** Sie
+ist die Kontrolle dagegen, dass ein unbesehen veraendertes SDK in den Build
+kommt — dieselbe Ueberlegung wie in ADR-040 («Was in einer fremden Datei steht,
+hat niemand geprueft»). Wer sie anfasst, sieht vorher nach, was sich geaendert
+hat.
+
+**Entschieden am 17.09.2026: das geprueffte ZIP kommt unter eigene Kontrolle.**
+Es liegt als Release-Asset in
+[`bv2-GmbH/nipp-build-deps`](https://github.com/bv2-GmbH/nipp-build-deps) —
+unveraendert, mit derselben Pruefsumme wie oben. Damit ist ADR-005 zu Ende
+gedacht: dort stand schon, dass der Feed des Herstellers unzuverlaessig ist,
+und jetzt haengt der Build nicht mehr daran.
+
+**Ein eigenes Repo und nicht ein Release im Hauptrepo** — weil Velopack dort
+nach dem neuesten Release sucht, um Updates zu finden. Ein SDK-Release haette
+den Auslieferungspfad der installierten Arbeitsplaetze stoeren koennen, und das
+ist der Pfad, an dem dieses Projekt ohnehin schon Erfahrung hat.
+
+**Beim naechsten SDK-Wechsel** wird die neue Fassung erst geholt, angesehen und
+gegen die alte verglichen — dann liegt sie dort, und erst dann wandern Version,
+Adresse und Pruefsumme in `ci.yml`, `release.yml` und diese Datei.
 
 **Die Prüfsumme ist nicht Zierde.** Beim NuGet-Weg hätte `packages.lock.json` die Reproduzierbarkeit übernommen; beim ZIP-Weg gibt es das nicht. Ohne Version, Hash und Bezugsdatum weiss in sechs Monaten niemand mehr, welcher SDK-Stand in einem Build war.
 

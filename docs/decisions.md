@@ -6,6 +6,71 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-069 — Das geprüfte SDK-ZIP liegt unter eigener Kontrolle
+
+**Datum:** 17.09.2026 · **Status:** **angenommen** · **Bezug:** §5, **ADR-005**, ADR-040, `docs/sdk-setup.md`, `docs/stand.md` (17.09.2026)
+
+**Kontext.** Das Linphone SDK ist 299 MB gross, liegt deshalb nicht im Repo und
+wurde bisher beim Bauen von `download.linphone.org` geholt — Adresse und
+SHA256 stehen in `ci.yml`, `release.yml` und `docs/sdk-setup.md`.
+
+**Unter derselben Adresse lag ab dem 07.09.2026 eine andere Datei.** Gleiche
+Versionsnummer 5.5.18, aber `Last-Modified: 07.09.2026 20:19 GMT` und
+**313 666 099 Bytes** gegen die 313 467 757 der Fassung vom 04.09.2026, mit der
+hier gebaut wird — 198 342 Bytes Unterschied, `Content-Type: application/zip`.
+Keine Fehlerseite, sondern ein stilles Neuablegen desselben Release.
+
+**Was daran zählte, war nicht der rote Haken.** Jeder CI-Lauf im öffentlichen
+Repo brach an der Prüfsumme ab — **vom ersten Commit am 14.09.2026 an,
+siebzehn Läufe** —, und zwar bevor `PublicRepositoryTests` lief. Das ist laut
+`CLAUDE.md` «die letzte Kontrolle vor der Öffentlichkeit»; sie hat seit dem
+Repo-Wechsel nur noch lokal gegriffen. `release.yml` trug dieselbe Prüfsumme:
+ein Release über GitHub Actions wäre genauso gescheitert.
+
+**Die Prüfsumme nachzuziehen war die naheliegende und falsche Antwort.** Sie ist
+die Kontrolle dagegen, dass ein unbesehen verändertes SDK in den Build kommt —
+dieselbe Überlegung wie ADR-040 («Was in einer fremden Datei steht, hat niemand
+geprüft»). Wer sie anfasst, sieht vorher nach, was sich geändert hat; und beim
+nächsten stillen Neuablegen stünde dasselbe Problem wieder da.
+
+**Entscheidung: das geprüfte ZIP kommt unter eigene Kontrolle.** Es liegt
+unverändert als Release-Asset in
+[`bv2-GmbH/nipp-build-deps`](https://github.com/bv2-GmbH/nipp-build-deps),
+einem öffentlichen Repo ohne Code, und `ci.yml`, `release.yml` und
+`docs/sdk-setup.md` zeigen dorthin. Die Prüfsumme bleibt unverändert — es ist
+dieselbe Datei.
+
+**Damit ist ADR-005 zu Ende gedacht.** Dort stand schon, dass der Feed des
+Herstellers unzuverlässig ist, und die Antwort war, das ZIP von Hand zu holen.
+Sie ging davon aus, dass eine Adresse mit Versionsnummer immer dieselbe Datei
+liefert. Das hielt drei Tage.
+
+**Ein eigenes Repo, und nicht ein Release im Hauptrepo.** Velopack sucht dort
+nach dem neuesten Release, um Updates zu finden (`VelopackUpdateGateway`,
+`GithubSource`). Ein SDK-Release hätte GitHubs `latest` verschoben und damit
+den Auslieferungspfad der installierten Arbeitsplätze treffen können — es als
+Vorabversion zu markieren, nur um einen Sortiermechanismus auszutricksen, wäre
+genau die stille Kopplung, die dieses Haus sonst überall auflöst. Der Preis ist
+ein zusätzliches sichtbares Repo, und er ist kleiner.
+
+**Lizenz.** Das SDK steht unter GPL v3 (oder kommerziell von Belledonne). Was
+dort liegt, ist eine **unveränderte Kopie** des öffentlich veröffentlichten
+Binärpakets; der Quellcode ist bei Belledonne verfügbar, und das Repo enthält
+keinen eigenen Code. nipp selbst bleibt AGPLv3.
+
+**Konsequenz.**
+
+- **Die CI kann wieder grün werden**, und `PublicRepositoryTests` läuft dort
+  zum ersten Mal überhaupt. **Bis das ein Lauf gezeigt hat, ist es eine
+  Erwartung und kein Ergebnis** — nachzusehen am nächsten Push.
+- **Beim nächsten SDK-Wechsel** wird die neue Fassung erst geholt, angesehen
+  und gegen die alte verglichen; dann liegt sie im Abhängigkeits-Repo, und erst
+  dann wandern Version, Adresse und Prüfsumme in die drei Stellen.
+- **Der Hersteller bleibt die Quelle**, nur nicht mehr die Bezugsstelle des
+  Builds. `docs/sdk-setup.md` führt beide Adressen.
+
+---
+
 ## ADR-068 — Die Fremdbelegung hängt an der Audio-Sitzung, nicht am Gabelzustand
 
 **Datum:** 14.09.2026 · **Status:** **angenommen** · **Bezug:** §22.5, **ADR-028** (Nachtrag 4)

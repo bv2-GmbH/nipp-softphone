@@ -160,7 +160,30 @@ Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
 Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
 graue Gruppe, keine Leiste, Werksdatei gelöscht.
 
-## Die CI im öffentlichen Repo hat nie grün gebaut
+## Zwei Entscheidungen vom 17.09.2026, abends
+
+**Dominic hat beide offenen Fragen beantwortet.**
+
+**Das geprüfte SDK-ZIP liegt jetzt unter eigener Kontrolle** (ADR-069). Es
+liegt unverändert als Release-Asset in `bv2-GmbH/nipp-build-deps` — einem
+öffentlichen Repo ohne Code —, und `ci.yml`, `release.yml` und
+`docs/sdk-setup.md` zeigen dorthin. Die Prüfsumme bleibt dieselbe, es ist
+dieselbe Datei. **Ein eigenes Repo und nicht ein Release im Hauptrepo**, weil
+Velopack dort nach dem neuesten Release sucht und ein SDK-Release den
+Auslieferungspfad der installierten Arbeitsplätze hätte treffen können.
+**Ob die CI damit grün wird, zeigt der nächste Lauf** — bis dahin ist es eine
+Erwartung und kein Ergebnis.
+
+**«Präsenz setzen» ist aus §10 gestrichen.** ADR-055 hatte die Sache am
+13.09.2026 entschieden — «Nicht stören» ist ein stummer Klingelton auf Zeit,
+kein Präsenzzustand —, liess aber §10 im alten Wortlaut stehen. Genau deshalb
+hat die Runde A1 vier Tage später das Menü durchgegangen, die Präsenz nicht
+gefunden und sie als Befund A1-3 eingetragen. Jetzt steht in §10, was das Menü
+wirklich trägt; **C8 und A1-3 sind geschlossen**, ohne eine Zeile Code. Die
+Lehre steht im Nachtrag zu ADR-055: wer eine Fähigkeit streicht, streicht sie
+in der Spezifikation, nicht nur im ADR.
+
+## Die CI im öffentlichen Repo hatte nie grün gebaut
 
 **Alle 17 Läufe seit dem ersten Commit am 14.09.2026 sind rot**, und jeder
 scheitert an derselben Stelle: der Prüfsumme des Linphone-SDK.
