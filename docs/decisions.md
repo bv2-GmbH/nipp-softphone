@@ -60,9 +60,14 @@ keinen eigenen Code. nipp selbst bleibt AGPLv3.
 
 **Konsequenz.**
 
-- **Die CI kann wieder grün werden**, und `PublicRepositoryTests` läuft dort
-  zum ersten Mal überhaupt. **Bis das ein Lauf gezeigt hat, ist es eine
-  Erwartung und kein Ergebnis** — nachzusehen am nächsten Push.
+- **Die CI ist grün** — Lauf `35265182712` auf `39b8a4a`, am 17.09.2026 um
+  19:32. Alle Schritte durch: «SDK beschaffen», «Bauen», «Testen». Das ist der
+  **erste grüne Lauf des öffentlichen Repos überhaupt**; die siebzehn davor
+  brachen an der Prüfsumme ab.
+- **`PublicRepositoryTests` hat dort zum ersten Mal gelaufen** und ist grün —
+  alle drei: kein Systemname eines bv2-eigenen Systems, kein interner
+  Hostname, keine Antwort, die sich als echt mitgeschnitten ausgibt. Die
+  Kontrolle vor der Öffentlichkeit greift damit nicht mehr nur lokal.
 - **Beim nächsten SDK-Wechsel** wird die neue Fassung erst geholt, angesehen
   und gegen die alte verglichen; dann liegt sie im Abhängigkeits-Repo, und erst
   dann wandern Version, Adresse und Prüfsumme in die drei Stellen.

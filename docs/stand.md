@@ -171,8 +171,11 @@ liegt unverändert als Release-Asset in `bv2-GmbH/nipp-build-deps` — einem
 dieselbe Datei. **Ein eigenes Repo und nicht ein Release im Hauptrepo**, weil
 Velopack dort nach dem neuesten Release sucht und ein SDK-Release den
 Auslieferungspfad der installierten Arbeitsplätze hätte treffen können.
-**Ob die CI damit grün wird, zeigt der nächste Lauf** — bis dahin ist es eine
-Erwartung und kein Ergebnis.
+**Und die CI ist grün** — Lauf `35265182712`, am 17.09.2026 um 19:32, der
+**erste grüne Lauf des öffentlichen Repos überhaupt**. `PublicRepositoryTests`
+ist dort zum ersten Mal gelaufen und hat bestanden: kein Systemname, kein
+interner Hostname, keine Antwort, die sich als echt mitgeschnitten ausgibt.
+Die Kontrolle vor der Öffentlichkeit greift damit nicht mehr nur lokal.
 
 **«Präsenz setzen» ist aus §10 gestrichen.** ADR-055 hatte die Sache am
 13.09.2026 entschieden — «Nicht stören» ist ein stummer Klingelton auf Zeit,
@@ -183,7 +186,7 @@ wirklich trägt; **C8 und A1-3 sind geschlossen**, ohne eine Zeile Code. Die
 Lehre steht im Nachtrag zu ADR-055: wer eine Fähigkeit streicht, streicht sie
 in der Spezifikation, nicht nur im ADR.
 
-## Die CI im öffentlichen Repo hatte nie grün gebaut
+## Die CI im öffentlichen Repo hatte nie grün gebaut — bis zum 17.09.2026 abends
 
 **Alle 17 Läufe seit dem ersten Commit am 14.09.2026 sind rot**, und jeder
 scheitert an derselben Stelle: der Prüfsumme des Linphone-SDK.

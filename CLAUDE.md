@@ -11,7 +11,7 @@ lesbar bleiben.
 | Was | Wo |
 |---|---|
 | Was nipp tun soll | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-068 |
+| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-069 |
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
@@ -255,11 +255,12 @@ der Hostname der Anlage. Deshalb gibt es keine Verbindung zwischen den beiden
 Linien — `review-umsetzung` und `main-archiv-06-09` sind die alten, sie
 bleiben liegen.
 
-**Was das für jede Änderung heisst:** `PublicRepositoryTests` ist ab jetzt kein
-Formalismus mehr, sondern die letzte Kontrolle vor der Öffentlichkeit — und
-**sie greift derzeit nur lokal**, weil die CI vor ihr abbricht (siehe „SDK
-beschaffen"). Also vor jedem Push `.\build.ps1 test Nipp.sln` laufen lassen;
-ein grüner Haken von GitHub gibt es dort nicht zu holen. Wer
+**Was das für jede Änderung heisst:** `PublicRepositoryTests` ist kein
+Formalismus, sondern die letzte Kontrolle vor der Öffentlichkeit. **Seit dem
+17.09.2026 greift sie auch in der CI** — bis dahin nie, weil der Build vorher
+an der SDK-Prüfsumme abbrach (ADR-069). Trotzdem vor jedem Push
+`.\build.ps1 test Nipp.sln` laufen lassen: der Test kostet Sekunden, und ein
+Systemname, der erst auf GitHub auffällt, steht dort schon. Wer
 über die verbotenen Muster schreibt — in einem ADR, einem Plan, einer
 zitierten Protokollzeile — setzt sie zusammen, statt sie auszuschreiben.
 Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
@@ -595,7 +596,7 @@ erfüllt. Details: docs/environment.md.
 | Frage | Dokument |
 |---|---|
 | Was soll nipp tun? | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-068 |
+| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-069 |
 | Wo steht das Projekt insgesamt? | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmenplan in Wellen. **`docs/plans/WELLE-0-PLAN.md`** — die fünf Schritte davor, alle umgesetzt |
 | Wo hakt die Bedienung? | **`docs/plans/UX-REVIEW-2.md`** — 20 Befunde (12.09.2026), davor **`docs/plans/UX-REVIEW.md`** — 25 Befunde. Umsetzungsstand jeweils ganz vorn |
 | Was passiert auf einem breiten Fenster? | **`docs/plans/BREITBILD-PLAN.md`** — zwei Spalten, Kacheln, der Detailbereich in der Zeile |
