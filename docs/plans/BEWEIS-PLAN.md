@@ -655,7 +655,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   für die tote Quelle gebaut, und sie ist der Fall, in dem er nicht zählt. Und
   wer im Support danach sucht, findet im Protokoll keine Spur.
 
-- **A1-9 — Eine Provisionierungsrunde nimmt das gespeicherte Passwort mit, und
+- **A1-9 — BEHOBEN am 21.09.2026, aber anders als der Befund vorschlug.** Eine Provisionierungsrunde nimmt das gespeicherte Passwort mit, und
   `settings.json` zurückzuspielen holt es nicht zurück.** Beim ersten Start mit
   einem Profil, das ein `<accounts>` mitbringt, wurde
   die Geheimnisdatei unter `%LOCALAPPDATA%` überschrieben (422 → 374 Bytes, Zeitstempel
@@ -681,11 +681,36 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   **Die Warnung dazu stand seit vier Tagen in `CLAUDE.md`, geschrieben von
   dem, der sie dann nicht befolgt hat.** Eine Warnung, deren eigener Autor sie
   übersieht, ist zu leise für die Sache.
-  **Die offene Frage ist damit schärfer:** soll nipp beim Ersetzen der
-  Kontenliste die Geheimnisse der ersetzten Konten wirklich mitnehmen — und
-  wenn ja, soll es das wenigstens **sagen**? Eine Protokollzeile «n Geheimnisse
-  entfernt, weil das Profil die Kontenliste ersetzt» würde den Fall sichtbar
-  machen, ohne das Verhalten zu ändern.
+  **Dominic hat am 21.09.2026 entschieden: das Verhalten bleibt, nipp sagt es.**
+  Beim Umsetzen stellte sich heraus, dass **ein Teil dieses Befundes falsch
+  war** — und das gehört hierher, nicht in eine Fussnote.
+
+  **«Es steht nirgends» stimmte nicht.** nipp schreibt beim Entfernen eine
+  Zeile, auf **Information**, mit Grund und Kontokennung: «Zugangsdaten von
+  sip:…@… entfernt: das Konto ist nicht mehr eingerichtet»
+  (`SettingsService.ExtractSecrets`). Sie stand bei beiden Vorfällen im
+  Protokoll. **Gefehlt hat nicht die Meldung, sondern dass jemand sie liest** —
+  und niemand liest das Protokoll in dem Moment, in dem er ein Profil
+  einspielt.
+
+  **Deshalb ist die Massnahme eine andere geworden als vorgeschlagen.** Eine
+  zweite Protokollzeile hätte dasselbe Schicksal gehabt. Sichtbar wird der Fall
+  dort, wo der Schaden auftritt: in der **Anmeldemeldung**. Sie lautete
+  «Zugangsdaten abgelehnt. Benutzername, Authentifizierungs-ID und Passwort
+  prüfen» — und schickte damit auf die Suche nach einem Tippfehler in drei
+  Angaben, die alle stimmten, während die vierte gar nicht da war.
+
+  `SipErrorCatalog.DescribeRegistrationFailure` bekommt jetzt mit, **ob für das
+  Konto überhaupt ein Passwort hinterlegt ist**. Ist keins da, sagt die Meldung
+  das und nennt den häufigsten Grund: «Für dieses Konto ist kein Passwort
+  hinterlegt. Es in den Einstellungen unter «SIP-Konten» eintragen — ein
+  Profil, das die Konten ersetzt, nimmt gespeicherte Passwörter mit.»
+  **Das trifft auch den Fall ohne Profil** — ein von Hand angelegtes Konto, bei
+  dem das Passwort vergessen wurde.
+
+  Zwei Komponententests halten beide Richtungen fest.
+  **Ausserdem sichert `Sichern-Und-Zuruecksetzen.ps1` die Geheimnisdatei jetzt
+  mit** und spielt sie beim Wiederherstellen zuerst zurück.
 
 - **A1-10 — BEHOBEN am 21.09.2026.** Strg+Z und Strg+Y im Karten-Designer wirkten genau einmal, dann
   hängt der Fokus im Vorschaufeld.** Gemessen: drei Bausteine eingefügt, Fokus

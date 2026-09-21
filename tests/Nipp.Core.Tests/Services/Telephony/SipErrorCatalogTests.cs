@@ -1,4 +1,4 @@
-using Nipp.Core.Services.Telephony;
+﻿using Nipp.Core.Services.Telephony;
 using Nipp.Core.Services.Telephony.Model;
 
 namespace Nipp.Core.Tests.Services.Telephony;
@@ -26,6 +26,45 @@ public sealed class SipErrorCatalogTests
 
         Assert.Contains(expectedFragment, message, StringComparison.Ordinal);
         Assert.Contains("pbx.example.ch", message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>Ohne hinterlegtes Passwort sagt die Meldung das</b>, statt drei
+    /// richtige Angaben nachschauen zu lassen (Befund A1-9).
+    ///
+    /// <para>Der Fall tritt nach einem Provisionierungsprofil mit
+    /// <c>&lt;accounts&gt;</c> auf: es ersetzt die Kontenliste, und die
+    /// Geheimnisse der ersetzten Konten gehen mit. Am 17. und am 21.09.2026 hat
+    /// das je eine Anmeldung gekostet, und beide Male stand in der Oberfläche
+    /// nur «Zugangsdaten abgelehnt».</para>
+    /// </summary>
+    [Theory]
+    [InlineData("401 Unauthorized")]
+    [InlineData("403 Forbidden")]
+    public void Ohne_hinterlegtes_Passwort_sagt_die_Meldung_das(string sdkMessage)
+    {
+        var message = SipErrorCatalog.DescribeRegistrationFailure(
+            sdkMessage,
+            "pbx.example.ch",
+            hasPassword: false);
+
+        Assert.Contains("kein Passwort", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("Zugangsdaten abgelehnt", message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Mit hinterlegtem Passwort bleibt es bei der alten Meldung — dann ist
+    /// wirklich eine der drei Angaben falsch.
+    /// </summary>
+    [Fact]
+    public void Mit_hinterlegtem_Passwort_bleibt_es_bei_den_Zugangsdaten()
+    {
+        var message = SipErrorCatalog.DescribeRegistrationFailure(
+            "401 Unauthorized",
+            "pbx.example.ch",
+            hasPassword: true);
+
+        Assert.Contains("Zugangsdaten abgelehnt", message, StringComparison.Ordinal);
     }
 
     [Fact]

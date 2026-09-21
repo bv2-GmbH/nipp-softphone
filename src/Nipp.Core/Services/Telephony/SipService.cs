@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Globalization;
 using Linphone;
 using Microsoft.Extensions.Logging;
@@ -1612,7 +1612,10 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
             settings = found;
             _accountStates[identity] = e.Status;
             _accountMessages[identity] = e.Status == RegistrationStatus.Failed
-                ? SipErrorCatalog.DescribeRegistrationFailure(e.Message, found.Domain)
+                ? SipErrorCatalog.DescribeRegistrationFailure(
+                    e.Message,
+                    found.Domain,
+                    !string.IsNullOrEmpty(found.Password))
                 : e.Message;
 
             RaiseAccountsChanged();
@@ -1669,7 +1672,10 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
                 // _account: das ist das zuletzt eingerichtete. Bei zwei Konten
                 // auf verschiedenen Anlagen (§20.2) nannte die Fehlermeldung
                 // damit eine Anlage, die mit dem Fehler nichts zu tun hatte.
-                var explained = SipErrorCatalog.DescribeRegistrationFailure(e.Message, settings.Domain);
+                var explained = SipErrorCatalog.DescribeRegistrationFailure(
+                    e.Message,
+                    settings.Domain,
+                    !string.IsNullOrEmpty(settings.Password));
 
                 TelephonyLog.RegistrationFailed(_logger, explained);
                 RegistrationChanged?.Invoke(this, e with { Message = explained });

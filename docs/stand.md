@@ -160,6 +160,31 @@ Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
 Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
 graue Gruppe, keine Leiste, Werksdatei gelöscht.
 
+## Acht Befunde behoben (21.09.2026) — A1-9 anders als geplant
+
+**Drei bleiben offen: A1-2, A1-4, A1-5.**
+
+**Bei A1-9 war ein Teil des Befundes falsch, und das ist die eigentliche
+Geschichte.** «Es steht nirgends» stimmte nicht: nipp schreibt beim Entfernen
+eines Geheimnisses eine Zeile auf **Information**, mit Grund und Kontokennung,
+und sie stand bei beiden Vorfällen im Protokoll. Gefehlt hat nicht die
+Meldung, sondern dass jemand sie liest — niemand liest das Protokoll in dem
+Moment, in dem er ein Profil einspielt.
+
+**Deshalb ist die Massnahme eine andere geworden** als die, über die
+entschieden wurde: eine zweite Protokollzeile hätte dasselbe Schicksal gehabt.
+Sichtbar wird der Fall dort, wo der Schaden auftritt — in der Anmeldemeldung.
+Sie schickte auf die Suche nach einem Tippfehler in drei Angaben, die alle
+stimmten, während die vierte gar nicht da war. Jetzt bekommt
+`SipErrorCatalog.DescribeRegistrationFailure` mit, ob überhaupt ein Passwort
+hinterlegt ist, und sagt es. **Das trifft auch den Fall ohne Profil.**
+
+**Und ein Vorfall gehört dazu:** beim Nachmessen von A1-6 ist derselbe Fehler
+noch einmal passiert — Profil eingespielt, `settings.json` zurückgespielt, das
+Telefon zwanzig Minuten nicht angemeldet. Die Warnung stand seit vier Tagen in
+`CLAUDE.md`, geschrieben von dem, der sie dann übersah. Seither sichert
+`Sichern-Und-Zuruecksetzen.ps1` die Geheimnisdatei mit.
+
 ## Sieben Befunde behoben (21.09.2026) — zuletzt A1-8
 
 **Vier bleiben offen: A1-2, A1-4, A1-5, A1-9.**

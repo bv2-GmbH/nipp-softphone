@@ -31,7 +31,23 @@ public static class SipErrorCatalog
     /// Meldung, die einen Namen ankündigt und dann keinen nennt, sieht nach
     /// einem Fehler in nipp aus — und war in diesem Fall auch einer.</para>
     /// </param>
-    public static string DescribeRegistrationFailure(string? sdkMessage, string? domain)
+    /// <param name="hasPassword">
+    /// Ob fuer dieses Konto ueberhaupt ein Passwort hinterlegt ist.
+    ///
+    /// <para><b>Ohne diese Angabe schickt die Meldung auf die falsche Suche</b>
+    /// (Befund A1-9). «Zugangsdaten abgelehnt — Benutzername,
+    /// Authentifizierungs-ID und Passwort pruefen» laesst jemanden drei richtige
+    /// Angaben nachschauen, waehrend in Wahrheit gar keine vierte da ist. Das
+    /// passiert regelmaessig nach einem Provisionierungsprofil mit
+    /// <c>&lt;accounts&gt;</c>: es ersetzt die Kontenliste, und die Geheimnisse
+    /// der ersetzten Konten gehen mit. nipp schreibt das ins Protokoll — aber
+    /// niemand liest es in dem Moment; gesehen wird nur, dass das Telefon nicht
+    /// mehr angemeldet ist.</para>
+    /// </param>
+    public static string DescribeRegistrationFailure(
+        string? sdkMessage,
+        string? domain,
+        bool hasPassword = true)
     {
         var reason = Normalize(sdkMessage);
 
@@ -41,6 +57,13 @@ public static class SipErrorCatalog
 
         return reason switch
         {
+            // Kein Passwort hinterlegt: dann ist die Suche nach dem Tippfehler
+            // im Benutzernamen verschwendete Zeit (Befund A1-9).
+            var m when !hasPassword && Contains(m, "unauthorized", "forbidden", "401", "403") =>
+                $"Anmeldung{wo} fehlgeschlagen: Für dieses Konto ist kein Passwort "
+                    + "hinterlegt. Es in den Einstellungen unter «SIP-Konten» eintragen — "
+                    + "ein Profil, das die Konten ersetzt, nimmt gespeicherte Passwörter mit.",
+
             var m when Contains(m, "unauthorized", "forbidden", "401", "403") =>
                 $"Anmeldung{wo} fehlgeschlagen: Zugangsdaten abgelehnt. "
                     + "Benutzername, Authentifizierungs-ID und Passwort prüfen.",

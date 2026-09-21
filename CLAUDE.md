@@ -15,7 +15,7 @@ lesbar bleiben.
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
-| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 läuft seit dem 17.09.2026** und hat an fünf Runden 32 Zeilen abgenommen; dort stehen die Befunde A1-1 bis A1-12 — **vier davon offen** (A1-2, A1-4, A1-5, A1-9); A1-3 ist mit der Streichung in §10 erledigt (ADR-055, Nachtrag), die übrigen sechs sind am 21.09.2026 behoben und nachgemessen — und die Einordnung aller S-Zeilen. Gezählt: **190 offen von 303**, davon 69 am Schreibtisch. **Repariert wird gesammelt, nicht mitten in einer Messrunde** — sonst prüft die halbe Runde gegen einen anderen Build als die andere. Die erste Reparaturrunde lief am 21.09.2026, nachdem fünf Messrunden durch waren |
+| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 läuft seit dem 17.09.2026** und hat an fünf Runden 32 Zeilen abgenommen; dort stehen die Befunde A1-1 bis A1-12 — **drei davon offen** (A1-2, A1-4, A1-5); A1-3 ist mit der Streichung in §10 erledigt (ADR-055, Nachtrag), die übrigen sechs sind am 21.09.2026 behoben und nachgemessen — und die Einordnung aller S-Zeilen. Gezählt: **190 offen von 303**, davon 69 am Schreibtisch. **Repariert wird gesammelt, nicht mitten in einer Messrunde** — sonst prüft die halbe Runde gegen einen anderen Build als die andere. Die erste Reparaturrunde lief am 21.09.2026, nachdem fünf Messrunden durch waren |
 | Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
 | Pläne und Reviews | `docs/plans/` — zwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind fünf:** `BEWEIS-PLAN.md` (A1 läuft), `ZIEHVORSCHAU-PLAN.md` (V8: T292–T296 sind bestanden, **offen bleiben der Zug auf einen Gruppenkopf und hell bei 150 %**), `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5 und T300), `AUDIOQUALITAET-PLAN.md` (**das lange Gespräch ist beantwortet, A8** — offen bleiben A7, die Senderichtung und T38) und `SHELL-IM-GESPRAECH-PLAN.md` (offen: T313–T317). Der Rest ist abgeschlossen |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
@@ -385,8 +385,9 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   zweite Mal, obwohl diese Warnung schon dastand und von demselben geschrieben
   war, der sie dann übersah. **Deshalb steht die Vorsicht seit dem 21.09.2026
   nicht mehr nur hier:** `Sichern-Und-Zuruecksetzen.ps1` im Aufbau sichert die
-  Datei mit und spielt sie zuerst zurück. Wer einen eigenen Weg nimmt, denkt
-  selbst daran.
+  Datei mit und spielt sie zuerst zurück, und **nipp sagt es jetzt selbst** —
+  fehlt das Passwort, nennt die Anmeldemeldung genau das statt
+  «Zugangsdaten abgelehnt». Wer einen eigenen Weg nimmt, denkt trotzdem daran.
 - **Die Aufbauten für den Gerätetag liegen neben dem Repo**, nicht darin:
   `C:\dev_claude\nipp-testaufbauten\` — ein Provisionierungsserver mit fünf
   Profilen, eine lokale REST-Attrappe (schnell, langsam, tot) und die
