@@ -317,6 +317,40 @@ unformatiert, während die anderen gruppiert stehen — nipp formatiert nur, was
 es als gültige Nummer erkennt. Der Knopf bleibt trotzdem wählbar, und der
 Hinweis darauf ist sehr leise.
 
+#### Die dritte Reparaturrunde (21.09.2026) — die zwei Zeitpunkte
+
+**A1-6 und A1-10 sind behoben.** Fünf Befunde bleiben offen: A1-2, A1-4, A1-5,
+A1-8, A1-9.
+
+**A1-6 — auf `Loaded` warten statt auf einen Dispatcher-Durchlauf.** Der alte
+Code schob die Frage mit `DispatcherQueue.TryEnqueue` um einen Durchlauf, weil
+der Inhalt eines nie aufgeklappten `Expander` noch nicht im visuellen Baum
+steht. **Das reichte nicht** — beim ersten Aufklappen fand `FindSettingCards`
+nichts. Jetzt hängt sich der Handler an das `Loaded` des Inhalts, das genau
+dann feuert, wenn er wirklich da ist; ist er es schon (zweites Aufklappen),
+greift der direkte Zweig.
+**Gemessen danach:** frischer Start mit gesperrtem Profil, Gruppe **einmal**
+aufgeklappt — das Schloss steht da. Vorher brauchte es zu- und wieder
+aufklappen.
+
+**A1-10 — den Fokus nach Rückgängig zurückholen.** `Refresh()` baut den Aufbau
+neu, das fokussierte Element verschwindet, und WinUI vergibt den Fokus weiter;
+er landete im Textfeld «Rufnummer für die Vorschau», **und dort hat die
+`TextBox` ihr eigenes Strg+Z**. `FokusInDenAufbau()` setzt ihn jetzt auf den
+Knopf des ausgewählten Bausteins, sonst auf den ersten — und tut nichts, wenn
+es keinen gibt.
+**Gemessen danach:** dreimal Strg+Z hintereinander nimmt **drei** Schritte
+zurück (3 → 2 → 1 → 0), dreimal Strg+Y bringt sie wieder (1 → 2 → 3), und der
+Fokus bleibt jedes Mal im Aufbau. Vorher: ein Schritt, dann hing er im
+Textfeld.
+
+**Was die beiden verbindet:** in beiden Fällen war die Absicht richtig
+aufgeschrieben und der **Zeitpunkt** falsch gewählt. Ein `TryEnqueue` ist eine
+Wette darauf, dass ein Durchlauf reicht; ein Fokus, den man nach einem Neubau
+sich selbst überlässt, landet irgendwo. **Wer in WinUI auf einen Zustand
+wartet, hängt sich an das Ereignis, das ihn meldet** — nicht an den nächsten
+Tick.
+
 #### Die zweite Reparaturrunde (21.09.2026)
 
 **A1-1, A1-11 und der Nebenbefund aus A1-4 sind behoben.** Sechs Befunde
@@ -478,7 +512,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   Nur wenn **gar keine** Nebenstelle passt, verschwinden alle Köpfe — der
   Fall, den T250 abdeckt und der deshalb bestanden aussah.
 
-- **A1-6 — Das Schloss an einem gesperrten Feld erscheint erst beim zweiten
+- **A1-6 — BEHOBEN am 21.09.2026.** Das Schloss an einem gesperrten Feld erschien erst beim zweiten
   Aufklappen der Gruppe.** Gemessen an «Serverzertifikat prüfen»
   (`network.verify-certificate`) mit einem Profil, das `network` sperrt: nach
   frischem Start und **einmaligem** Aufklappen von «Netzwerk und
@@ -580,7 +614,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   `secrets.dat` mit. `Sichern-Und-Zuruecksetzen.ps1` und seine LIESMICH gehören
   entsprechend ergänzt.
 
-- **A1-10 — Strg+Z und Strg+Y im Karten-Designer wirken genau einmal, dann
+- **A1-10 — BEHOBEN am 21.09.2026.** Strg+Z und Strg+Y im Karten-Designer wirkten genau einmal, dann
   hängt der Fokus im Vorschaufeld.** Gemessen: drei Bausteine eingefügt, Fokus
   nachweislich auf einer Zeile im Aufbau, dann dreimal Strg+Z hintereinander —
   **ein** Schritt ging zurück, die anderen zwei taten nichts. Nach jedem

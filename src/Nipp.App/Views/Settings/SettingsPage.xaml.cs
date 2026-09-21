@@ -168,16 +168,49 @@ public sealed partial class SettingsPage : Page
         }
     }
 
+    /// <summary>
+    /// Beim Aufklappen die Karten der Gruppe nach ihrer Sperre fragen.
+    ///
+    /// <para><b>Gewartet wird auf das <c>Loaded</c> des Inhalts und nicht auf
+    /// einen Dispatcher-Durchlauf</b> (Befund A1-6, 17.09.2026). Vorher stand
+    /// hier ein <c>TryEnqueue</c> mit dem Kommentar «der Inhalt steht erst
+    /// jetzt im Baum» — <b>er stand es nicht</b>: beim ersten Aufklappen fand
+    /// <see cref="FindSettingCards"/> nichts, und das Schloss erschien erst,
+    /// wenn man die Gruppe zu- und wieder aufklappte. Die Sperre selbst wirkte
+    /// von Anfang an; es ging allein um die Anzeige.</para>
+    ///
+    /// <para><c>Loaded</c> feuert genau dann, wenn der Inhalt wirklich im Baum
+    /// steht — beim zweiten Mal ist er es schon, dann greift der erste
+    /// Zweig.</para>
+    /// </summary>
     private void OnGroupExpanding(Expander sender, ExpanderExpandingEventArgs args)
     {
-        // Der Inhalt steht erst jetzt im Baum — siehe FindSettingCards.
-        DispatcherQueue.TryEnqueue(() =>
+        if (sender.Content is not FrameworkElement inhalt)
+        {
+            return;
+        }
+
+        if (inhalt.IsLoaded)
+        {
+            Anwenden();
+            return;
+        }
+
+        inhalt.Loaded += BeimLaden;
+
+        void BeimLaden(object s, RoutedEventArgs e)
+        {
+            inhalt.Loaded -= BeimLaden;
+            Anwenden();
+        }
+
+        void Anwenden()
         {
             foreach (var card in FindSettingCards(sender))
             {
                 card.ApplyPolicy(_policy);
             }
-        });
+        }
     }
 
     private void OnRemoveTeamMemberClick(object sender, RoutedEventArgs e)

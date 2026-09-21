@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Nipp.App.Diagnostics;
 using Nipp.App.Theming;
 using Nipp.Core.Services.Integrations.Cards;
@@ -931,6 +932,61 @@ public sealed partial class CardDesignerWindow : Window
         Refresh();
     }
 
+    /// <summary>
+    /// Den Tastaturfokus zurueck in den Aufbau holen (Befund A1-10).
+    ///
+    /// <para>Genommen wird der Knopf des ausgewaehlten Bausteins, sonst der
+    /// erste im Aufbau. <b>Ohne Auswahl und ohne Bausteine geschieht nichts</b>
+    /// — dann gibt es nichts, worauf der Fokus sinnvoll stehen koennte, und
+    /// ihn irgendwohin zu setzen waere schlimmer als ihn zu lassen.</para>
+    /// </summary>
+    private void FokusInDenAufbau()
+    {
+        foreach (var knopf in AlleBausteinKnoepfe())
+        {
+            if (knopf.Tag is DraftElement element
+                && ReferenceEquals(element, ViewModel.SelectedElement))
+            {
+                knopf.Focus(FocusState.Programmatic);
+                return;
+            }
+        }
+
+        AlleBausteinKnoepfe().FirstOrDefault()?.Focus(FocusState.Programmatic);
+    }
+
+    private IEnumerable<Button> AlleBausteinKnoepfe() => Suchen(StructurePanel);
+
+    private static IEnumerable<Button> Suchen(DependencyObject wurzel)
+    {
+        var anzahl = VisualTreeHelper.GetChildrenCount(wurzel);
+
+        for (var i = 0; i < anzahl; i++)
+        {
+            var kind = VisualTreeHelper.GetChild(wurzel, i);
+
+            if (kind is Button { Tag: DraftElement } treffer)
+            {
+                yield return treffer;
+            }
+
+            foreach (var tiefer in Suchen(kind))
+            {
+                yield return tiefer;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Strg+Z. <b>Der Fokus muss danach im Aufbau bleiben</b> (Befund A1-10).
+    ///
+    /// <para><see cref="Refresh"/> baut den Aufbau neu, und das fokussierte
+    /// Element verschwindet dabei. WinUI vergibt den Fokus dann weiter — er
+    /// landete im Textfeld «Rufnummer fuer die Vorschau», und dort greifen die
+    /// Kurzbefehle nicht mehr: die <c>TextBox</c> hat ihr eigenes Strg+Z.
+    /// Dreimal hintereinander gedrueckt nahm deshalb <b>einen</b> Schritt
+    /// zurueck.</para>
+    /// </summary>
     private void OnUndoAccelerator(
         KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
@@ -938,8 +994,10 @@ public sealed partial class CardDesignerWindow : Window
 
         ViewModel.UndoCommand.Execute(null);
         Refresh();
+        FokusInDenAufbau();
     }
 
+    /// <summary>Strg+Y — dieselbe Ueberlegung wie bei Strg+Z.</summary>
     private void OnRedoAccelerator(
         KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
@@ -947,6 +1005,7 @@ public sealed partial class CardDesignerWindow : Window
 
         ViewModel.RedoCommand.Execute(null);
         Refresh();
+        FokusInDenAufbau();
     }
 
     /// <summary>

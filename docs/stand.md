@@ -160,6 +160,29 @@ Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
 Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
 graue Gruppe, keine Leiste, Werksdatei gelöscht.
 
+## Sechs Befunde behoben (21.09.2026)
+
+**A1-1, A1-6, A1-7, A1-10, A1-11 und A1-12**, dazu der Nebenbefund aus A1-4.
+**Fünf bleiben offen: A1-2, A1-4, A1-5, A1-8, A1-9.**
+
+**Die letzten beiden waren zweimal derselbe Denkfehler — ein falsch gewählter
+Zeitpunkt.**
+
+**A1-6:** Das Schloss an einem gesperrten Feld fehlte beim ersten Aufklappen,
+weil der Code die Frage mit `DispatcherQueue.TryEnqueue` um einen Durchlauf
+schob und das nicht reichte. Jetzt hängt er sich an das `Loaded` des
+Expander-Inhalts. Gemessen: frischer Start, einmal aufgeklappt, Schloss da.
+
+**A1-10:** Nach Strg+Z baut `Refresh()` den Aufbau neu, das fokussierte
+Element verschwindet, und WinUI vergab den Fokus ins Vorschau-Textfeld — wo
+die `TextBox` ihr eigenes Strg+Z hat. Jetzt holt `FokusInDenAufbau()` ihn
+zurück. Gemessen: dreimal Strg+Z nimmt drei Schritte zurück, dreimal Strg+Y
+bringt sie wieder.
+
+**Daraus die Regel in `CLAUDE.md`:** wer in WinUI auf einen Zustand wartet,
+hängt sich an das Ereignis, das ihn meldet — nicht an den nächsten Tick. Und
+wer eine Ansicht neu baut, unter der der Fokus lag, setzt ihn danach selbst.
+
 ## Vier Befunde behoben (21.09.2026)
 
 **A1-1, A1-7, A1-11 und A1-12**, dazu der Nebenbefund aus A1-4. **Sechs
