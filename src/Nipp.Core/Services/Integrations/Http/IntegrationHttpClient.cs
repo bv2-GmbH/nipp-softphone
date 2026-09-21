@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -285,10 +285,25 @@ public sealed class IntegrationHttpClient : IDisposable
             return await ReadResponseAsync(source, connection, response, started, linked.Token)
                 .ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested
+            && !timeoutSource.IsCancellationRequested)
         {
             // Von aussen abgebrochen: das Gespräch ist vorbei oder die Suche
             // überholt. Keine Meldung — es gibt nichts zu berichten.
+            //
+            // <b>Die zweite Haelfte der Bedingung ist der Befund A1-8.</b>
+            // Vorher stand hier nur die erste, und damit gewann das Schweigen,
+            // sobald BEIDE Tokens gesetzt waren. Das passiert regelmaessig:
+            // die Suche schachtelt zwei Zeitgrenzen aus derselben Zahl
+            // (ContactSearchService.AskAsync und dieser Zugang), und loest die
+            // aeussere zuerst aus — sie ist die aeltere —, sieht es hier aus
+            // wie ein Abbruch von aussen. Eine Quelle, die annimmt und nicht
+            // antwortet, verschwand so ohne Meldung, ohne Protokollzeile und
+            // ohne Fehlschlag fuer den Schutzschalter.
+            //
+            // Jetzt gilt: hat die EIGENE Zeitgrenze ausgeloest, ist es ein
+            // Timeout — auch wenn daneben noch etwas anderes abgebrochen hat.
+            // Die genauere Aussage gewinnt.
             return new HttpCallResult(HttpOutcome.Skipped, null, null, null, Elapsed(started));
         }
         catch (OperationCanceledException)

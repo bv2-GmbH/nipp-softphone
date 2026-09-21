@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
@@ -307,6 +307,45 @@ public sealed class IntegrationHttpClientTests : IDisposable
         using var client = Client(AntwortetNie());
 
         var ergebnis = await client.SendAsync(Quelle(timeoutMs: 200), Anfrage(), new Bereich());
+
+        Assert.Equal(HttpOutcome.Timeout, ergebnis.Outcome);
+        Assert.Contains("antwortet nicht", ergebnis.Message!, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>Beide Tokens gesetzt — die eigene Zeitgrenze gewinnt</b> (Befund
+    /// A1-8, 17.09.2026).
+    ///
+    /// <para>Das ist der Fall, der vier Tage lang schwieg. Die Suche
+    /// schachtelt zwei Zeitgrenzen aus derselben Zahl: eine in
+    /// <c>ContactSearchService.AskAsync</c>, eine hier. Löste die äussere
+    /// zuerst aus — sie ist die ältere —, sah es hier aus wie ein Abbruch von
+    /// aussen, und der schweigt bewusst. Eine Quelle, die annimmt und nicht
+    /// antwortet, verschwand damit ohne Meldung, ohne Protokollzeile und ohne
+    /// Fehlschlag für den Schutzschalter.</para>
+    ///
+    /// <para>Gemessen am laufenden Programm: sieben Anfragen in vierzig
+    /// Sekunden, wo nach fünf eine Minute Pause hätte gelten sollen.</para>
+    /// </summary>
+    [Fact]
+    public async Task Sind_beide_Zeitgrenzen_abgelaufen_gewinnt_die_eigene()
+    {
+        using var client = Client(AntwortetNie());
+        using var vonAussen = new CancellationTokenSource();
+
+        var aufruf = client.SendAsync(
+            Quelle(timeoutMs: 100),
+            Anfrage(),
+            new Bereich(),
+            timeout: null,
+            cancellationToken: vonAussen.Token);
+
+        // Von aussen abbrechen, waehrend die eigene Zeitgrenze ohnehin laeuft:
+        // danach sind beide Tokens gesetzt.
+        await Task.Delay(250);
+        await vonAussen.CancelAsync();
+
+        var ergebnis = await aufruf;
 
         Assert.Equal(HttpOutcome.Timeout, ergebnis.Outcome);
         Assert.Contains("antwortet nicht", ergebnis.Message!, StringComparison.Ordinal);

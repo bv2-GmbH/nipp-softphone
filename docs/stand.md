@@ -160,6 +160,35 @@ Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
 Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
 graue Gruppe, keine Leiste, Werksdatei gelöscht.
 
+## Sieben Befunde behoben (21.09.2026) — zuletzt A1-8
+
+**Vier bleiben offen: A1-2, A1-4, A1-5, A1-9.**
+
+**A1-8 ist der inhaltlich schwerste gewesen**, und die verworfene Hälfte der
+Reparatur ist die interessantere. Geplant waren zwei Handgriffe:
+
+Der **erste blieb** — `IntegrationHttpClient` prüft beim Abbruch jetzt, ob
+**seine eigene** Zeitgrenze ausgelöst hat, und nicht nur, ob von aussen
+abgebrochen wurde. Sind beide gesetzt, ist es ein Timeout: die genauere
+Aussage gewinnt.
+
+Der **zweite wurde verworfen** — der äusseren Zeitgrenze eine Reserve
+aufzuschlagen, damit die innere zuerst zieht. Naheliegend, und falsch: für
+einen Provider, der seine Zeitgrenze nicht selbst durchsetzt, ist die äussere
+die einzige, und ein Aufschlag verlängert nur die Wartezeit. **Ein bestehender
+Test hat es sofort gefangen.** Die Begründung steht jetzt als Kommentar dort.
+
+**Gemessen mit der Attrappe im Modus `tot`:** die Meldung heisst jetzt
+«antwortet nicht» statt «übersprungen», im Protokoll steht «Quelle
+attrappe-tot antwortet nicht innerhalb von 3000 ms» — vorher stand dort
+**nichts** —, und der Schutzschalter greift nach **fünf** Anfragen statt gar
+nicht. Ab der sechsten Suche heisst es wieder «übersprungen», und das ist dort
+richtig: die Quelle wird wirklich übersprungen.
+
+**Neu abgesichert:** `Sind_beide_Zeitgrenzen_abgelaufen_gewinnt_die_eigene`.
+Die beiden Randfälle daneben waren längst getestet; genau der Fall dazwischen
+fehlte.
+
 ## Sechs Befunde behoben (21.09.2026)
 
 **A1-1, A1-6, A1-7, A1-10, A1-11 und A1-12**, dazu der Nebenbefund aus A1-4.

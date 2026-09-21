@@ -317,6 +317,45 @@ unformatiert, während die anderen gruppiert stehen — nipp formatiert nur, was
 es als gültige Nummer erkennt. Der Knopf bleibt trotzdem wählbar, und der
 Hinweis darauf ist sehr leise.
 
+#### Die vierte Reparaturrunde (21.09.2026) — A1-8
+
+**Behoben, und die verworfene Hälfte ist die interessantere.** Vier Befunde
+bleiben offen: A1-2, A1-4, A1-5, A1-9.
+
+**Geplant waren zwei Handgriffe, gebraucht wurde einer.**
+
+Der erste, der blieb: `IntegrationHttpClient` prüft beim Abbruch jetzt, ob
+**seine eigene** Zeitgrenze ausgelöst hat, und nicht nur, ob von aussen
+abgebrochen wurde. Die Bedingung des stillen Zweigs lautet jetzt
+`cancellationToken.IsCancellationRequested && !timeoutSource.IsCancellationRequested`.
+**Die genauere Aussage gewinnt** — sind beide gesetzt, ist es ein Timeout.
+
+Der zweite, der verworfen wurde: in `ContactSearchService.AskAsync` eine
+**Reserve** auf die äussere Zeitgrenze aufzuschlagen, damit die innere zuerst
+zieht. Naheliegend, und falsch — **ein bestehender Test hat es sofort
+gefangen** (`Eine_Quelle_die_zu_lange_braucht_laeuft_in_ihre_Zeitgrenze`
+blieb auf `Loading`). Der Grund ist einfach: für einen Provider, der seine
+Zeitgrenze **nicht** selbst durchsetzt, ist die äussere die einzige, und ein
+Aufschlag verlängert schlicht die Wartezeit. Die Begründung steht jetzt als
+Kommentar dort, damit niemand denselben Griff noch einmal versucht.
+
+**Neu abgesichert:** `Sind_beide_Zeitgrenzen_abgelaufen_gewinnt_die_eigene` —
+der Fall, der vier Tage lang schwieg, ist jetzt ein Komponententest. Die
+beiden Randfälle daneben waren längst getestet; **genau der Fall dazwischen
+fehlte.**
+
+**Gemessen am laufenden Programm**, mit der Attrappe im Modus `tot`:
+
+| | vorher | nachher |
+|---|---|---|
+| Meldung | «Attrappe tot übersprungen» | **«Attrappe tot antwortet nicht»** |
+| Protokoll | *nichts* | «Quelle attrappe-tot antwortet nicht innerhalb von 3000 ms» |
+| Schutzschalter | zählte nicht, 7 Anfragen in 40 s | **greift nach 5**, dann bleibt es bei 5 |
+
+Die sechste und siebte Suche melden jetzt «übersprungen» — und das ist dort
+**richtig**: die Quelle wird wirklich übersprungen, weil der Schalter zu ist.
+Dasselbe Wort, aber jetzt für die Sache, die es meint.
+
 #### Die dritte Reparaturrunde (21.09.2026) — die zwei Zeitpunkte
 
 **A1-6 und A1-10 sind behoben.** Fünf Befunde bleiben offen: A1-2, A1-4, A1-5,
@@ -569,7 +608,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   die Oberfläche setzt und gleich danach die Datei liest, misst den alten Wert
   und hält ihn für einen Fehlschlag. So ist dieser Befund entstanden.
 
-- **A1-8 — Eine Quelle, die annimmt und schweigt, wird «übersprungen» genannt,
+- **A1-8 — BEHOBEN am 21.09.2026.** Eine Quelle, die annimmt und schweigt, wurde «übersprungen» genannt,
   schweigend protokolliert und vom Schutzschalter nicht gezählt.** Gemessen an
   einer lokalen Attrappe, die die Verbindung annimmt und nie antwortet:
   - **Die Oberfläche sagt «Attrappe tot übersprungen»** — Quelle ohne Grund und

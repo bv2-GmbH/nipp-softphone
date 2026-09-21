@@ -302,6 +302,18 @@ public sealed class ContactSearchService : IDisposable
         // Eigene Zeitgrenze je Quelle, verbunden mit dem Abbruch von aussen —
         // dasselbe Muster wie im HTTP-Zugang, und aus demselben Grund: nur so
         // lässt sich „zu langsam" von „überholt" unterscheiden.
+        //
+        // <b>Sie laeuft gegen die des HTTP-Zugangs</b>, denn
+        // HttpContactSearchProvider reicht dasselbe Traits.Timeout eine Ebene
+        // tiefer weiter — zwei Zeitgrenzen aus derselben Zahl, und diese hier
+        // gewinnt, weil sie frueher startet. Unten sah das aus wie ein Abbruch
+        // von aussen, und genau dieser Fall schweigt (Befund A1-8).
+        //
+        // <b>Aufgeloest wird das unten und nicht hier:</b> der HTTP-Zugang
+        // prueft jetzt zuerst seine eigene Zeitgrenze. Ein Aufschlag an dieser
+        // Stelle waere der naheliegende, aber falsche Griff gewesen — er
+        // verlaengert die Wartezeit fuer jeden Provider, der seine Zeitgrenze
+        // NICHT selbst durchsetzt, und fuer die ist diese hier die einzige.
         using var timeout = provider.Traits.Timeout is { } limit
             ? new CancellationTokenSource(limit)
             : new CancellationTokenSource();
