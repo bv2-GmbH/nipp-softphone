@@ -342,10 +342,32 @@
                             <Button Click="OnPickRingtone" Content="Eigene Datei…" />
                         </StackPanel>
 
-                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Wiedergabelautstärke" />
-                        <Slider Maximum="100" Minimum="0" Value="{x:Bind ViewModel.PlaybackVolume, Mode=TwoWay}" />
-                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Mikrofonpegel" />
-                        <Slider Maximum="100" Minimum="0" Value="{x:Bind ViewModel.MicrophoneLevel, Mode=TwoWay}" />
+                        <!--
+                            Die Beschriftung steht als eigener TextBlock daneben und
+                            wird ueber LabeledBy mit dem Regler verbunden (Befund
+                            A1-1): sonst traegt er keinen vorlesbaren Namen, und eine
+                            Sprachausgabe liest einen Wert ohne die Groesse, zu der er
+                            gehoert (Paragraf 8.4). Es waren die einzigen zwei
+                            bedienbaren Elemente ohne Namen, ueber alle drei Reiter.
+                        -->
+                        <TextBlock
+                            x:Name="PlaybackVolumeLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Wiedergabelautstärke" />
+                        <Slider
+                            AutomationProperties.LabeledBy="{x:Bind PlaybackVolumeLabel}"
+                            Maximum="100"
+                            Minimum="0"
+                            Value="{x:Bind ViewModel.PlaybackVolume, Mode=TwoWay}" />
+                        <TextBlock
+                            x:Name="MicrophoneLevelLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Mikrofonpegel" />
+                        <Slider
+                            AutomationProperties.LabeledBy="{x:Bind MicrophoneLevelLabel}"
+                            Maximum="100"
+                            Minimum="0"
+                            Value="{x:Bind ViewModel.MicrophoneLevel, Mode=TwoWay}" />
 
                         <ToggleSwitch
                             Header="Echounterdrückung"

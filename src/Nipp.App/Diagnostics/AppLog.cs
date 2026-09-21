@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
 namespace Nipp.App.Diagnostics;
 
@@ -174,7 +174,7 @@ internal static partial class AppLog
     public static partial void ExitStepFailed(ILogger logger, string service, string reason);
 
     [LoggerMessage(EventId = 1057, Level = LogLevel.Warning,
-        Message = "Beenden hat acht Sekunden nicht genuegt — der Prozess wird hart beendet. "
+        Message = "Beenden hat drei Sekunden nicht genuegt — der Prozess wird hart beendet. "
             + "Die letzte 'Beenden:'-Zeile davor sagt, wie weit es kam")]
     public static partial void ExitForced(ILogger logger);
 

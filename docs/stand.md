@@ -160,6 +160,26 @@ Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
 Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
 graue Gruppe, keine Leiste, Werksdatei gelöscht.
 
+## Vier Befunde behoben (21.09.2026)
+
+**A1-1, A1-7, A1-11 und A1-12**, dazu der Nebenbefund aus A1-4. **Sechs
+bleiben offen.**
+
+**A1-1** — die beiden Schieberegler der Audio-Gruppe sind über
+`AutomationProperties.LabeledBy` mit ihrer Beschriftung verbunden; auf der
+Seite steht kein bedienbares Element mehr ohne Namen.
+
+**A1-11 brauchte drei Anläufe, und der Umweg ist die Lehre.** Erst
+`TextOnAccentFillColorSecondaryBrush` (3,38:1, zu wenig), dann Primary
+(10,47:1 dunkel — aber im Hellen **3,70:1 mit schwarzer Schrift auf
+Dunkelblau**). Der Grund: `Resource(...)` löst **einmal** auf und liefert einen
+festen Pinsel, der dem Themenwechsel nicht folgt. Die Lösung ist, gar keinen zu
+setzen: dann erbt der Text vom Knopf, und der Stil führt die Farbe nach.
+**Gemessen: 10,47:1 dunkel, 5,67:1 hell**, vorher beide 1,16:1.
+
+**Der Nebenbefund aus A1-4** ist erledigt: `AppLog.ExitForced` meldete «acht
+Sekunden», der Wächter wartet drei. Der Hauptbefund bleibt offen.
+
 ## Die ersten zwei Befunde sind behoben (21.09.2026)
 
 **A1-7 und A1-12**, beide am laufenden Programm nachgemessen mit derselben

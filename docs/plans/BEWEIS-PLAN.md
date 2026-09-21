@@ -317,6 +317,47 @@ unformatiert, während die anderen gruppiert stehen — nipp formatiert nur, was
 es als gültige Nummer erkennt. Der Knopf bleibt trotzdem wählbar, und der
 Hinweis darauf ist sehr leise.
 
+#### Die zweite Reparaturrunde (21.09.2026)
+
+**A1-1, A1-11 und der Nebenbefund aus A1-4 sind behoben.** Sechs Befunde
+bleiben offen.
+
+**A1-1 — `AutomationProperties.LabeledBy`.** Die beiden Regler tragen ihre
+Beschriftung als eigenen `TextBlock` daneben; jetzt sind die beiden über
+`LabeledBy` verbunden. Damit bleibt das Aussehen unverändert und die
+Sprachausgabe hat einen Namen. **Gemessen danach:** im UIA-Baum heissen sie
+«Wiedergabelautstärke» und «Mikrofonpegel», und auf der Audio-Seite steht
+**kein** bedienbares Element mehr ohne Namen.
+
+**A1-4, Nebenbefund — zwei Zahlen für dieselbe Wartezeit.** `AppLog.ExitForced`
+meldete «acht Sekunden», der Wächter wartet drei. Die Meldung sagt jetzt drei.
+**Der Hauptbefund A1-4 bleibt offen** — warum «Exit() ist zurückgekehrt» bei
+jedem Beenden dasteht, ist ungeklärt.
+
+**A1-11 — drei Anläufe, und jeder war nötig.** Der Detailtext einer Zeile hatte
+`CardSecondaryTextBrush` fest gesetzt und blieb damit auf der Akzentfläche der
+Auswahl stehen.
+
+1. `TextOnAccentFillColorSecondaryBrush` → **3,38:1**. Immer noch unter der
+   Schwelle: dieser Pinsel ist für **abgesetzten** Text auf Akzent gedacht,
+   nicht für lesbaren.
+2. `TextOnAccentFillColorPrimaryBrush` → **10,47:1 im Dunkeln**, aber im Hellen
+   **3,70:1 mit schwarzer Schrift auf Dunkelblau**. Der Grund ist lehrreich:
+   `Resource(...)` löst **einmal** auf und liefert einen festen `SolidColorBrush`,
+   der dem Themenwechsel nicht folgt. Die Zeile war im dunklen Thema gebaut
+   worden und behielt dessen Schwarz.
+3. **Gar keinen Pinsel setzen**, wenn die Zeile ausgewählt ist — dann erbt der
+   `TextBlock` vom Knopf, und `AccentButtonStyle` führt die Farbe dem Thema
+   nach. Genau das, was die Überschrift darüber immer schon richtig machte.
+
+**Gemessen danach, in beiden Themen:** **10,47:1** dunkel, **5,67:1** hell,
+vorher beide 1,16:1.
+
+**Was daran über die Zeile hinausgeht:** ein im Code gesetzter Pinsel aus
+`Resource(...)` ist eine Momentaufnahme des Themas. Wer in `BuildElementButton`
+oder anderswo eine Farbe von Hand setzt, baut einen Wert ein, der beim nächsten
+Themenwechsel falsch ist — **erben oder binden, nicht setzen.**
+
 #### Die erste Reparaturrunde (21.09.2026)
 
 **A1-7 und A1-12 sind behoben**, beide am laufenden Programm nachgemessen mit
@@ -374,7 +415,7 @@ niemandem auffällt. **Wer das wiedersieht, lässt `--logger trx` mitlaufen.**
 
 Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
 
-- **A1-1 — Die beiden Schieberegler in der Audio-Gruppe haben keinen
+- **A1-1 — BEHOBEN am 21.09.2026.** Die beiden Schieberegler in der Audio-Gruppe hatten keinen
   vorlesbaren Namen.** `SettingsPage.xaml:346` und `:348`: «Wiedergabelautstärke»
   und «Mikrofonpegel» stehen als eigener `TextBlock` daneben statt als `Header`
   oder `AutomationProperties.Name`. Im UIA-Baum sind es die **einzigen zwei
@@ -560,7 +601,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   Eigenschaftenbereich trägt **keinen** UIA-Namen — die Beschriftung liegt als
   eigener Text darin. Dieselbe Sorte wie A1-1.
 
-- **A1-11 — Der Ausdruckstext einer ausgewählten Zeile im Karten-Designer hat
+- **A1-11 — BEHOBEN am 21.09.2026.** Der Ausdruckstext einer ausgewählten Zeile im Karten-Designer hatte
   1,16:1 Kontrast, und zwar in beiden Themen.** Gemessen an den Pixeln des
   laufenden Programms, nach der Formel aus `ThemedBrushTests`:
 

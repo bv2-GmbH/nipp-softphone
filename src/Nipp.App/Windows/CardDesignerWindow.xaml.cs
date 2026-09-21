@@ -553,6 +553,7 @@ public sealed partial class CardDesignerWindow : Window
 
     private Grid BuildElementButton(DraftElement element)
     {
+        var ausgewaehlt = ReferenceEquals(element, ViewModel.SelectedElement);
         var inhalt = new StackPanel { Spacing = 0 };
 
         inhalt.Children.Add(new TextBlock
@@ -563,13 +564,43 @@ public sealed partial class CardDesignerWindow : Window
 
         if (element.Detail.Length > 0)
         {
-            inhalt.Children.Add(new TextBlock
+            // Der zweite Pinsel muss mit der Flaeche wechseln (ADR-044, Befund
+            // A1-11). Die Ueberschrift tut das von selbst — sie erbt ihre Farbe
+            // vom Knopf, und AccentButtonStyle setzt sie. Der Detailtext hatte
+            // dagegen CardSecondaryTextBrush fest gesetzt und blieb auf der
+            // blauen Flaeche stehen: gemessen 1,16:1 in beiden Themen, gegen
+            // 10,47:1 der Ueberschrift daneben. Verlangt sind 4,5:1.
+            //
+            // ZWEI Anlaeufe waren noetig, und beide sind gemessen. Erst
+            // TextOnAccentFillColorSecondaryBrush: 3,38:1, immer noch unter der
+            // Schwelle — der Pinsel ist fuer abgesetzten Text auf Akzent
+            // gedacht, nicht fuer lesbaren. Dann Primary: 10,47:1 im Dunkeln,
+            // aber im Hellen 3,70:1 mit SCHWARZER Schrift auf Dunkelblau —
+            // denn Resource(...) loest einmal auf und liefert einen festen
+            // Brush, der dem Themenwechsel nicht folgt. Die Zeile war im
+            // dunklen Thema gebaut worden und behielt dessen Schwarz.
+            //
+            // Deshalb jetzt gar kein eigener Pinsel: Erben ist die einzige
+            // Variante, die beide Themen und den Wechsel dazwischen trifft.
+            // Den Unterschied zwischen Ueberschrift und Detail traegt allein
+            // die Schriftgroesse.
+            var detail = new TextBlock
             {
                 Text = element.Detail,
                 Style = Resource<Style>("CaptionTextBlockStyle"),
-                Foreground = Resource("CardSecondaryTextBrush"),
                 TextTrimming = TextTrimming.CharacterEllipsis,
-            });
+            };
+
+            // Auf der Akzentflaeche wird der Vordergrund GAR NICHT gesetzt: der
+            // TextBlock erbt ihn dann vom Knopf, und AccentButtonStyle fuehrt
+            // ihn dem Thema nach — genau wie bei der Ueberschrift darueber, die
+            // nie ein Problem hatte.
+            if (!ausgewaehlt)
+            {
+                detail.Foreground = Resource("CardSecondaryTextBrush");
+            }
+
+            inhalt.Children.Add(detail);
         }
 
         var knopf = new Button
@@ -584,7 +615,7 @@ public sealed partial class CardDesignerWindow : Window
             knopf,
             $"{element.Headline}. {element.Detail}");
 
-        if (ReferenceEquals(element, ViewModel.SelectedElement))
+        if (ausgewaehlt)
         {
             knopf.Style = Resource<Style>("AccentButtonStyle");
         }
