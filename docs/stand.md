@@ -160,6 +160,26 @@ Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
 Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
 graue Gruppe, keine Leiste, Werksdatei gelöscht.
 
+## Alle elf Befunde aus A1 sind erledigt (21.09.2026)
+
+**A1-2 war der letzte**, und er hat eine Regel zutage gefördert, die niemand
+kannte: **Windows hält den ersten ToolTip nach `Create()` als Anzeigenamen des
+Infobereich-Symbols fest** und stellt ihn jedem späteren voran. Der vorgelesene
+Name ist «erster Text» + «aktueller Text» — mit «nipp» beim Anlegen und
+«nipp — angemeldet» danach also «nipp nipp — angemeldet».
+
+Vier Messungen waren nötig, und zwei Zwischenschritte gingen daneben: den
+Anlege-ToolTip wegzulassen verschob die Doppelung nur, und `UpdateToolTip()`
+sofort nach `Create()` liess das «nipp» ganz verschwinden. **Jetzt trägt der
+Anlege-Text den Namen und der ToolTip nur den Zustand:** «nipp angemeldet».
+
+Belegt ist die Regel durch eine Probe — stand beim Anlegen «PROBE-ANLEGEN»,
+hiess das Symbol «PROBE-ANLEGEN nipp — angemeldet». Der vorangestellte Text
+kommt also von Windows und nicht aus einer zweiten Stelle im Code.
+
+**Damit ist die Schreibtisch-Runde A1 ohne offenen Befund.** Was bleibt, sind
+die Matrixzeilen: 190 von 303, davon 69 am Schreibtisch.
+
 ## Zehn Befunde erledigt (21.09.2026) — A1-4 war eine Diagnose
 
 **Einer bleibt offen: A1-2.**

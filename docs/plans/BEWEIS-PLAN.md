@@ -317,6 +317,42 @@ unformatiert, während die anderen gruppiert stehen — nipp formatiert nur, was
 es als gültige Nummer erkennt. Der Knopf bleibt trotzdem wählbar, und der
 Hinweis darauf ist sehr leise.
 
+#### Die siebte Runde (21.09.2026) — A1-2, und damit ist A1 sauber
+
+**Alle elf Befunde sind erledigt.**
+
+**Die Ursache stand im Befund als «vermutlich von Windows» — das stimmte, aber
+die Regel dahinter kannte niemand.** Vier Messungen haben sie ergeben:
+
+| Anlege-ToolTip | `UpdateToolTip()` gleich nach `Create()` | ToolTip-Text | UIA-Name |
+|---|---|---|---|
+| `"nipp"` | nein | «nipp — angemeldet» | «**nipp** nipp — angemeldet» |
+| *keiner* | ja | «nipp — angemeldet» | «nipp — nicht angemeldet nipp — angemeldet» |
+| `"nipp"` | ja | «angemeldet» | «nicht angemeldet» |
+| `"nipp"` | **nein** | «angemeldet» | **«nipp angemeldet»** |
+
+**Die Regel:** Windows hält den **ersten** ToolTip nach `Create()` als
+Anzeigenamen des Symbols fest und stellt ihn jedem späteren voran. Der UIA-Name
+ist «erster Text» + «aktueller Text».
+
+Belegt ist das durch die erste Zeile: stand beim Anlegen `"PROBE-ANLEGEN"`,
+hiess das Symbol «PROBE-ANLEGEN nipp — angemeldet». **Der vorangestellte Text
+kommt also von Windows und nicht aus einer zweiten Stelle im Code.**
+
+**Zwei Zwischenschritte waren falsch, und beide sind lehrreich:** den
+Anlege-ToolTip wegzulassen verschob die Doppelung nur (dann wurde der erste
+Text aus `UpdateToolTip` zum Anzeigenamen), und `UpdateToolTip()` sofort nach
+`Create()` aufzurufen liess das «nipp» ganz verschwinden — es kam nie an.
+
+**Jetzt:** der Anlege-ToolTip trägt den Namen und wird **nicht** überschrieben,
+`UpdateToolTip` trägt nur noch den Zustand. Eine Sprachausgabe liest «nipp
+angemeldet».
+
+**Nebenbei am Werkzeug:** `Stop-Nipp.ps1` suchte das Symbol über den Namen
+«nipp nipp…» und fand es nach der ersten Änderung nicht mehr. Es sucht jetzt
+über den Zustand — ein Werkzeug, das an der Schreibweise dessen hängt, was es
+prüft, geht beim ersten Erfolg kaputt.
+
 #### Die sechste Runde (21.09.2026) — A1-4 war eine Diagnose, keine Reparatur
 
 **Aufgeklärt: die Meldung war falsch, nicht das Beenden.** Ein Befund bleibt
@@ -563,7 +599,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   sieben Einstellungsgruppen, sonst trägt jedes einen. Eine Sprachausgabe liest
   dort einen Wert ohne die Grösse, zu der er gehört (§8.4). Es sind auch die
   einzigen zwei `Slider` im ganzen Projekt.
-- **A1-2 — Das Symbol im Infobereich wird doppelt angesagt.** Der Name lautet
+- **A1-2 — BEHOBEN am 21.09.2026.** Das Symbol im Infobereich wurde doppelt angesagt. Der Name lautet
   «nipp nipp — angemeldet»; `TrayIconHost.cs:346` setzt «nipp — angemeldet»,
   und der Anzeigename kommt **vermutlich** von Windows davor — gemessen ist nur
   das Ergebnis, nicht die Ursache.

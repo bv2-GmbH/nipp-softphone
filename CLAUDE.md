@@ -15,7 +15,7 @@ lesbar bleiben.
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
-| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 läuft seit dem 17.09.2026** und hat an fünf Runden 32 Zeilen abgenommen; dort stehen die Befunde A1-1 bis A1-12 — **einer davon offen** (A1-2); A1-3 ist mit der Streichung in §10 erledigt (ADR-055, Nachtrag), die übrigen sechs sind am 21.09.2026 behoben und nachgemessen — und die Einordnung aller S-Zeilen. Gezählt: **190 offen von 303**, davon 69 am Schreibtisch. **Repariert wird gesammelt, nicht mitten in einer Messrunde** — sonst prüft die halbe Runde gegen einen anderen Build als die andere. Die erste Reparaturrunde lief am 21.09.2026, nachdem fünf Messrunden durch waren |
+| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 läuft seit dem 17.09.2026** und hat an fünf Runden 32 Zeilen abgenommen; dort stehen die Befunde A1-1 bis A1-12 — **alle elf erledigt** (Stand 21.09.2026); A1-3 ist mit der Streichung in §10 erledigt (ADR-055, Nachtrag), die übrigen sechs sind am 21.09.2026 behoben und nachgemessen — und die Einordnung aller S-Zeilen. Gezählt: **190 offen von 303**, davon 69 am Schreibtisch. **Repariert wird gesammelt, nicht mitten in einer Messrunde** — sonst prüft die halbe Runde gegen einen anderen Build als die andere. Die erste Reparaturrunde lief am 21.09.2026, nachdem fünf Messrunden durch waren |
 | Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
 | Pläne und Reviews | `docs/plans/` — zwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind fünf:** `BEWEIS-PLAN.md` (A1 läuft), `ZIEHVORSCHAU-PLAN.md` (V8: T292–T296 sind bestanden, **offen bleiben der Zug auf einen Gruppenkopf und hell bei 150 %**), `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5 und T300), `AUDIOQUALITAET-PLAN.md` (**das lange Gespräch ist beantwortet, A8** — offen bleiben A7, die Senderichtung und T38) und `SHELL-IM-GESPRAECH-PLAN.md` (offen: T313–T317). Der Rest ist abgeschlossen |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
@@ -120,6 +120,13 @@ lesbar bleiben.
   naheliegende und falsche Griff:** für einen Provider ohne eigene Zeitgrenze
   ist sie die einzige, und ein Aufschlag verlängert nur die Wartezeit. Ein
   bestehender Test hat das sofort gefangen.
+- **Der Name des Infobereich-Symbols ist der erste ToolTip nach `Create()`**
+  (Befund A1-2). Windows hält ihn als Anzeigenamen fest und stellt ihn jedem
+  späteren ToolTip voran — der vorgelesene Name ist also «erster Text» +
+  «aktueller Text». Deshalb trägt der Text beim Anlegen den Namen («nipp») und
+  wird **nicht** überschrieben, während `UpdateToolTip` nur noch den Zustand
+  führt. Mit «nipp — …» an beiden Stellen las eine Sprachausgabe «nipp nipp —
+  angemeldet».
 - **Wer in WinUI auf einen Zustand wartet, hängt sich an das Ereignis, das ihn
   meldet — nicht an den nächsten Tick** (Befunde A1-6 und A1-10). Ein
   `DispatcherQueue.TryEnqueue` ist eine Wette darauf, dass ein Durchlauf
@@ -373,9 +380,11 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   nach dem Neustart wieder zehn). Das gilt für jede Prüfung, die eine
   Konfiguration einspielt. Sauber beendet wird über das Infobereich-Menü,
   nicht über `Stop-Process`; das Symbol ist über UI Automation erreichbar
-  (`Shell_TrayWnd`, Button `nipp nipp — angemeldet`) — **der Name fängt mit
-  `nipp nipp` an**, ein `-like 'nipp*'` erwischt zuerst das angeheftete
-  Taskleistensymbol.
+  (`Shell_TrayWnd`, Button `nipp angemeldet`) — **der Name trägt den Zustand,
+  nicht nur «nipp»**, und ein `-like 'nipp*'` erwischt zuerst das angeheftete
+  Taskleistensymbol. Bis zum 21.09.2026 hiess er «nipp nipp — angemeldet»
+  (Befund A1-2); wer ein Werkzeug an diesen Namen hängt, sucht besser über den
+  **Zustand** als über die Schreibweise.
 - **Wer ein Provisionierungsprofil einspielt, sichert die Geheimnisdatei mit**
   (Befund A1-9). Ein Profil mit `<accounts>` **ersetzt die Kontenliste und
   nimmt die gespeicherten Passwörter mit**; `settings.json` zurückzuspielen

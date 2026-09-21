@@ -61,6 +61,27 @@ public sealed class TrayIconHost : IDisposable
         {
             _iconResource = LoadIcon();
 
+            // <b>Hier steht der Name, im ToolTip nur der Zustand</b>
+            // (Befund A1-2).
+            //
+            // <b>Die Regel, in vier Messungen am 21.09.2026 herausgefunden:</b>
+            // Windows haelt den ERSTEN ToolTip nach Create() als Anzeigenamen
+            // des Symbols fest und stellt ihn jedem spaeteren voran. Der
+            // UIA-Name ist also "erster Text" + "aktueller Text".
+            //
+            //   hier "PROBE-ANLEGEN", ToolTip "nipp — angemeldet"
+            //     -> "PROBE-ANLEGEN nipp — angemeldet"
+            //        (der Text kommt von Windows, nicht aus dem Code)
+            //   hier nichts, dafuer UpdateToolTip() gleich nach Create()
+            //     -> "nipp — nicht angemeldet nipp — angemeldet"
+            //        (verschiebt die Doppelung nur)
+            //   hier "nipp", UpdateToolTip() gleich nach Create(), Zustand allein
+            //     -> "nicht angemeldet"  (das "nipp" kam nie an)
+            //   hier "nipp", KEIN sofortiges Update, Zustand allein
+            //     -> "nipp angemeldet"   <- so ist es jetzt
+            //
+            // Deshalb bleibt dieser Text stehen und wird NICHT sofort
+            // ueberschrieben: er ist der Anzeigename.
             _icon = new TrayIconWithContextMenu
             {
                 Icon = _iconResource.Handle,
@@ -340,11 +361,16 @@ public sealed class TrayIconHost : IDisposable
         // schlicht das Richtige (CA1826).
         var call = _sip.ActiveCalls.Count > 0 ? _sip.ActiveCalls[0] : null;
 
+        // <b>Ohne "nipp" davor</b> (Befund A1-2): Windows haelt den ERSTEN
+        // ToolTip nach Create() als Anzeigenamen des Symbols fest und stellt
+        // ihn jedem spaeteren voran. Der erste ist "nipp" (beim Anlegen), also
+        // steht der Name schon da — mit Praefix hier las eine Sprachausgabe
+        // "nipp nipp — angemeldet".
         _icon.UpdateToolTip(call is not null
-            ? $"nipp — {_party.Describe(call)}"
+            ? _party.Describe(call)
             : _sip.RegistrationStatus == RegistrationStatus.Registered
-                ? "nipp — angemeldet"
-                : "nipp — nicht angemeldet");
+                ? "angemeldet"
+                : "nicht angemeldet");
     }
 
     /// <summary>§20.4: das Symbol folgt dem Erscheinungsbild.</summary>
