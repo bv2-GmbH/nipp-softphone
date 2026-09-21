@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -55,7 +55,11 @@ public sealed partial class SettingsPage : Page
         // hat 25 Textfelder und 4 Zahlenfelder, und beim naechsten waere genau
         // eines vergessen. AddHandler auf UIElement.LostFocusEvent gaebe es
         // nicht — WinUI legt fuer LostFocus kein statisches RoutedEvent an.
-        FocusManager.LosingFocus += OnLosingFocus;
+        //
+        // LostFocus und nicht LosingFocus (Befund A1-7, 17.09.2026): das
+        // zweite laeuft VOR der Uebertragung, und ApplyEdits las dann den
+        // alten Stand. Siehe OnLostFocus.
+        FocusManager.LostFocus += OnLostFocus;
 
         // §20.4: das Symbol folgt dem Erscheinungsbild, wie in der Titelleiste
         // und im Infobereich.
@@ -282,10 +286,10 @@ public sealed partial class SettingsPage : Page
         _policy.Changed -= OnPolicyChanged;
         ActualThemeChanged -= OnActualThemeChanged;
 
-        // FocusManager.LosingFocus ist ein statisches, anwendungsweites
+        // FocusManager.LostFocus ist ein statisches, anwendungsweites
         // Ereignis — ohne dieses Loesen liefe der Behandler weiter, auch wenn
         // die Seite laengst nicht mehr zu sehen ist.
-        FocusManager.LosingFocus -= OnLosingFocus;
+        FocusManager.LostFocus -= OnLostFocus;
 
         Unloaded -= OnUnloaded;
     }
@@ -1354,8 +1358,20 @@ public sealed partial class SettingsPage : Page
     /// <para>Nur fuer die Felder, die einen fertigen Wert brauchen. Schalter,
     /// Auswahllisten und Regler wirken laengst mit der Aenderung; sie kaemen
     /// hier ein zweites Mal an und schrieben denselben Inhalt noch einmal.</para>
+    ///
+    /// <para><b>LostFocus und nicht LosingFocus</b> — das ist der Unterschied
+    /// zwischen „wirkt" und „ist weg" (Befund A1-7, 17.09.2026).
+    /// <c>LosingFocus</c> laeuft, waehrend der Fokus noch wechselt; eine
+    /// <c>TextBox</c> und eine <c>NumberBox</c> uebertragen ihren Inhalt aber
+    /// erst mit <c>LostFocus</c> in die Bindung. <c>ApplyEdits</c> las dort
+    /// also den <b>alten</b> Stand und schrieb ihn zurueck — und weil genau
+    /// diese neun Felder in <c>ErstBeimVerlassen</c> stehen und damit vom
+    /// automatischen Speichern ausgenommen sind, gab es keinen zweiten Weg:
+    /// bei einer <c>NumberBox</c> kam der Wert erst mit dem naechsten
+    /// Speicheranlass, bei einem Textfeld <b>gar nicht</b> — auch nicht beim
+    /// Beenden.</para>
     /// </summary>
-    private void OnLosingFocus(object? sender, LosingFocusEventArgs e)
+    private void OnLostFocus(object? sender, FocusManagerLostFocusEventArgs e)
     {
         if (e.OldFocusedElement is TextBox or NumberBox)
         {

@@ -160,6 +160,36 @@ Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
 Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
 graue Gruppe, keine Leiste, Werksdatei gelöscht.
 
+## Die ersten zwei Befunde sind behoben (21.09.2026)
+
+**A1-7 und A1-12**, beide am laufenden Programm nachgemessen mit derselben
+Messung, die sie gefunden hat. **Neun Befunde bleiben offen.**
+
+**A1-7 war eine Zeile, und die Ursachenkette ist die eigentliche Ausbeute.**
+`OnPropertyChanged` nimmt die neun Felder aus `ErstBeimVerlassen` vom
+automatischen Speichern aus — für sie ist `ApplyEdits()` aus der Oberfläche der
+**einzige** Weg auf die Platte. Und der hing an `FocusManager.LosingFocus`,
+also an dem Moment, in dem der Fokus noch wechselt: `TextBox` und `NumberBox`
+übertragen ihren Inhalt erst mit `LostFocus`. `ApplyEdits` las den alten Stand
+und schrieb ihn zurück; feuerte die Bindung danach, sprang `OnPropertyChanged`
+wegen `ErstBeimVerlassen` sofort wieder heraus. **Kein zweiter Weg, kein
+Hinweis.** Jetzt hängt es an `FocusManager.LostFocus` — das Ereignis gibt es,
+der Compiler hat es bestätigt —, und der Wert steht nach einer Sekunde in der
+Datei, samt Benutzermarkierung.
+
+**A1-12 dreht die Frage um.** Statt «wo liegt der Fokus» fragt die Wähltastatur
+jetzt «womit wurde gedrückt»: das Keypad meldet einen `KeypadPress` mit `Key`
+und `VonTastatur`, und die Herkunft kommt aus `Button.FocusState`. Die alte
+Fokusabfrage konnte den Mausklick nicht erkennen, weil Windows den Fokus auf
+den Knopf setzt, bevor `Click` feuert. Gemessen nach der Reparatur: Klick auf
+die «5», dann «7» getippt — im Feld steht «57». Die Tastaturseite ist
+unverändert.
+
+**T190 und T233 sind neu gemessen und jetzt beide bestanden** (vorher
+«teilweise»). Beide ADRs haben einen Nachtrag bekommen: ADR-045 sagt jetzt,
+dass «wirkt beim Verlassen des Feldes» vier Tage lang nicht zutraf, ADR-044,
+dass die Fokusbedingung die falsche Frage stellte.
+
 ## Zwei Entscheidungen vom 17.09.2026, abends
 
 **Dominic hat beide offenen Fragen beantwortet.**

@@ -317,6 +317,59 @@ unformatiert, während die anderen gruppiert stehen — nipp formatiert nur, was
 es als gültige Nummer erkennt. Der Knopf bleibt trotzdem wählbar, und der
 Hinweis darauf ist sehr leise.
 
+#### Die erste Reparaturrunde (21.09.2026)
+
+**A1-7 und A1-12 sind behoben**, beide am laufenden Programm nachgemessen mit
+derselben Messung, die sie gefunden hat. Neun Befunde bleiben offen.
+
+**A1-7 — `LostFocus` statt `LosingFocus`.** Die Ursachenkette war am Ende
+vollständig lesbar: `OnPropertyChanged` in `SettingsViewModel` ruft `Apply()`
+für jede Eigenschaft **ausser** denen in `NurAnzeige` und `ErstBeimVerlassen`;
+für die neun Felder der zweiten Liste ist `ApplyEdits()` aus der Oberfläche
+damit der **einzige** Weg auf die Platte. Und der lief im
+`FocusManager.LosingFocus`, also **bevor** `TextBox` und `NumberBox` ihren
+Inhalt in die Bindung übertragen — `Apply()` schrieb den alten Stand zurück,
+und wenn die Bindung danach feuerte, sprang `OnPropertyChanged` wegen
+`ErstBeimVerlassen` sofort wieder heraus. Kein zweiter Weg, kein Hinweis.
+
+Die Reparatur ist eine Zeile: `FocusManager.LostFocus` statt `LosingFocus`,
+mit `FocusManagerLostFocusEventArgs`. **Dass es dieses statische Ereignis gibt,
+ist verifiziert und nicht vermutet** — der Kommentar an der alten Stelle sagte,
+WinUI lege «für LostFocus kein statisches RoutedEvent an», und das stimmt auch:
+gemeint war `UIElement.LostFocusEvent` für `AddHandler`. Der `FocusManager` hat
+sein eigenes, und der Compiler hat es bestätigt.
+
+**Gemessen nach der Reparatur:** «STUN-Server» getippt, Feld verlassen — nach
+**einer Sekunde** steht der Wert in `settings.json`, samt Markierung
+`nat.stun-server`. Dasselbe für Keep-Alive mit `network.keep-alive-seconds`.
+Vorher kam der Textfeldwert nie an, auch nicht beim Beenden.
+
+**A1-12 — die Taste weiss es, der Fokus nicht.** Die alte Fassung fragte, ob
+der Fokus gerade auf der Wähltastatur liegt, und sprang nur dann nicht ins
+Nummernfeld zurück. Bei einem Mausklick liegt er das aber auch — Windows setzt
+ihn auf den Knopf, bevor `Click` feuert.
+
+Die Reparatur dreht die Frage um: **nicht «wo ist der Fokus», sondern «womit
+wurde gedrückt».** Das Keypad meldet jetzt einen `KeypadPress` mit `Key` und
+`VonTastatur`, und die Herkunft kommt aus `Button.FocusState` — `Keyboard`
+gegen `Pointer`. Damit verschwindet die Fokusabfrage in `ShellPage` ganz, und
+die Regel steht als ein Satz da: zurückspringen, wenn der Druck nicht von der
+Tastatur kam.
+
+**Gemessen nach der Reparatur:** Klick auf die «5», dann «7» getippt — im Feld
+steht «57», und der Fokus liegt auf «Nummer oder Name». Die Tastaturseite ist
+unverändert: Tab auf «Eins», dreimal Leertaste, der Fokus bleibt, Tab führt auf
+«Zwei A B C».
+
+**T190 und T233 sind damit neu gemessen und beide bestanden** — vorher
+«teilweise» und «Navigation ja, Übernahme nein».
+
+**Eine Beobachtung, die kein Befund ist:** ein Testlauf zeigte einmal
+**1 Fehlschlag von 1252**, zwei Läufe davor und danach waren grün, und die
+Ausgabe hat den Namen nicht mitgegeben. Festgehalten, weil ein Test, der
+einmal rot ist, ohne dass jemand es aufschreibt, beim nächsten Mal wieder
+niemandem auffällt. **Wer das wiedersieht, lässt `--logger trx` mitlaufen.**
+
 ### Befunde aus A1
 
 Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
@@ -405,7 +458,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   da, greift aber nicht, und niemand hat nachgesehen. Das ist dieselbe Sorte
   Satz wie in Befund A8 der Welle 2.7.
 
-- **A1-7 — Ein getippter Zahlenwert wirkt beim Verlassen des Feldes nicht; er
+- **A1-7 — BEHOBEN am 21.09.2026.** Ein getippter Zahlenwert wirkte beim Verlassen des Feldes nicht; er
   erreicht die Datei erst beim Beenden.** Dreimal am Keep-Alive-Feld gemessen
   (Werte 20, 25, 45): tippen, Tab auf das nächste Feld — das Feld zeigt den
   neuen Wert, der Fokus ist nachweislich weiter, und `settings.json` trägt
@@ -527,7 +580,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   eine Zeile **tut** — und lesbar ist er genau dann nicht, wenn man sie
   bearbeitet.
 
-- **A1-12 — Nach einem Mausklick auf die Wähltastatur bleibt der Fokus auf dem
+- **A1-12 — BEHOBEN am 21.09.2026.** Nach einem Mausklick auf die Wähltastatur blieb der Fokus auf dem
   Knopf, und die nächste getippte Ziffer geht verloren.** Gemessen: Fokus im
   Nummernfeld, echter Mausklick auf die «5» — danach liegt der Fokus auf «Fünf
   J K L», nicht im Feld. Eine anschliessend getippte «7» landet **nirgends**;

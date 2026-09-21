@@ -1,4 +1,4 @@
-using System.Collections.Specialized;
+﻿using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -600,21 +600,26 @@ public sealed partial class ShellPage : Page
     /// <summary>
     /// Eine Taste der Wähltastatur — die Ziffer wandert ins Feld.
     ///
-    /// <para><b>Der Fokus springt nur zurück, wenn er nicht schon auf der
-    /// Tastatur liegt</b> (ADR-044). Vorher tat er es nach jedem Tastendruck:
-    /// wer sich mit Tabulator auf die „5" gestellt hatte, wurde beim Drücken
-    /// aus dem Tastenfeld gerissen und konnte nicht zur „6" weitergehen. Mit
-    /// Maus und Finger ist der Rücksprung dagegen richtig — dort will man nach
-    /// dem Tippen im Feld stehen.</para>
+    /// <para><b>Der Fokus springt zurück, wenn der Druck nicht von der Tastatur
+    /// kam</b> (ADR-044). Wer sich mit Tabulator auf die „5" gestellt hat, soll
+    /// dort bleiben und zur „6" weitergehen können; wer mit Maus oder Finger
+    /// tippt, will danach im Nummernfeld stehen.</para>
+    ///
+    /// <para><b>Gefragt wird die Taste und nicht der Fokus</b> — das ist der
+    /// Unterschied zu vorher, und er ist gemessen (Befund A1-12, 17.09.2026).
+    /// Die alte Fassung prüfte, ob der Fokus gerade auf der Tastatur liegt.
+    /// Bei einem Mausklick liegt er das auch: <b>Windows setzt ihn auf den
+    /// Knopf, bevor <c>Click</c> feuert</b>. Der Rücksprung unterblieb damit
+    /// auch bei der Maus, und die nächste getippte Ziffer ging verloren — der
+    /// Fokus stand auf einem Knopf, der mit Ziffern nichts anfängt. Der
+    /// Kommentar, der hier stand, behauptete das Gegenteil; niemand hatte es
+    /// nachgesehen.</para>
     /// </summary>
-    private void OnKeypadKeyPressed(object? sender, string key)
+    private void OnKeypadKeyPressed(object? sender, Controls.KeypadPress druck)
     {
-        var aufDerTastatur = FocusManager.GetFocusedElement(XamlRoot) is DependencyObject fokus
-            && FindAncestor<Controls.Keypad>(fokus) is not null;
+        ViewModel.AppendDigitCommand.Execute(druck.Key);
 
-        ViewModel.AppendDigitCommand.Execute(key);
-
-        if (!aufDerTastatur)
+        if (!druck.VonTastatur)
         {
             FocusNumberBox();
         }

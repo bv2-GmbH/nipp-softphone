@@ -2302,6 +2302,32 @@ die Schaltfläche dazu — und die klappt auf, was sie meint.
 
 **Am Gerät abzunehmen: T194 bis T201.**
 
+**Nachtrag vom 21.09.2026 — „wirkt beim Verlassen des Feldes" tat es vier Tage
+lang nicht.** Die Schreibtisch-Runde A1 hat am 17.09.2026 gemessen, was hier
+zugesagt ist: getippt, Feld verlassen, Datei gelesen — **der alte Wert**. Bei
+einer `NumberBox` kam der neue erst mit dem nächsten Speicheranlass, bei einem
+Textfeld **gar nicht**, auch nicht beim Beenden (Befund A1-7).
+
+**Die Ursache lag genau in der Konstruktion, die dieser Entscheid gewählt hat.**
+`OnPropertyChanged` ruft `Apply()` für jede Eigenschaft ausser denen in
+`NurAnzeige` und `ErstBeimVerlassen` — für die neun Felder der zweiten Liste
+ist der Aufruf aus der Oberfläche damit der **einzige** Weg auf die Platte. Und
+er hängte an `FocusManager.LosingFocus`, also an dem Moment, in dem der Fokus
+noch wechselt: `TextBox` und `NumberBox` übertragen ihren Inhalt erst mit
+`LostFocus` in die Bindung. `ApplyEdits` las den alten Stand und schrieb ihn
+zurück; feuerte die Bindung danach, sprang `OnPropertyChanged` wegen
+`ErstBeimVerlassen` sofort wieder heraus.
+
+**Behoben mit einer Zeile:** `FocusManager.LostFocus` statt `LosingFocus`.
+Gemessen danach: der Wert steht nach einer Sekunde in `settings.json`, samt
+Benutzermarkierung nach ADR-054.
+
+**Was daran zu lernen ist — und es ist nicht die Zeile:** eine Sperrliste, die
+Felder vom automatischen Speichern ausnimmt, macht den einen verbleibenden Weg
+zur einzigen Sicherung. Solange niemand nachmisst, ob er greift, sieht ein
+kaputter Weg genauso aus wie ein funktionierender. **Zwei Reflexionstests
+halten die Listen vollständig, aber keiner prüfte, dass der Wert ankommt.**
+
 ---
 
 ## ADR-044 — Ein Wort je Zustand, ein Weg ohne Maus, und ein Ton färbt Schrift statt Fläche
@@ -2406,6 +2432,25 @@ Umgekehrt zog die Wähltastatur den Fokus nach **jedem** Tastendruck zurück ins
 Nummernfeld. Wer sich mit Tabulator auf die „5" gestellt hatte, konnte nicht zur
 „6" weitergehen. Der Rücksprung findet nur noch statt, wenn der Fokus nicht
 ohnehin auf der Tastatur liegt.
+
+> **Nachtrag vom 21.09.2026 — diese Bedingung war die falsche** (Befund A1-12).
+> Sie fragte, **wo** der Fokus liegt. Bei einem Mausklick liegt er auf dem
+> gedrückten Knopf, denn **Windows setzt ihn dorthin, bevor `Click` feuert** —
+> also unterblieb der Rücksprung auch bei der Maus, und die nächste getippte
+> Ziffer ging verloren: der Fokus stand auf einem Knopf, der mit Ziffern nichts
+> anfängt. Gemessen am 17.09.2026, behoben am 21.09.2026.
+>
+> **Jetzt wird gefragt, womit gedrückt wurde.** Das Keypad meldet einen
+> `KeypadPress` mit `Key` und `VonTastatur`; die Herkunft kommt aus
+> `Button.FocusState` (`Keyboard` gegen `Pointer`), und nur die Taste selbst
+> weiss das noch. Die Fokusabfrage in `ShellPage` entfällt damit ganz, und die
+> Regel ist ein Satz: zurückspringen, wenn der Druck **nicht** von der Tastatur
+> kam.
+>
+> **Der Satz, der hier stand, behauptete die Wirkung, die nicht eintrat** —
+> «Mit Maus und Finger ist der Rücksprung dagegen richtig» stand als Kommentar
+> über der Stelle, und niemand hatte nachgesehen. Dieselbe Sorte wie Befund A8
+> der Welle 2.7.
 
 ### Kleineres im selben Zug
 

@@ -421,9 +421,11 @@ public sealed partial class ActiveCallPage : Page
     /// </summary>
     private readonly HashSet<CallHandle> _aufnahmeGefragt = [];
 
-    private async void OnDtmfKeyPressed(object? sender, string key) =>
+    // Hier zaehlt nur, welche Taste es war: ein DTMF-Ton geht so oder so
+    // hinaus, und der Fokus bleibt, wo er ist.
+    private async void OnDtmfKeyPressed(object? sender, Controls.KeypadPress druck) =>
         await GuardAsync(nameof(OnDtmfKeyPressed),
-            () => ViewModel.SendDtmfCommand.ExecuteAsync(key));
+            () => ViewModel.SendDtmfCommand.ExecuteAsync(druck.Key));
 
     /// <summary>
     /// Ziffern von der Tastatur als Tastenton (W2.5, Befund C6).
