@@ -317,6 +317,43 @@ unformatiert, während die anderen gruppiert stehen — nipp formatiert nur, was
 es als gültige Nummer erkennt. Der Knopf bleibt trotzdem wählbar, und der
 Hinweis darauf ist sehr leise.
 
+#### Die sechste Runde (21.09.2026) — A1-4 war eine Diagnose, keine Reparatur
+
+**Aufgeklärt: die Meldung war falsch, nicht das Beenden.** Ein Befund bleibt
+offen: A1-2.
+
+**Die Annahme, auf der alles stand, hiess:** «Application.Exit() verlässt die
+Nachrichtenschleife des Hauptthreads; der Aufruf kehrt nicht zurück, wenn er
+wirkt.» Sie stand als Kommentar im Code, und die Zeile darunter meldete
+entsprechend einen Fehler — **seit dem 13.09.2026 bei jedem einzelnen
+Beenden**, dreizehn Paare lang.
+
+**Gemessen mit drei Zeitpunkten, zweimal:**
+
+| | erster Lauf | zweiter Lauf | dritter Lauf |
+|---|---|---|---|
+| Dienste freigegeben | 22:15:58.691 | 22:19:43.170 | 22:28:05.386 |
+| Exit() zurückgekehrt | .794 (+103 ms) | .212 (+42 ms) | .490 (+104 ms) |
+| **Prozess weg** | .957 (**+163 ms**) | .445 (**+233 ms**) | .827 (**+337 ms**) |
+
+**Der Prozess endet also 163 bis 337 Millisekunden nach dem Rücksprung, und
+zwar regulär** — weit vor den drei Sekunden des Wächters, der deshalb nie
+meldet. `Application.Exit()` signalisiert das Ende der Nachrichtenschleife und
+kehrt zurück; abgebaut wird danach. **Die Annahme war falsch.**
+
+**Repariert wurde folglich die Aussage, nicht das Verhalten.** Die Zeile bleibt
+stehen — sie ist die letzte Wegmarke vor dem Ende —, sagt aber jetzt, was sie
+misst: «Exit() ist zurueckgekehrt — die Nachrichtenschleife endet, der Prozess
+laeuft aus». Hängt es hier doch einmal, sagt das die Meldung des Wächters drei
+Sekunden später, und die steht schon da.
+
+**Was dieser Befund gekostet hat und wofür er gut war:** vier Tage lang stand
+ein falscher Alarm in einer Datei, die eigens dafür geschrieben wurde, dass
+jemand hinsieht — und niemand sah hin. **Das ist die eigentliche Lehre, und
+sie ist dieselbe wie bei W2.7, Befund A8:** ein Satz, der eine Ursache
+behauptet, braucht eine Messung. Hier war es ein Satz über das Framework, und
+er stimmte nicht.
+
 #### Die fünfte Reparaturrunde (21.09.2026) — A1-5 und A1-9
 
 **Zwei Befunde behoben. Zwei bleiben offen: A1-2 und A1-4.**
@@ -543,7 +580,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   mitgeschlossen. **Die Lehre steht im Nachtrag zu ADR-055:** wer eine
   Fähigkeit streicht, streicht sie in der Spezifikation, nicht nur im ADR.
 
-- **A1-4 — «Exit() ist zurückgekehrt, ohne den Prozess zu beenden» steht bei
+- **A1-4 — AUFGEKLÄRT am 21.09.2026: es war kein Fehler.** «Exit() ist zurückgekehrt, ohne den Prozess zu beenden» stand bei
   jedem einzelnen Beenden da, und niemand hat hingesehen.** Der Kommentar in
   `App.xaml.cs:1098` sagt über die Zeile danach: *«Hierher kommt niemand, und
   genau das ist die Aussage.»* `Application.Exit()` verlässt die

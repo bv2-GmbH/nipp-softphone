@@ -1095,19 +1095,32 @@ public partial class App : Application, IDisposable
         Log.CloseAndFlush();
         Exit();
 
-        // <b>Hierher kommt niemand, und genau das ist die Aussage.</b>
-        // Application.Exit() verlaesst die Nachrichtenschleife des
-        // Hauptthreads; der Aufruf kehrt nicht zurueck, wenn er wirkt.
+        // <b>Hierher kommt jedes Mal jemand — und das ist der Normalfall.</b>
         //
-        // Kehrt er doch zurueck, steht das beim naechsten Mal da. Ohne diese
-        // Zeile sah der Fall vom 07.09. bis 12.09.2026 aus wie „es haengt
-        // irgendwo in der Freigabe" — dabei war die Freigabe nach einer
-        // Sekunde durch, und es hing in der letzten Anweisung. Eine
-        // Beendigung, die nur so aussieht, darf nicht noch einmal fuenf Tage
-        // brauchen.
+        // Hier stand bis zum 21.09.2026: „Hierher kommt niemand, und genau das
+        // ist die Aussage. Application.Exit() verlaesst die Nachrichtenschleife
+        // des Hauptthreads; der Aufruf kehrt nicht zurueck, wenn er wirkt."
+        // Die Zeile darunter meldete entsprechend einen Fehler — und stand seit
+        // dem 13.09.2026 bei JEDEM Beenden im Protokoll, dreizehn Paare lang,
+        // ohne dass jemand die Datei ansah (Befund A1-4).
+        //
+        // <b>Gemessen am 21.09.2026, mit drei Zeitpunkten:</b> Dienste
+        // freigegeben um 22:15:58.691, Exit() zurueckgekehrt um .794 (103 ms
+        // spaeter), Prozess weg um .957 — also <b>163 ms nach dem Ruecksprung,
+        // regulaer</b>, und weit vor den drei Sekunden des Waechters. Der
+        // meldet deshalb nie: er kommt nicht dazu.
+        //
+        // Application.Exit() signalisiert das Ende der Nachrichtenschleife und
+        // kehrt zurueck; abgebaut wird danach. Die Annahme, ein Ruecksprung sei
+        // ein Fehler, war falsch.
+        //
+        // <b>Die Zeile bleibt trotzdem stehen</b>, denn sie ist die letzte
+        // Wegmarke vor dem Ende — nur sagt sie jetzt, was sie misst, statt zu
+        // alarmieren. Haengt es hier doch einmal, sagt das nicht mehr diese
+        // Zeile, sondern die des Waechters drei Sekunden spaeter.
         WriteShutdownNote(
-            "Exit() ist zurückgekehrt, ohne den Prozess zu beenden — "
-                + "laeuft das Beenden wieder auf dem falschen Thread?");
+            "Exit() ist zurückgekehrt — die Nachrichtenschleife endet, "
+                + "der Prozess läuft aus");
     }
 
     /// <summary>

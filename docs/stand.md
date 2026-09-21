@@ -160,6 +160,35 @@ Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
 Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
 graue Gruppe, keine Leiste, Werksdatei gelöscht.
 
+## Zehn Befunde erledigt (21.09.2026) — A1-4 war eine Diagnose
+
+**Einer bleibt offen: A1-2.**
+
+**A1-4 war kein Fehler.** Die Annahme im Code hiess: «Application.Exit()
+verlässt die Nachrichtenschleife; der Aufruf kehrt nicht zurück, wenn er
+wirkt» — und die Zeile darunter meldete entsprechend Alarm, seit dem
+13.09.2026 bei jedem einzelnen Beenden.
+
+**Zweimal mit drei Zeitpunkten gemessen:** zwischen «Dienste freigegeben» und
+dem Rücksprung liegen 42 bis 103 ms, zwischen Rücksprung und Prozessende
+**163 bis 337 ms** — regulär, und weit vor den drei Sekunden des Wächters, der
+deshalb nie meldet. `Application.Exit()` signalisiert das Ende und kehrt
+zurück; abgebaut wird danach.
+
+**Repariert wurde die Aussage, nicht das Verhalten.** Die Zeile bleibt als
+letzte Wegmarke stehen und sagt jetzt, was sie misst. Hängt es doch einmal,
+meldet das der Wächter drei Sekunden später.
+
+**Vier Tage lang stand ein falscher Alarm in einer Datei, die eigens dafür
+geschrieben wurde, dass jemand hinsieht** — und niemand sah hin. Dieselbe
+Lehre wie bei Befund A8 der Welle 2.7: ein Satz, der eine Ursache behauptet,
+braucht eine Messung. Hier war es ein Satz über das Framework.
+
+**Nebenbei repariert:** in T134 stand `logs\beenden.txt` als
+`logseenden.txt` — beim Eintragen am 17.09.2026 hatte ein `\b` als
+Backspace-Zeichen in der Datei gelandet. Dieselbe Falle wie die drei Pfade,
+die A0 am 13.09.2026 gefunden hat.
+
 ## Neun Befunde behoben (21.09.2026) — zuletzt A1-5
 
 **Zwei bleiben offen: A1-2 und A1-4.**
