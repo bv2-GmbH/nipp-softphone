@@ -671,8 +671,21 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   sichert die Datei nicht — dass sie hier vorlag, war der A1-Sicherung zu
   verdanken und kein Verdienst des Verfahrens.
   **Für jeden weiteren Gerätetag:** wer ein Profil einspielt, sichert
-  `secrets.dat` mit. `Sichern-Und-Zuruecksetzen.ps1` und seine LIESMICH gehören
-  entsprechend ergänzt.
+  `secrets.dat` mit. `Sichern-Und-Zuruecksetzen.ps1` sichert und spielt sie
+  **seit dem 21.09.2026 mit** — die LIESMICH warnte schon davor.
+
+  **Und genau das ist das Argument dafür, hier nicht bei einer Warnung zu
+  bleiben.** Am 21.09.2026 ist derselbe Fehler noch einmal passiert, beim
+  Nachmessen von A1-6: gesperrtes Profil eingespielt, danach `settings.json`
+  zurückgespielt — und das Telefon war zwanzig Minuten lang nicht angemeldet.
+  **Die Warnung dazu stand seit vier Tagen in `CLAUDE.md`, geschrieben von
+  dem, der sie dann nicht befolgt hat.** Eine Warnung, deren eigener Autor sie
+  übersieht, ist zu leise für die Sache.
+  **Die offene Frage ist damit schärfer:** soll nipp beim Ersetzen der
+  Kontenliste die Geheimnisse der ersetzten Konten wirklich mitnehmen — und
+  wenn ja, soll es das wenigstens **sagen**? Eine Protokollzeile «n Geheimnisse
+  entfernt, weil das Profil die Kontenliste ersetzt» würde den Fall sichtbar
+  machen, ohne das Verhalten zu ändern.
 
 - **A1-10 — BEHOBEN am 21.09.2026.** Strg+Z und Strg+Y im Karten-Designer wirkten genau einmal, dann
   hängt der Fokus im Vorschaufeld.** Gemessen: drei Bausteine eingefügt, Fokus

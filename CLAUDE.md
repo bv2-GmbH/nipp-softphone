@@ -379,9 +379,14 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
 - **Wer ein Provisionierungsprofil einspielt, sichert die Geheimnisdatei mit**
   (Befund A1-9). Ein Profil mit `<accounts>` **ersetzt die Kontenliste und
   nimmt die gespeicherten Passwörter mit**; `settings.json` zurückzuspielen
-  holt sie nicht zurück, und nipp meldet danach «Zugangsdaten abgelehnt». Am
-  17.09.2026 hat das eine Anmeldung gekostet. Die Datei liegt neben
-  `history.db` unter `%LOCALAPPDATA%`.
+  holt sie nicht zurück, und nipp meldet danach «Zugangsdaten abgelehnt». Die
+  Datei liegt neben `history.db` unter `%LOCALAPPDATA%`.
+  **Das hat zweimal eine Anmeldung gekostet — am 17. und am 21.09.2026**, das
+  zweite Mal, obwohl diese Warnung schon dastand und von demselben geschrieben
+  war, der sie dann übersah. **Deshalb steht die Vorsicht seit dem 21.09.2026
+  nicht mehr nur hier:** `Sichern-Und-Zuruecksetzen.ps1` im Aufbau sichert die
+  Datei mit und spielt sie zuerst zurück. Wer einen eigenen Weg nimmt, denkt
+  selbst daran.
 - **Die Aufbauten für den Gerätetag liegen neben dem Repo**, nicht darin:
   `C:\dev_claude\nipp-testaufbauten\` — ein Provisionierungsserver mit fünf
   Profilen, eine lokale REST-Attrappe (schnell, langsam, tot) und die
