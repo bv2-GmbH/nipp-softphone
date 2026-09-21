@@ -87,12 +87,31 @@ lesbar bleiben.
   `StateCatalogTests` hält es fest.
 - **Auf der Einstellungsseite gibt es keinen „Speichern"-Knopf** (ADR-045).
   Jede Änderung wirkt, sobald sie gemacht ist; Freitext- und Zahlenfelder beim
-  Verlassen des Feldes (`ApplyEdits`, gerufen aus `FocusManager.LosingFocus`).
+  Verlassen des Feldes (`ApplyEdits`, gerufen aus **`FocusManager.LostFocus`**).
   Wer eine Eigenschaft hinzufügt, die nichts einstellt, trägt sie in
   `NurAnzeige` ein, ein Freitextfeld in `ErstBeimVerlassen` — **eine Sperrliste
   und keine Erlaubnisliste**, damit ein Vergessen eine überflüssige
   Schreiboperation kostet und keinen stillen Datenverlust.
   `SettingsSaveModelTests` prüft beide per Reflexion.
+  **`LostFocus` und nicht `LosingFocus`, und das ist kein Detail** (Befund
+  A1-7): das zweite läuft, während der Fokus noch wechselt — `TextBox` und
+  `NumberBox` übertragen ihren Inhalt aber erst mit `LostFocus` in die
+  Bindung. Vier Tage lang las `ApplyEdits` dort den alten Stand und schrieb
+  ihn zurück.
+  **Und was die Sperrliste sonst noch bedeutet:** für die neun Felder darin
+  ist `ApplyEdits` der **einzige** Weg auf die Platte — `OnPropertyChanged`
+  überspringt sie. Ein kaputter einziger Weg sieht aus wie ein
+  funktionierender, und die zwei Reflexionstests halten die Listen
+  vollständig, prüfen aber nicht, dass ein Wert ankommt. **Wer hier etwas
+  ändert, misst am laufenden Programm nach.**
+- **Wo der Fokus liegt, sagt nicht, womit gedrückt wurde** (ADR-044,
+  Nachtrag vom 21.09.2026). **Windows setzt den Fokus beim Mausklick auf den
+  Knopf, bevor `Click` feuert** — eine Abfrage «liegt der Fokus schon hier?»
+  ist danach für Maus und Tastatur gleich wahr. Die Wähltastatur hing daran
+  und verlor nach jedem Mausklick die nächste getippte Ziffer (Befund A1-12).
+  Wer die Herkunft eines Drucks braucht, fragt **`Button.FocusState`**
+  (`Keyboard` gegen `Pointer`) an der Taste selbst — sie ist die einzige
+  Stelle, die es noch weiss, und sie gibt es als `KeypadPress` weiter.
 - **Eine Zustandsfarbe eines Bedienelements entsteht im Inhalt, nicht über
   WinUI-Ressourcenschlüssel** (ADR-067). Sechs überschriebene Schlüssel in
   `Button.Resources` — der dokumentierte Weg für Lightweight-Styling — haben
@@ -309,13 +328,12 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   dargestellt wird, und zieht das Fenster auf eine **logische** Breite
   (`Set-NippWindowSize`). **Die Rechtecke sind physisch, die Matrix ist
   logisch** — `Get-NippSkalierung` nennt den Faktor (hier 150 %).
-  **Wer einen Wert über die Oberfläche setzt und gleich danach die Datei liest,
-  misst den alten Stand** (Befund A1-7, 17.09.2026). Neun Felder der
-  Einstellungen stehen in `ErstBeimVerlassen` und kommen beim Verlassen des
-  Feldes **nicht** in `settings.json` — bei einer `NumberBox` erst bei einem
-  späteren Anlass oder beim Beenden, bei einem Textfeld **gar nicht**. Also:
-  das Feld selbst ablesen, nicht die Datei, und einen Datei-Befund erst
-  melden, wenn das Feld dasselbe sagt.
+  **Nach einer Eingabe eine Sekunde warten, bevor die Datei gelesen wird.**
+  Ein über die Oberfläche geänderter Wert steht nicht im selben Atemzug in
+  `settings.json`. Vom 17. bis zum 21.09.2026 kam er bei neun Feldern
+  **gar nicht** an (Befund A1-7, behoben); seither kommt er, aber nicht
+  sofort. Wer zu früh liest, misst den alten Stand und meldet einen Befund,
+  den es nicht gibt.
 - **nipp beenden, dann die Datei schreiben, dann starten** — in dieser
   Reihenfolge. **nipp schreibt `settings.json` beim Beenden vollständig
   zurück**, und eine Änderung an der laufenden Datei ist danach weg

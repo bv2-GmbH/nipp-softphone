@@ -190,6 +190,10 @@ unverändert.
 dass «wirkt beim Verlassen des Feldes» vier Tage lang nicht zutraf, ADR-044,
 dass die Fokusbedingung die falsche Frage stellte.
 
+**Und die CI ist auch mit Code grün** — `eca6987` war der erste Commit mit
+Quelltextänderungen seit der SDK-Umstellung, und er ist durchgelaufen. Damit
+ist belegt, dass der neue Bezugsweg nicht nur für Dokumentation trägt.
+
 ## Zwei Entscheidungen vom 17.09.2026, abends
 
 **Dominic hat beide offenen Fragen beantwortet.**
