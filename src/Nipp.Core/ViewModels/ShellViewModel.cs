@@ -667,7 +667,27 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private void RebuildTeamGroups()
     {
         var einstellungen = _settings.Current.Contacts;
-        var namen = TeamGroups.Collect(einstellungen.Groups, einstellungen.Team);
+
+        // Alle Gruppen, in der Reihenfolge der Einstellungen. Diese Liste ist
+        // auch die des Kontextmenues «In Gruppe verschieben» und bleibt
+        // deshalb vollstaendig — sonst liesse sich beim Suchen nicht mehr in
+        // eine leere Gruppe verschieben.
+        var alle = TeamGroups.Collect(einstellungen.Groups, einstellungen.Team);
+
+        // <b>Beim Filtern verschwinden leere Gruppen</b> (T248, Befund A1-5).
+        // Sonst stehen sie als «Hotline (0)» da und kosten je 48 Pixel — bei
+        // einem Treffer in einer von vier Gruppen also dreimal so viel Platz
+        // fuer nichts. Ohne Filter bleiben sie: eine Gruppe, die nur existiert,
+        // solange jemand darin steht, liesse sich nicht befuellen, weil man sie
+        // zum Zuordnen braeuchte. <b>Wer sucht, will finden, nicht zuordnen.</b>
+        var namen = ShowSearchResults
+            ? alle.Where(name => TeamContacts.Any(r =>
+                string.Equals(
+                    TeamGroups.NameOf(r.Contact.Group, alle),
+                    name,
+                    StringComparison.OrdinalIgnoreCase)
+                && PasstZurSuche(r))).ToList()
+            : alle;
 
         // Stimmen die Namen, werden die vorhandenen Gruppen nachgeführt statt
         // ersetzt. <b>Der Grund ist die Liste, nicht die Sparsamkeit:</b>
@@ -693,11 +713,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             TeamGroupRows.Clear();
         }
 
-        if (!TeamGroupNames.SequenceEqual(namen, StringComparer.Ordinal))
+        // Das Kontextmenue bekommt ALLE Gruppen, nicht die gefilterten.
+        if (!TeamGroupNames.SequenceEqual(alle, StringComparer.Ordinal))
         {
             TeamGroupNames.Clear();
 
-            foreach (var name in namen)
+            foreach (var name in alle)
             {
                 TeamGroupNames.Add(name);
             }
@@ -707,9 +728,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         {
             var name = namen[i];
 
+            // NameOf gegen die vollstaendige Liste: sie entscheidet, in
+            // welche Gruppe ein Eintrag ohne eigene faellt (die erste). Mit der
+            // gefilterten Liste waere das beim Suchen eine andere.
             var zeilen = TeamContacts
                 .Where(r => string.Equals(
-                    TeamGroups.NameOf(r.Contact.Group, namen),
+                    TeamGroups.NameOf(r.Contact.Group, alle),
                     name,
                     StringComparison.OrdinalIgnoreCase))
                 .Where(PasstZurSuche)

@@ -317,6 +317,36 @@ unformatiert, während die anderen gruppiert stehen — nipp formatiert nur, was
 es als gültige Nummer erkennt. Der Knopf bleibt trotzdem wählbar, und der
 Hinweis darauf ist sehr leise.
 
+#### Die fünfte Reparaturrunde (21.09.2026) — A1-5 und A1-9
+
+**Zwei Befunde behoben. Zwei bleiben offen: A1-2 und A1-4.**
+
+**A1-5 — leere Gruppen verschwinden beim Filtern.** `RebuildTeamGroups` baute
+für jeden Gruppennamen eine Zeile, auch ohne Treffer. **Der Grund dafür stand
+als Kommentar da und ist richtig** — «eine Gruppe, die nur existiert, solange
+jemand darin steht, liesse sich nicht befüllen, weil man sie zum Zuordnen
+bräuchte». Er gilt nur eben nicht beim Suchen: **wer sucht, will finden, nicht
+zuordnen.** Die Namensliste wird jetzt gefiltert, wenn eine Suche läuft, sonst
+nicht.
+
+**Der subtile Teil war die Liste daneben.** `TeamGroupNames` speist das
+Kontextmenü «In Gruppe verschieben» und bleibt **vollständig** — sonst könnte
+man beim Suchen nicht mehr in eine gerade unsichtbare Gruppe verschieben.
+Ebenso bekommt `TeamGroups.NameOf` weiterhin die volle Liste: sie entscheidet,
+in welche Gruppe ein Eintrag ohne eigene fällt (die erste), und mit der
+gefilterten wäre das beim Suchen eine andere.
+
+**Gemessen mit vierzig Nebenstellen in vier Gruppen:** bei einem Treffer in
+Support steht nur noch «Support (1)» da. Beide Gegenproben mitgemessen — das
+Verschieben-Menü führt weiter alle Gruppen, und T250 (gar kein Treffer) ist
+unverändert. **T248 ist damit ganz bestanden**, vorher «teilweise — die zweite
+Hälfte fällt durch».
+
+**Nebenbei gelernt, und es kostete zwei Anläufe:** das Kachelraster filtert nur
+bei einem **Namen**, nicht bei einer Nummer — das ist ADR-051, und es steht
+dort auch so. Wer mit «205» prüft, sieht keinen Filter und hält es für einen
+Fehlschlag.
+
 #### Die vierte Reparaturrunde (21.09.2026) — A1-8
 
 **Behoben, und die verworfene Hälfte ist die interessantere.** Vier Befunde
@@ -543,7 +573,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   liegen 42 bis 190 ms. **Damit spricht mehr gegen den Drei-Sekunden-Wächter
   als vorher:** acht Messungen unter 1,5 s, keine einzige Meldung des Wächters.
   Was den Prozess beendet, bleibt ungemessen.
-- **A1-5 — Gruppen ohne Treffer verschwinden nicht.** T248 verlangt es; mit 40
+- **A1-5 — BEHOBEN am 21.09.2026.** Gruppen ohne Treffer verschwanden nicht. T248 verlangt es; mit 40
   Nebenstellen in vier Gruppen und einem Treffer in einer davon stehen die
   drei anderen als «HRN (0)», «Hotline (0)», «Testgruppe (0)» weiter da,
   jeweils mit einem echten Rechteck von 48 Pixeln Höhe. Die Zählzeile

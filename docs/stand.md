@@ -160,6 +160,21 @@ Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
 Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
 graue Gruppe, keine Leiste, Werksdatei gelöscht.
 
+## Neun Befunde behoben (21.09.2026) — zuletzt A1-5
+
+**Zwei bleiben offen: A1-2 und A1-4.**
+
+**A1-5:** `RebuildTeamGroups` baute für jeden Gruppennamen eine Zeile, auch
+ohne Treffer. Der Kommentar daneben begründete das richtig — eine Gruppe, die
+nur existiert, solange jemand darin steht, liesse sich nicht befüllen —, **nur
+gilt das beim Suchen nicht: wer sucht, will finden, nicht zuordnen.** Die
+Namensliste wird jetzt gefiltert, wenn eine Suche läuft.
+
+Der subtile Teil war die Liste daneben: `TeamGroupNames` speist das
+Kontextmenü «In Gruppe verschieben» und bleibt vollständig, sonst könnte man
+beim Suchen nicht mehr in eine unsichtbare Gruppe verschieben. Beides
+gemessen. **T248 ist damit ganz bestanden.**
+
 ## Acht Befunde behoben (21.09.2026) — A1-9 anders als geplant
 
 **Drei bleiben offen: A1-2, A1-4, A1-5.**
