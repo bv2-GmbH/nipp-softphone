@@ -583,14 +583,35 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   - **Der Schutzschalter greift nicht.** Sieben Anfragen in rund vierzig
     Sekunden, alle in die Zeitgrenze, und die achte ging genauso hinaus —
     `FailuresBeforeBreak = 5` hätte nach der fünften eine Minute Pause bedeutet.
-  **Vermutliche Ursache, an einer Stelle:** `IntegrationHttpClient` hat zwei
-  Zweige für `OperationCanceledException` (Zeile 286 und 291). Der erste,
-  `when (cancellationToken.IsCancellationRequested)`, liefert `Skipped` **ohne**
-  Meldung, **ohne** Protokollzeile und **ohne** `ReportFailure` — gedacht für
-  «das Gespräch ist vorbei oder die Suche überholt». Der zweite liefert
-  `Timeout` mit allem dreien. Gemessen ist, dass hier der erste greift; **warum
-  das äussere Token gesetzt ist, wenn in Wahrheit die eigene Zeitgrenze
-  zuschlägt, ist nicht gemessen.**
+  **Die Ursache, am 21.09.2026 im Code nachgegangen — und sie ist tiefer, als
+  der Befund zuerst annahm.** `IntegrationHttpClient` hat zwei Zweige für
+  `OperationCanceledException`: der erste, `when
+  (cancellationToken.IsCancellationRequested)`, liefert `Skipped` **ohne**
+  Meldung, Protokollzeile und `ReportFailure` — gedacht für «das Gespräch ist
+  vorbei oder die Suche überholt». Der zweite liefert `Timeout` mit allem
+  dreien. Dass hier der erste greift, war gemessen; **offen war, warum das
+  äussere Token gesetzt ist.**
+
+  **Jetzt ist es gelesen: es sind zwei Zeitgrenzen auf dieselbe Dauer, und sie
+  laufen gegeneinander.** `ContactSearchService.AskAsync` setzt eine eigene
+  Zeitgrenze aus `provider.Traits.Timeout` und verbindet sie mit dem Abbruch
+  von aussen. **Dasselbe `Traits.Timeout` reicht `HttpContactSearchProvider`
+  eine Ebene tiefer an den HTTP-Zugang weiter**, der daraus wieder eine eigene
+  Zeitgrenze macht. Löst die äussere zuerst aus — und sie ist die ältere —,
+  dann ist im HTTP-Zugang `cancellationToken` gesetzt und die eigene
+  `timeoutSource` nicht: **genau die Signatur von «von aussen abgebrochen»**,
+  obwohl niemand abgebrochen hat.
+
+  **Beide Stellen tragen denselben Kommentar** — «nur so lässt sich ‹zu
+  langsam› von ‹überholt› unterscheiden» —, und zusammen heben sie sich auf.
+
+  **Die Reparatur braucht zwei Handgriffe und eine eigene Messrunde:** die
+  äussere Zeitgrenze muss grosszügiger sein als die innere, damit die
+  spezifischere zuerst greift, und der HTTP-Zugang sollte zuerst auf seine
+  **eigene** `timeoutSource` prüfen statt auf das äussere Token. Nachzumessen
+  ist mit der Attrappe im Modus `tot` (`nipp-testaufbautenttrappe`): erwartet
+  werden dann die Meldung «antwortet nicht», eine Protokollzeile und ein
+  zählender Fehlschlag für den Schutzschalter.
   **Warum das mehr ist als eine Formulierung:** der Schutzschalter ist genau
   für die tote Quelle gebaut, und sie ist der Fall, in dem er nicht zählt. Und
   wer im Support danach sucht, findet im Protokoll keine Spur.
