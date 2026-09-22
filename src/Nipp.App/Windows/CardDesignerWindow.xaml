@@ -133,7 +133,7 @@
                                     Text="{x:Bind Label}"
                                     TextTrimming="CharacterEllipsis" />
                                 <TextBlock
-                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                     Style="{StaticResource CaptionTextBlockStyle}"
                                     Text="{x:Bind Detail}"
                                     TextTrimming="CharacterEllipsis" />
@@ -306,7 +306,7 @@
                         x:Name="LookupResultText"
                         Grid.Column="4"
                         VerticalAlignment="Center"
-                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         Style="{StaticResource CaptionTextBlockStyle}"
                         TextTrimming="CharacterEllipsis" />
                 </Grid>
@@ -331,7 +331,7 @@
 
                             <TextBlock
                                 x:Name="PreviewSourceText"
-                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                 Style="{StaticResource CaptionTextBlockStyle}"
                                 TextWrapping="Wrap" />
                         </StackPanel>
@@ -348,7 +348,7 @@
 
                     <TextBlock
                         x:Name="NoSelectionText"
-                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         Style="{StaticResource CaptionTextBlockStyle}"
                         Text="Nichts ausgewählt. Links ein Feld doppelt anklicken oder unten mit dem Knopf einfügen."
                         TextWrapping="Wrap" />

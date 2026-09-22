@@ -42,7 +42,7 @@
                     <TextBlock Text="{x:Bind Number}" />
                     <TextBlock
                         VerticalAlignment="Center"
-                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         Style="{StaticResource CaptionTextBlockStyle}"
                         Text="{x:Bind KindLabel}" />
                 </StackPanel>
@@ -480,7 +480,7 @@
                     -->
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapSmall}">
                         <TextBlock
-                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{StaticResource CaptionTextBlockStyle}"
                             Text="{x:Bind TileContext}"
                             TextTrimming="CharacterEllipsis" />
@@ -508,7 +508,7 @@
                         AutomationProperties.Name="Weitere Nummern anzeigen"
                         Visibility="{x:Bind HasHiddenChoices, Converter={StaticResource BoolToVisibilityConverter}}">
                         <TextBlock
-                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{StaticResource CaptionTextBlockStyle}"
                             Text="{x:Bind HiddenChoicesHint}" />
                         <Button.Flyout>
@@ -592,15 +592,23 @@
             im Karten-Designer; der geuebte Benutzer — die Mehrheit nach zwei
             Wochen — blieb auf Mausgeschwindigkeit.
 
-            Konventionell und knapp: Strg+1 bis 4 fuer die Bereiche, Strg+F ins
-            Nummernfeld. Der systemweite Hotkey deckt Annehmen und Auflegen ab;
-            ein zweiter dafuer innerhalb des Fensters waere derselbe Befehl an
-            zwei Stellen.
+            Strg+F ins Nummernfeld. Der systemweite Hotkey deckt Annehmen und
+            Auflegen ab; ein zweiter dafuer innerhalb des Fensters waere
+            derselbe Befehl an zwei Stellen.
+
+            HIER STANDEN BIS ZUM 23.09.2026 AUCH STRG+1 BIS STRG+3 fuer die drei
+            Bereiche, und sie haben nie funktioniert (Befund A1-21). Gemessen am
+            22.09.2026: der Behandler wird nicht aufgerufen; derselbe Behandler
+            mit Key="G" feuert sofort. Bei Strg+2 kommt nicht einmal im KeyDown
+            etwas an, nur das Control allein — es faengt sie also niemand ab,
+            sie erreichen die Anwendung gar nicht. Ein Reparaturversuch ueber
+            KeyDown ist gescheitert.
+
+            Gestrichen statt auf Buchstaben verlegt: die Bereiche sind ueber
+            Maus und Tabulator erreichbar, und ein ToolTip, der ein Kuerzel
+            verspricht, das es nicht gibt, ist schlechter als keiner.
         -->
         <Grid.KeyboardAccelerators>
-            <KeyboardAccelerator Invoked="OnSectionAccelerator" Key="Number1" Modifiers="Control" />
-            <KeyboardAccelerator Invoked="OnSectionAccelerator" Key="Number2" Modifiers="Control" />
-            <KeyboardAccelerator Invoked="OnSectionAccelerator" Key="Number3" Modifiers="Control" />
             <KeyboardAccelerator Invoked="OnFocusNumberAccelerator" Key="F" Modifiers="Control" />
         </Grid.KeyboardAccelerators>
         <!--
@@ -894,7 +902,7 @@
                                 <TextBlock
                                     Grid.Column="1"
                                     VerticalAlignment="Center"
-                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                     Style="{StaticResource CaptionTextBlockStyle}"
                                     Text="{x:Bind Source}" />
                             </Grid>
@@ -1226,7 +1234,7 @@
                                             <TextBlock
                                                 Padding="0,2,0,2"
                                                 AutomationProperties.Name="{x:Bind Text}"
-                                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                 Style="{StaticResource CaptionTextBlockStyle}"
                                                 Text="{x:Bind Message}"
                                                 TextWrapping="Wrap" />
@@ -1833,7 +1841,7 @@
                 Click="OnTabClick"
                 Style="{StaticResource NippTabButtonStyle}"
                 Tag="Contacts"
-                ToolTipService.ToolTip="Kontakte (Strg+1)"
+                ToolTipService.ToolTip="Kontakte"
                 AutomationProperties.Name="Kontakte">
                 <StackPanel Spacing="{StaticResource NippGapHair}">
                     <FontIcon HorizontalAlignment="Center" FontSize="{StaticResource NippTabIconFontSize}" Glyph="&#xE77B;" />
@@ -1850,7 +1858,7 @@
                 Click="OnTabClick"
                 Style="{StaticResource NippTabButtonStyle}"
                 Tag="History"
-                ToolTipService.ToolTip="Anrufe (Strg+2)"
+                ToolTipService.ToolTip="Anrufe"
                 AutomationProperties.Name="Anrufe">
                 <StackPanel Spacing="{StaticResource NippGapHair}">
                     <!--
@@ -1898,7 +1906,7 @@
                 Click="OnTabClick"
                 Style="{StaticResource NippTabButtonStyle}"
                 Tag="Settings"
-                ToolTipService.ToolTip="Einstellungen (Strg+3)"
+                ToolTipService.ToolTip="Einstellungen"
                 AutomationProperties.Name="Einstellungen">
                 <StackPanel Spacing="{StaticResource NippGapHair}">
                     <FontIcon HorizontalAlignment="Center" FontSize="{StaticResource NippTabIconFontSize}" Glyph="&#xE713;" />

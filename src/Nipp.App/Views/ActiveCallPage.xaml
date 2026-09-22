@@ -378,7 +378,7 @@
                             <DataTemplate x:DataType="vm:CallerCardSource">
                                 <TextBlock
                                     AutomationProperties.Name="{x:Bind Text}"
-                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                     Style="{StaticResource CaptionTextBlockStyle}"
                                     Text="{x:Bind Text}"
                                     TextWrapping="Wrap" />
@@ -684,7 +684,7 @@
                                     <TextBlock
                                         Grid.Column="1"
                                         VerticalAlignment="Center"
-                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                         Style="{StaticResource CaptionTextBlockStyle}"
                                         Text="{x:Bind PresenceText, Mode=OneWay}"
                                         Visibility="{x:Bind HasPresence, Converter={StaticResource BoolToVisibilityConverter}}" />

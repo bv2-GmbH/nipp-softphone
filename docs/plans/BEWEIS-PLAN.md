@@ -536,7 +536,7 @@ hintereinander, ohne die erste Meldung zu schliessen. nipp bleibt stehen, die
 zweite Meldung entfällt, und das Protokoll sagt warum. Vor der Reparatur
 beendete genau das den Prozess.
 
-- **A1-21 — OFFEN. Strg+1 bis Strg+3 wechseln den Bereich nicht.**
+- **A1-21 — ERLEDIGT am 23.09.2026 (gestrichen). Strg+1 bis Strg+3 wechseln den Bereich nicht.**
   **Strg+F am selben Grid wirkt** — der Fokus springt ins Nummernfeld. Die
   Bereichskürzel tun nichts: weder über `SendKeys` noch über echte
   Tastendrücke (`keybd_event` mit VK_1 bis VK_3 plus Strg), weder mit dem
@@ -556,6 +556,13 @@ beendete genau das den Prozess.
   | Spur in `OnFocusNumberAccelerator` bei Strg+F | Zeile da — derselbe Weg funktioniert |
   | derselbe Handler testweise mit `Key="G"` | **feuert sofort** («Section: Key=G») |
   | Vordergrundfenster beim Tastendruck | bleibt nipp — **kein systemweiter Hotkey**, auch Teams fängt nichts ab |
+
+  **Entschieden am 23.09.2026: gestrichen** (ADR-072). Nicht auf Buchstaben
+  verlegt, obwohl das ginge — die drei Bereiche sind über Maus und Tabulator
+  erreichbar, und ein ToolTip, der «Kontakte (Strg+1)» verspricht, ist
+  schlechter als gar keiner. Weg sind: die drei `KeyboardAccelerator`, der
+  Behandler `OnSectionAccelerator` und die drei ToolTips. `Strg+F` bleibt,
+  denn es wirkt.
 
   **Es liegt an der Taste, nicht am Code:** ein `KeyboardAccelerator` mit
   `Key="Number1"` bis `"Number3"` wird in dieser WinUI-Fassung nicht
@@ -815,7 +822,7 @@ Anruf-Reiters, ohne über den Knopf hinauszuragen. **Zwei Stellen bleiben dem
 Gerätetag:** der Auflegen-Knopf beim Überfahren (ADR-067 hing genau daran) und
 die Gesprächsknöpfe bei 150 %.
 
-- **A1-17 — OFFEN. Die Copyright-Zeile steht im hellen Thema bei 3,28:1.**
+- **A1-17 — ERLEDIGT am 23.09.2026. Die Copyright-Zeile steht im hellen Thema bei 3,28:1.**
   Gemessen an den Pixeln des laufenden Programms, in beiden Themen:
 
   | | dunkel | hell |
@@ -830,7 +837,22 @@ die Gesprächsknöpfe bei 150 %.
   was Microsoft mitbringt, steht dort nicht.
 
   **Der Befund ist grösser als die eine Zeile:** derselbe Pinsel färbt **23**
-  Textstellen in vier Dateien. Gemessen ist bisher eine davon.
+  Textstellen in vier Dateien.
+
+  **Repariert am 23.09.2026**: alle 23 stehen jetzt auf
+  `TextFillColorSecondaryBrush` — die zweite Fluent-Stufe, optisch immer noch
+  zurückgenommen, aber lesbar. **Nachgemessen an den Pixeln**, dieselbe Zeile:
+  hell **6,03:1** (`#5C5D5E` auf `#F2F5F7`) statt 3,28:1, dunkel **9,44:1**.
+
+  **Warum die dritte Stufe grundsätzlich nicht taugt:** Fluent meint damit
+  Inhalt, der *nebensächlich* ist — nur kennt WCAG diese Kategorie nicht. Eine
+  Zeile, die dasteht, wird gelesen, oder sie gehört weg.
+
+  **Abgesichert** durch `FluentTextBrushTests`: eine **Sperrliste** der
+  Systempinsel, die nicht als Vordergrund vorkommen dürfen, jeweils mit dem
+  gemessenen Grund. Dazu die Gegenprobe, dass der Ersatz wirklich im Einsatz
+  ist — sonst wäre der Test auch dann grün, wenn jemand alle Farbangaben
+  gelöscht hätte.
 
   **Repariert habe ich nichts**, und das ist Absicht: 23 Stellen umzufärben
   ändert das Aussehen der ganzen Anwendung, und ob «weniger wichtiger Text»

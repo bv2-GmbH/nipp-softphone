@@ -73,7 +73,7 @@
                     TextWrapping="Wrap" />
 
                 <TextBlock
-                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Style="{StaticResource CaptionTextBlockStyle}"
                     Text="{x:Bind CapabilityText}" />
             </StackPanel>
@@ -622,7 +622,7 @@
                                                 erwarten ist (§14.8).
                                             -->
                                             <TextBlock
-                                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                 Style="{StaticResource CaptionTextBlockStyle}"
                                                 Text="{x:Bind SipAddress}"
                                                 TextTrimming="CharacterEllipsis"
@@ -635,13 +635,13 @@
                                                 weniger als keine.
                                             -->
                                             <TextBlock
-                                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                 Style="{StaticResource CaptionTextBlockStyle}"
                                                 Text="{x:Bind Mobile}"
                                                 TextTrimming="CharacterEllipsis"
                                                 Visibility="{x:Bind Mobile, Converter={StaticResource NullToVisibilityConverter}}" />
                                             <TextBlock
-                                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                 Style="{StaticResource CaptionTextBlockStyle}"
                                                 Text="{x:Bind Group}"
                                                 TextTrimming="CharacterEllipsis"
@@ -1167,7 +1167,7 @@
 
                             <TextBlock
                                 x:Name="NoIntegrationsText"
-                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                 Style="{StaticResource CaptionTextBlockStyle}"
                                 Text="Keine Quelle eingerichtet. Eine Anbietervorlage importieren oder eine eigene REST-API von Hand einrichten."
                                 TextWrapping="Wrap" />
@@ -1256,7 +1256,7 @@
                                                     PlaceholderText="Wert einfügen" />
 
                                                 <TextBlock
-                                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                     Style="{StaticResource CaptionTextBlockStyle}"
                                                     Text="{x:Bind Hint}"
                                                     TextWrapping="Wrap"
@@ -1323,7 +1323,7 @@
                                             Text="{x:Bind IntegrationViewModel.DetailScheme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
-                                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                             Style="{StaticResource CaptionTextBlockStyle}"
                                             Text="Leer heisst Bearer. Manche Server verlangen Token — und melden bei einem 401 trotzdem Bearer. Der Kopfzeile ist nicht zu glauben; ausprobieren."
                                             TextWrapping="Wrap" />
@@ -1435,7 +1435,7 @@
                                         Toggled="OnLookupSettingToggled" />
 
                                     <TextBlock
-                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                         Style="{StaticResource CaptionTextBlockStyle}"
                                         Text="Interne Nummern gehen standardmässig nicht nach aussen: für eine Nebenstelle hat kein Fremdsystem eine Antwort, und die Nebenstelle eines Mitarbeiters hat auf einem fremden Server nichts zu suchen. Notrufnummern gelten als intern."
                                         TextWrapping="Wrap" />
@@ -1463,7 +1463,7 @@
                             </Grid>
 
                             <TextBlock
-                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                 Style="{StaticResource CaptionTextBlockStyle}"
                                 Text="Einlesen ersetzt alle Quellen — das ist für die Verteilung an mehrere Arbeitsplätze gedacht. Eine einzelne Quelle kommt über Quelle hinzufügen."
                                 TextWrapping="Wrap" />
@@ -1514,7 +1514,7 @@
                             TextWrapping="Wrap" />
 
                         <TextBlock
-                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{StaticResource CaptionTextBlockStyle}"
                             Text="{x:Bind ViewModel.UpdateBlockedReason, Mode=OneWay}"
                             TextWrapping="Wrap"
@@ -1561,7 +1561,7 @@
                             SelectedItem="{x:Bind ViewModel.UpdateChannel, Mode=TwoWay}" />
 
                         <TextBlock
-                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{StaticResource CaptionTextBlockStyle}"
                             Text="Stable ist die abgenommene Fassung. Beta zeigt Neues früher und kann Fehler haben, die stable nicht hat — der Rückweg ist jederzeit möglich."
                             TextWrapping="Wrap" />
@@ -1597,7 +1597,7 @@
                         Text="{x:Bind vm:SettingsViewModel.VersionLine}" />
                     <TextBlock
                         HorizontalAlignment="Center"
-                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         Style="{StaticResource CaptionTextBlockStyle}"
                         Text="{x:Bind vm:SettingsViewModel.Copyright}" />
                     <StackPanel

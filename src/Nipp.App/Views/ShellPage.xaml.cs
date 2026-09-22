@@ -700,43 +700,6 @@ public sealed partial class ShellPage : Page
         }
     }
 
-    /// <summary>
-    /// Strg+1 bis Strg+4 wechseln den Bereich (ADR-046).
-    ///
-    /// <para>Ein Behandler fuer alle vier: die Taste traegt die Nummer, und
-    /// vier fast gleiche Methoden waeren vier Gelegenheiten, eine davon
-    /// stehenzulassen.</para>
-    /// </summary>
-    private void OnSectionAccelerator(
-        KeyboardAccelerator sender,
-        KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-
-        switch (sender.Key)
-        {
-            case VirtualKey.Number1:
-                Wechsle(ContactsTab);
-                break;
-
-            case VirtualKey.Number2:
-                Wechsle(HistoryTab);
-                break;
-
-            case VirtualKey.Number3:
-                Wechsle(SettingsTab);
-                break;
-
-            default:
-                break;
-        }
-
-        // Ueber denselben Weg wie der Klick: was ein Bereichswechsel bedeutet,
-        // steht in OnTabClick, und eine zweite Fassung davon waere die naechste
-        // Doppelwahrheit.
-        void Wechsle(ToggleButton knopf) => OnTabClick(knopf, new RoutedEventArgs());
-    }
-
     /// <summary>Strg+F setzt den Fokus ins Nummernfeld (ADR-046).</summary>
     private void OnFocusNumberAccelerator(
         KeyboardAccelerator sender,
