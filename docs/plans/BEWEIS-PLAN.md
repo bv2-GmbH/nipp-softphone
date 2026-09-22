@@ -295,8 +295,9 @@ zwei nicht — und die beiden Befunde sind die interessanten.
   angemeldet» (keine Doppelung), und `Beende-Nipp.ps1` beendet nipp darüber
   sauber. Protokoll: «wieder angelegt (Versuch 1)».
 
-- **A1-24 — OFFEN. Die Präsenzpunkte folgen dem Kontrastmodus nicht, wenn er
-  im Betrieb eingeschaltet wird** (T271, T75). Dreimal an den Pixeln gemessen:
+- **A1-24 — ERLEDIGT am 23.09.2026. Die Präsenzpunkte folgten dem
+  Kontrastmodus nicht, wenn er im Betrieb eingeschaltet wurde** (T271, T75).
+  Dreimal an den Pixeln gemessen:
 
   | Zustand | Präsenzpunkt | Hintergrund |
   |---|---|---|
@@ -304,9 +305,51 @@ zwei nicht — und die beiden Befunde sind die interessanten.
   | Kontrastmodus **im Betrieb** an | **unverändert** `#6CCB5F` | `#202020` |
   | Kontrastmodus **beim Start** an | `#8EE3F0` — Systemfarbe | `#202020` |
 
-  **Das ist wörtlich der Zustand von vor dem 13.09.2026**, den die Zeile als
+  **Das war wörtlich der Zustand von vor dem 13.09.2026**, den die Zeile als
   behoben annimmt: «das Wörterbuch wirkte nur, wenn der Modus beim Start schon
-  an war». Die Fläche schaltet um, die Punkte nicht.
+  an war». Die Fläche schaltete um, die Punkte nicht.
+
+  **Der Code war nicht der Fehler.** `ApplyStatusBrushes` behandelt den
+  Kontrastmodus seit dem 13.09.2026 richtig, das HighContrast-Wörterbuch ist
+  vollständig, und alle fünf Präsenzpinsel stehen in `ThemedBrushNames`.
+  **Gerufen wurde die Methode nur nie.**
+
+  **Gemessen, statt geraten.** Eine Protokollzeile vor jeder Prüfung, die
+  Kategorie und Kontrastzustand mitschreibt, dann den Modus über
+  `SystemParametersInfo` ein- und ausgeschaltet und den Erfolg per Rückfrage
+  bestätigt (`SET` meldet `True`, `GET` bestätigt `True`). Ergebnis: **keine
+  einzige Zeile.** `SystemEvents.UserPreferenceChanged` — der einzige Kanal,
+  an dem `ThemeService` hing — **feuert in dieser Anwendung nicht**. Das
+  betraf nicht nur den Kontrastmodus: der Klassenkommentar versprach, eine
+  Änderung der Systemeinstellung werde im laufenden Betrieb nachgezogen, und
+  dieses Versprechen hing an einem Kanal, über den nichts kam.
+
+  **Repariert** mit `UISettings.ColorValuesChanged`, dem Weg, den WinUI 3 auf
+  dem Desktop dafür vorsieht. Drei Dinge gehören dazu:
+
+  1. **`UISettings` muss ein Feld sein** — als lokale Variable wäre die
+     Instanz beim nächsten Aufräumen weg, und der Haken feuerte lautlos nie
+     wieder.
+  2. **Das Ereignis kommt nicht auf dem UI-Thread** und feuert grosszügig,
+     mehrfach je Wechsel. Verglichen wird deshalb erst die Lage des Systems
+     (hell/dunkel **und** Kontrast), dann gehandelt — dieselbe Überlegung wie
+     ADR-060.
+  3. **Ein reiner Kontrastwechsel färbt nur um**, statt das ganze
+     Erscheinungsbild neu zu setzen: an `EffectiveThemeChanged` hängt das
+     Neuladen des Symbols im Infobereich, und ein Handle-Zyklus für nichts ist
+     genau der Fehler, den der Kommentar daneben schon einmal beschreibt.
+
+  **Nachgemessen am 23.09.2026**, an denselben Pixeln:
+
+  | Zustand | Präsenzpunkt | Hintergrund |
+  |---|---|---|
+  | normal | `#6CCB5F` (208 px) | `#333739` |
+  | Kontrastmodus **im Betrieb** an | **`#8EE3F0`** (208 px) | `#202020` |
+  | wieder aus | `#6CCB5F` (208 px) | `#333739` |
+
+  Dieselbe Pixelzahl, also derselbe Punkt — und `#8EE3F0` ist genau die
+  Systemfarbe, die vorher nur beim Start erschien. Die Protokollzeile bleibt
+  (Debug): dass der Kanal schweigt, war vier Tage lang nicht zu sehen.
 
 **Zum Werkzeug, für die Wiederholung:** die Tastenkombination aus T75 und T271
 (linke Alt + linke Umschalt + Druck) **funktioniert auf dieser Maschine

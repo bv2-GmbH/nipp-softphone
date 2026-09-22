@@ -14,10 +14,15 @@ namespace Nipp.App.Theming;
 /// <b>Standard ist „wie Windows"</b> — und zwar nicht nur beim Start: eine
 /// Änderung der Systemeinstellung wird im laufenden Betrieb nachgezogen.
 ///
-/// WinUI bietet dafür keinen Ereignishaken an, der bei einem Wechsel im
-/// Betriebssystem zuverlässig feuert. Deshalb hängt diese Klasse an
-/// <c>SystemEvents.UserPreferenceChanged</c> — dasselbe Ereignis, über das
-/// Windows auch Schriftgrössen und Farbschemata meldet.
+/// <b>Gehört wird auf zwei Kanälen, und der zweite ist der, der trägt</b>
+/// (Befund A1-24). <c>SystemEvents.UserPreferenceChanged</c> stand hier
+/// alleine; am 23.09.2026 gemessen kommt darüber <b>gar nichts</b> an — den
+/// Kontrastmodus über <c>SystemParametersInfo</c> ein- und ausgeschaltet
+/// (bestätigt per Rückfrage), und im Protokoll stand keine einzige Zeile, auch
+/// nicht die, die vor jeder Prüfung schreibt. Deshalb zusätzlich
+/// <c>UISettings.ColorValuesChanged</c>, der Weg, den WinUI 3 auf dem Desktop
+/// dafür vorsieht. Der alte Kanal bleibt: er kostet nichts, und dass er hier
+/// schweigt, heisst nicht, dass er überall schweigt.
 /// </summary>
 public sealed class ThemeService : IDisposable
 {
@@ -28,6 +33,22 @@ public sealed class ThemeService : IDisposable
     private FrameworkElement? _root;
     private AppTheme _preference = AppTheme.System;
     private bool _disposed;
+
+    /// <summary>
+    /// <b>Muss ein Feld sein.</b> <c>UISettings</c> hält sein Ereignis nur,
+    /// solange die Instanz lebt — als lokale Variable wäre sie beim nächsten
+    /// Aufräumen weg, und der Haken feuerte lautlos nie wieder.
+    /// </summary>
+    private global::Windows.UI.ViewManagement.UISettings? _uiSettings;
+
+    /// <summary>
+    /// Die Lage des <b>Systems</b>, wie sie zuletzt verarbeitet wurde — nicht
+    /// die gewählte Vorliebe. <c>ColorValuesChanged</c> feuert grosszügig, und
+    /// an <see cref="EffectiveThemeChanged"/> hängt das Neuladen des Symbols
+    /// im Infobereich; ein Handle-Zyklus für nichts ist derselbe Fehler, den
+    /// ADR-060 eine Ebene tiefer schon einmal beseitigt hat.
+    /// </summary>
+    private (bool Hell, bool Kontrast)? _letzteLage;
 
     public ThemeService(ILogger<ThemeService> logger)
     {
@@ -56,6 +77,14 @@ public sealed class ThemeService : IDisposable
 
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+
+        // Der Kanal, der auf dieser Maschine als einziger etwas meldet
+        // (Befund A1-24).
+        _uiSettings ??= new global::Windows.UI.ViewManagement.UISettings();
+        _uiSettings.ColorValuesChanged -= OnColorValuesChanged;
+        _uiSettings.ColorValuesChanged += OnColorValuesChanged;
+
+        _letzteLage = (IsSystemLight(), IsHighContrast());
 
         ApplyCore();
     }
@@ -101,6 +130,11 @@ public sealed class ThemeService : IDisposable
         // fest eingestellt hatte. Wer den Kontrastmodus einschaltete, bekam
         // dann gar keine Reaktion — und das trifft genau die Leute, die ihn
         // brauchen: wer ihn benutzt, hat oft auch ein festes Thema gewaehlt.
+        // Welche Kategorie Windows fuer welche Aenderung schickt, steht
+        // nirgends verbindlich — und davon haengt hier alles ab. Debug, damit
+        // «der Kontrastmodus wirkt nicht» nicht wieder geraten werden muss.
+        ThemeLog.PreferenceEvent(_logger, e.Category.ToString(), IsHighContrast());
+
         if (e.Category is UserPreferenceCategory.Accessibility)
         {
             _root?.DispatcherQueue.TryEnqueue(ApplyStatusBrushes);
@@ -125,6 +159,50 @@ public sealed class ThemeService : IDisposable
         // jeder Zugriff auf RequestedTheme.
         _root?.DispatcherQueue.TryEnqueue(() =>
         {
+            ApplyCore();
+            ThemeLog.SystemChanged(_logger, EffectiveTheme.ToString());
+        });
+    }
+
+    /// <summary>
+    /// Windows meldet eine geänderte Farblage (Befund A1-24).
+    ///
+    /// <para><b>Das Ereignis kommt nicht auf dem UI-Thread</b> und feuert
+    /// grosszügig — mehrfach je Wechsel und auch, wenn sich nichts geändert
+    /// hat, das nipp betrifft. Deshalb wird erst verglichen und dann
+    /// gehandelt, und zwar getrennt: ein reiner Wechsel des Kontrastmodus
+    /// braucht nur neue Farben, kein neues Erscheinungsbild — sonst lädt das
+    /// Symbol im Infobereich sein Handle neu, ohne dass sich hell oder dunkel
+    /// geändert hätte.</para>
+    /// </summary>
+    private void OnColorValuesChanged(
+        global::Windows.UI.ViewManagement.UISettings sender, object args)
+    {
+        _root?.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_disposed || _root is null)
+            {
+                return;
+            }
+
+            var jetzt = (Hell: IsSystemLight(), Kontrast: IsHighContrast());
+
+            if (_letzteLage == jetzt)
+            {
+                return;
+            }
+
+            var nurKontrast = _letzteLage is { } vorher && vorher.Hell == jetzt.Hell;
+            _letzteLage = jetzt;
+
+            ThemeLog.PreferenceEvent(_logger, "ColorValuesChanged", jetzt.Kontrast);
+
+            if (nurKontrast)
+            {
+                ApplyStatusBrushes();
+                return;
+            }
+
             ApplyCore();
             ThemeLog.SystemChanged(_logger, EffectiveTheme.ToString());
         });
@@ -314,6 +392,12 @@ public sealed class ThemeService : IDisposable
 
         _disposed = true;
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+
+        if (_uiSettings is not null)
+        {
+            _uiSettings.ColorValuesChanged -= OnColorValuesChanged;
+            _uiSettings = null;
+        }
     }
 }
 
@@ -326,6 +410,15 @@ internal static partial class ThemeLog
     [LoggerMessage(EventId = 2805, Level = LogLevel.Information,
         Message = "Kontrastmodus erkannt — die Statusfarben bleiben die des Systems")]
     public static partial void HighContrastRespected(ILogger logger);
+
+    /// <summary>
+    /// Welche Kategorie Windows meldet, und ob der Kontrastmodus in diesem
+    /// Moment schon an ist. <b>Beides ist nicht dokumentiert</b>, und an beidem
+    /// haengt, ob die Statusfarben umschalten (Befund A1-24).
+    /// </summary>
+    [LoggerMessage(EventId = 2806, Level = LogLevel.Debug,
+        Message = "Systemeinstellung geaendert: Kategorie {Category}, Kontrastmodus {HighContrast}")]
+    public static partial void PreferenceEvent(ILogger logger, string category, bool highContrast);
 
     [LoggerMessage(EventId = 2801, Level = LogLevel.Information,
         Message = "Windows hat das Erscheinungsbild gewechselt, jetzt: {Effective}")]
