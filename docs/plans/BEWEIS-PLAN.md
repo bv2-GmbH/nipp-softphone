@@ -200,6 +200,62 @@ kaum prüfbar, weil es ohne Outlook fast keine lokalen Kontakte gibt (ADR-018).
 Gemessen ist die Nebenläufigkeit der beiden fremden Quellen, nicht das
 Verhältnis lokal gegen fremd.
 
+#### Die Anruflisten- und Kartenrunde, am 22.09.2026
+
+**Acht Zeilen an einem Nachmittag: T111 bis T118.** Sieben bestanden, eine
+teilweise. Gemessen gegen den unpackaged Debug-Build von **`29452bc`** — der
+erste Lauf nach den zwölf Reparaturen aus A1, und keine davon ist dabei
+aufgefallen.
+
+**Das Rüstzeug ist diesmal geblieben** und liegt bei den anderen Aufbauten
+(`nipp-testaufbauten`), weil die nächste Runde es wieder braucht:
+
+- **`anrufliste`** — ein kleines x64-Werkzeug, das verpasste Anrufe in
+  `history.db` schreibt und sie liest, ohne die Anlage. **Die Ausgabe maskiert
+  nach derselben Regel wie `LogMasking`**, und das ist keine Förmlichkeit: der
+  erste Lauf hat 220 echte Anrufe mit Namen und Nummern ausgegeben. Eine Liste
+  aus dem Alltag des Benutzers ist kein Testdatensatz (§21.2).
+- **`Beende-Nipp.ps1`** — beendet nipp über das Menü des Infobereich-Symbols,
+  nicht über `Stop-Process`. Fünf Neustarts in dieser Runde. **Die Falle aus
+  CLAUDE.md ist echt:** ein `-match '^nipp'` erwischt zuerst das angeheftete
+  Taskleistensymbol («Nipp – 1 aktives Fenster angeheftet»), weil PowerShell
+  die Gross- und Kleinschreibung ignoriert; dessen Sprungliste hat kein
+  «Beenden». Gesucht wird case-sensitiv und ohne «angeheftet».
+- **`Bildschirmfoto.ps1` und `kontrast.py`** — für alles, was keinen Namen im
+  UIA-Baum hat: Schriftstärke, Farbe, abgeschnittene Beschriftungen. Der
+  Kontrast wird nach WCAG aus den Pixeln gerechnet, Hintergrund ist die
+  häufigste Farbe, Vordergrund die mit dem grössten Luminanzabstand, die noch
+  mindestens ein Prozent der Fläche ausmacht — reine Kantenglättung liegt
+  darunter und meldete sonst einen Kontrast, den niemand liest.
+
+**Was die Runde inhaltlich getragen hat:**
+
+- **Das Abzeichen stimmt, und zwar auf der Platte** (T111, T112). Die
+  eigentliche Abnahme von ADR-035 ist die Nebenprobe: eine `history.db` vom
+  07.09.2026, **ohne** die Spalte `seen_at`, untergeschoben — nipp ergänzt sie
+  beim Start, alle 55 alten Einträge sind da, die drei verpassten gelten als
+  ungesehen. Die Wanderung ist damit am echten Altbestand belegt und nicht nur
+  im Komponententest.
+- **Der Detailbereich rechnet richtig** (T113, T114). Er wächst und schrumpft
+  mit dem Inhalt, das Kreuz hebt die Auswahl auf, und bei 150 % ist in beiden
+  Themen alles sichtbar. **Die Virtualisierung ist gezählt statt gefühlt:** von
+  82 Einträgen im UIA-Baum tragen 17 ein Rechteck.
+- **Die Karten tragen** (T115, T116, T117). Eine Änderung im Designer erscheint
+  im **offenen** Bereich, ohne ihn zu schliessen; sie überlebt den Neustart;
+  eine kaputte Karte kostet nur sich selbst, und der Befund steht mit
+  `cards[history-default]` in den Einstellungen.
+
+**Und ein Eindruck, der der Messung nicht standgehalten hat:** die
+Beschriftungen im Detailbereich sehen deutlich blasser aus als die Werte
+daneben — gemessen stehen sie bei **7,02:1** dunkel und **6,53:1** hell, also
+klar über den verlangten 4,5:1. Ohne die Messung wäre daraus ein Befund
+geworden, den es nicht gibt. **Dasselbe eine Stunde später in die andere
+Richtung:** «in den Einstellungen steht kein Befund» war schon halb
+geschrieben, als sich herausstellte, dass er sehr wohl dasteht — eine Gruppe
+weiter unten, in einem zweiten Expander, den der erste Griff nicht geöffnet
+hatte. **Ein leerer UIA-Baum ist keine Abwesenheit, sondern oft ein
+zugeklappter Expander.**
+
 #### Die Designer-Runde, am selben Abend
 
 **Zehn Zeilen: T100, T103, T104, T106, T107, T119, T156, T157, T158, T283.**
@@ -874,6 +930,79 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   ist der Rücksprung dagegen richtig — dort will man nach dem Tippen im Feld
   stehen.» Er beschreibt die Absicht, nicht das Verhalten. Das ist dieselbe
   Sorte Satz wie in Befund A8 der Welle 2.7, zum vierten Mal.
+
+- **A1-13 — OFFEN, gefunden am 22.09.2026 beim Lesen, nicht beim Messen.**
+  **In `CallHistoryStore` schützt `Guarded` sechs von sieben Zugriffen nicht.**
+  Das Muster steht in derselben Datei zweimal, einmal richtig und sechsmal
+  verdreht:
+
+  ```csharp
+  // richtig — Query
+  public IReadOnlyList<CallHistoryEntry> Query(…) =>
+      Guarded(nameof(Query), () => QueryCore(…), []);
+  private List<CallHistoryEntry> QueryCore(…) { … }
+
+  // verdreht — Add, CountMissed, MarkSeen, MarkAllSeen, Purge, Clear
+  private long AddCore(CallHistoryEntry entry) =>
+      Guarded(nameof(Add), () => AddCore(entry), 0L);   // ruft sich selbst
+  public long Add(CallHistoryEntry entry) { … }          // ungeschützt
+  ```
+
+  Die `…Core`-Methode trägt den Schutz und ruft **sich selbst** — sie ist tot
+  und endlos rekursiv. Der öffentliche Weg, den alle Aufrufer nehmen
+  (`ShellViewModel` an drei Stellen), trägt den Datenbankzugriff **ohne**
+  `try`. Damit fällt für sechs von sieben Operationen weg, was `Guarded` leistet:
+  die Ausnahme fangen, `AccessFailed` protokollieren und einen Ersatzwert
+  liefern.
+
+  **Warum das mehr ist als eine Schönheitsfrage:** `Add` läuft am Ende jedes
+  Anrufs, aus dem Ereignisweg des SDK. Der Commit, der `Guarded` eingeführt hat
+  (`7813096`, 13.09.2026, ADR-053), nennt genau diesen Pfad als einen der drei,
+  auf denen eine Ausnahme nipp beendet hat — «die Seitennavigation und **der
+  Schreibzugriff auf die Anrufliste**». Der Schutz wurde für diesen Fall
+  gebaut und ist an diesem Fall nicht angeschlossen.
+
+  **Was gemessen ist und was nicht:** dass das Muster so dasteht, ist gelesen
+  und mit `git show` bis auf den einführenden Commit zurückverfolgt. **Was
+  daraus im Betrieb folgt, ist nicht gemessen** — ob eine SQLite-Ausnahme heute
+  vom `CallbackGuard` eine Ebene höher abgefangen wird oder nipp beendet, ist
+  offen. Der naheliegende Weg dahin: `history.db` im laufenden Betrieb
+  schreibgeschützt setzen und einen verpassten Anruf anklicken (`MarkSeen`).
+  **Die Matrix hat dafür keine Zeile** — T280 macht genau das für
+  `settings.json`, für die Anrufliste fehlt das Gegenstück. Vorgeschlagen als
+  **T318**.
+
+  Die Reparatur ist klein (die Körper der sechs Paare tauschen), aber sie
+  gehört gemessen und nicht geraten: ein `Guarded`, das den Fehler verschluckt,
+  wo vorher eine Ausnahme kam, ändert das Verhalten der Aufrufer.
+
+- **A1-14 — OFFEN, aus T118.** **Die Meldung sagt nicht, welcher Baustein
+  gemeint ist, und nennt einen .NET-Typnamen.** Beim Übernehmen der
+  Gesprächskarte in die Benachrichtigung steht unten **achtmal wortgleich**:
+
+  > Ein Baustein der Art 'CardField' erscheint in einer Benachrichtigung nicht.
+  > Windows nimmt dort nur Text.
+
+  Drei Dinge daran:
+
+  1. **`CardField` ist ein .NET-Typname im Benutzertext** — ausdrücklich
+     ausgeschlossen (CLAUDE.md, «Regeln»). Er entsteht aus
+     `element.GetType().Name` in `CardDefinitionValidator.cs:234`, und **genau
+     deshalb hat `UserTextTests` ihn nie gesehen**: zur Übersetzungszeit steht
+     im Literal kein Typname, er kommt erst zur Laufzeit hinein. Das ist die
+     Lücke in der Prüfung, nicht nur der einzelne Satz.
+  2. **Die Meldung nennt den Baustein nicht.** T118 verlangt, dass dasteht,
+     welche Bausteine nicht erscheinen; acht identische Sätze sagen nur, dass
+     es acht sind. Die Bausteine haben eine Beschriftung («Überschrift»,
+     «Art», «Wer») — sie steht im selben Objekt und wird nicht benutzt.
+  3. **Fünf von acht Zeilen sind sichtbar**, der Rest ist abgeschnitten, ohne
+     Hinweis darauf. Aufgefallen ist es nur, weil der UIA-Name des Textfeldes
+     alle acht enthält.
+
+  **Was richtig funktioniert:** Speichern ist gesperrt, solange ein solcher
+  Baustein drinsteht, **gekürzt wird nichts**, und nach dem Entfernen der acht
+  plus einem Textbaustein geht das Speichern wieder. Der Mechanismus stimmt;
+  es fehlt die Auskunft, die ihn bedienbar macht.
 
 **Was die Runde sich selbst beigebracht hat:** **Wer `settings.json` bei
 laufendem nipp ändert, verliert die Änderung.** Beim Beenden schreibt nipp

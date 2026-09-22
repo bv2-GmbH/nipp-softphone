@@ -13,6 +13,66 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**Stand 22.09.2026, abends.** Die sechste Messrunde der Schreibtisch-Runde A1
+ist durch: **acht Zeilen, sieben bestanden, eine teilweise, zwei neue
+Befunde.** Gezählt sind jetzt **190 offene Matrixzeilen von 308**, davon 63 am
+Schreibtisch — und die Zählung ist zum ersten Mal nachrechenbar.
+
+## Die Anrufliste und die Karten tragen (22.09.2026)
+
+**T111 bis T118**, gemessen gegen den unpackaged Debug-Build von `29452bc` —
+der erste Lauf nach den zwölf Reparaturen vom Vortag. Keine davon ist dabei
+negativ aufgefallen.
+
+Das Abzeichen zählt richtig und überlebt den Neustart; die eigentliche Abnahme
+von ADR-035 ist dabei die Nebenprobe mit einer `history.db` vom 07.09.2026,
+**ohne** die Spalte `seen_at`: nipp ergänzt sie beim Start, alle 55 alten
+Einträge sind da, die drei verpassten gelten als ungesehen. Der Detailbereich
+wächst und schrumpft mit dem Inhalt, das Kreuz hebt die Auswahl auf, und bei
+150 % steht in beiden Themen alles vollständig da — 34,3 % der Höhe bei einer
+Grenze von 60 %. Eine Änderung im Karten-Designer erscheint im **offenen**
+Bereich, ohne ihn zu schliessen, und überlebt den Neustart; eine von Hand
+kaputt gemachte Karte kostet nur sich selbst, und der Befund steht mit
+`cards[history-default]` in den Einstellungen.
+
+**Zwei Befunde:**
+
+- **A1-13 — `Guarded` schützt in `CallHistoryStore` sechs von sieben
+  Zugriffen nicht.** Die `…Core`-Methode trägt den Schutz und ruft sich
+  selbst; der öffentliche Weg, den alle Aufrufer nehmen, hat keinen `try`.
+  Eingeführt am 13.09.2026 mit ADR-053 — und **derselbe Commit nennt den
+  Schreibzugriff auf die Anrufliste als einen der drei Pfade, auf denen eine
+  Ausnahme nipp beendet hat**. Was daraus im Betrieb folgt, ist nicht
+  gemessen; dafür gibt es jetzt **T318**, das Gegenstück zu T280.
+- **A1-14 — die Meldung in T118 sagt nicht, welcher Baustein gemeint ist.**
+  Achtmal wortgleich «Ein Baustein der Art 'CardField' erscheint in einer
+  Benachrichtigung nicht», davon fünf Zeilen sichtbar. `CardField` ist ein
+  .NET-Typname im Benutzertext — er entsteht aus `element.GetType().Name`, und
+  **genau deshalb konnte `UserTextTests` ihn nie sehen**.
+
+**Zweimal hat die Messung eine fertige Behauptung umgeworfen.** Die
+Beschriftungen im Detailbereich sehen blass aus — gemessen stehen sie bei
+7,02:1 und 6,53:1, klar über den verlangten 4,5:1. Und «in den Einstellungen
+steht kein Befund» war halb geschrieben, als sich zeigte, dass er dasteht: eine
+Gruppe tiefer, in einem zweiten Expander, den der erste Griff nicht geöffnet
+hatte. **Ein leerer UIA-Baum ist keine Abwesenheit, sondern oft ein
+zugeklappter Expander.**
+
+**Die Zählung stimmte nicht, und jetzt steht die Regel da.** Die
+fortgeschriebenen «190 von 303» lassen sich aus der Matrix nicht herstellen —
+je nachdem, ob man Zeilen mitzählt, deren Ergebnisspalte ausdrücklich *kein*
+Ergebnis trägt («offen», «Vorbehalt», «bewusst nicht getestet»), kommt man auf
+verschiedene Zahlen. `Zaehle-Matrix.ps1` in den Testaufbauten trägt die Regel
+und rechnet sie aus; es sind **190 von 308**, und dass dieselbe Zahl
+herauskommt, ist Zufall.
+
+**Das Rüstzeug bleibt liegen** (`nipp-testaufbauten`): ein Werkzeug, das
+verpasste Anrufe in `history.db` schreibt, eines, das nipp über das
+Infobereich-Menü beendet, und zwei für alles, was keinen Namen im UIA-Baum hat
+— Bildschirmfoto und Kontrastmessung nach WCAG. **Die Ausgabe der Anrufliste
+maskiert**, und das ist keine Förmlichkeit: der erste Lauf hat 220 echte
+Anrufe mit Namen und Nummern ausgegeben.
+
 **Stand 17.09.2026, abends.** 1252 Komponententests und 34 Architekturtests
 grün — **lokal.** Die CI ist es nicht, und das ist der erste Punkt.
 
