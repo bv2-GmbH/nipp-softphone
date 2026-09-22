@@ -202,6 +202,24 @@ ihm das Passwort ein zweites Mal (dieselbe Falle wie A1-9, nur andersherum).
 **T268 hält** (`TrayHintSeen` von fehlend auf `true`, nipp läuft im
 Infobereich weiter); die Sprechblase selbst bleibt am Auge.
 
+**Die drei Dateizeilen halten alle** (T168, T197, T231):
+
+- **Auf dem frischen Profil** trägt die Hinweisleiste «Konto einrichten», und
+  ein Klick öffnet die Einstellungen, klappt «SIP-Konten» auf und setzt den
+  Fokus in «Benutzername» — alles in einem Schritt (T197). Die Wähltastatur
+  ist dabei **zu**, und nach einmaligem Einschalten überlebt sie den Neustart
+  (T231).
+- **Das alte Dateiformat wandert sauber** (T168): alle zehn Nebenstellen da,
+  alle in einer Gruppe, keine `.kaputt-…`-Datei; nach einem Speichern stehen
+  `Groups` und `Group` wieder darin, und `Mobile` nur bei den drei Einträgen,
+  die eine Nummer haben.
+
+  **Eine `settings.json` von vor dem 11.09.2026 gibt es nicht mehr** — die
+  älteste Sicherung ist vom 17.09. Nachgebaut wurde sie, indem `Groups` und
+  das `Group` je Nebenstelle entfernt wurden; das war der Unterschied. **Wer
+  die Zeile später wiederholt, findet den Nachbau hier beschrieben** und muss
+  ihn nicht raten.
+
 ### Der Stand der Runde (17.09.2026)
 
 **Gemessen wird gegen den Debug-Build von `4a7427b`**, der seit dem 16.09.2026
