@@ -13,10 +13,43 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
-**Stand 23.09.2026, nachts.** Ein durchgearbeiteter Tag: **79 Matrixzeilen
-abgenommen** — von 190 offenen auf **147 von 309**, am Schreibtisch von 69 auf
-**14**. Acht Befunde gefunden (A1-17 bis A1-24), **zwei repariert und
-nachgemessen**, sechs als Entscheidungsvorlage in **ADR-072** gelegt.
+**Stand 23.09.2026, früh.** **Die Runde A1 am Schreibtisch ist durch.** Die
+sechs Befunde aus der Entscheidungsvorlage **ADR-072** sind entschieden und
+fünf davon repariert — jeder mit eigenem Commit und **am laufenden Programm
+nachgemessen**:
+
+| Befund | was jetzt gilt |
+|---|---|
+| **A1-23** | nach einem Explorer-Neustart legt nipp sein Symbol selbst wieder an — mit Wiederholung, denn ein Abonnement allein hätte nicht gereicht |
+| **A1-22** | berechnete Eigenschaften speichern nicht mehr, und `SecretStore.Set` vergleicht wie `Remove` daneben |
+| **A1-24** | die Statusfarben folgen dem Kontrastmodus **und** dem Hell/Dunkel-Wechsel jetzt auch im Betrieb |
+| **A1-21** | die drei toten Tastenkürzel sind gestrichen, die ToolTips ehrlich |
+| **A1-17** | die 23 zu hellen Textstellen stehen auf der zweiten Fluent-Stufe, hell 6,03:1 statt 3,28:1 |
+| **A1-19** (zweite Hälfte) | **bewusst offen** — die Wurzel ist repariert, die zehn Filter bleiben, bis einer wirklich etwas durchlässt |
+
+**In der Matrix stehen damit nur noch drei Zeilen auf «nicht bestanden»**, und
+zwei davon tragen den Zusatz «dann behoben». Übrig bleibt **T310** — der
+Rufton, und der gehört an die Anlage, nicht an den Schreibtisch.
+
+**Bei drei von sechs war die Ursache eine andere, als der Befund sie nannte**,
+und das ist die eigentliche Ausbeute des Abends:
+
+- **A1-22** hiess «ein Klick, 62 Schreibvorgänge». Der Klick war unschuldig —
+  vor jedem Block steht ein `Register refresher [503] reason [io error]`. Es
+  war die fail2ban-Schleife, und geschrieben haben drei berechnete
+  Eigenschaften, die in keiner Sperrliste aus ADR-045 standen.
+- **A1-24** lag nicht an den Farben. `ApplyStatusBrushes` war seit dem
+  13.09.2026 richtig; gerufen wurde es nur nie, weil
+  `SystemEvents.UserPreferenceChanged` **in dieser Anwendung gar nicht feuert**
+  — gemessen mit einer Zeile vor jeder Prüfung, während der Kontrastmodus
+  nachweislich anging. Das betraf auch den gewöhnlichen Themenwechsel im
+  Betrieb, den der Klassenkommentar versprach.
+- **A1-23** wäre mit dem naheliegenden Einzeiler nicht behoben gewesen: die
+  Nachricht kam an, und `Create()` warf trotzdem sofort «TryCreate failed».
+
+**Der Tag davor:** **79 Matrixzeilen abgenommen** — von 190 offenen auf **147
+von 309**, am Schreibtisch von 69 auf **14**. Acht Befunde gefunden (A1-17 bis
+A1-24).
 
 **Die vierzehn verbleibenden S-Zeilen brauchen etwas, das ein Werkzeug nicht
 hat:** einen Windows-Neustart, Ohren, ein neues Logo, eine Beta-Fassung, eine

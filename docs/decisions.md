@@ -4,11 +4,53 @@ Jede Abweichung von `NIPP-BUILD.md` gehört hier hinein — mit Kontext, Entsche
 
 Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR-nnn` oder `verworfen`.
 
+**ADR-070 und ADR-071 gibt es nicht** — beim Anlegen von ADR-072 am 22.09.2026 wurden zwei Nummern übersprungen. Sie bleiben frei: eine Nummer wird nicht nachträglich neu vergeben, sonst zeigt ein Verweis von anderswo irgendwann auf etwas anderes.
+
 ---
 
-## ADR-072 — Entwurf: Was aus den sechs offenen Befunden der Runde A1 wird
+## ADR-072 — Was aus den sechs offenen Befunden der Runde A1 wurde
 
-**Datum:** 22.09.2026 · **Status:** **Entwurf — nicht entschieden** · **Bezug:** `docs/plans/BEWEIS-PLAN.md` (A1-17 bis A1-24), ADR-044, ADR-053, ADR-060, §21.2
+**Datum:** 22.09.2026, **entschieden am 23.09.2026** · **Status:** angenommen · **Bezug:** `docs/plans/BEWEIS-PLAN.md` (A1-17 bis A1-24), ADR-044, ADR-045, ADR-053, ADR-060, §21.2
+
+**Die Entscheidungen in einer Zeile je Befund:**
+
+| Befund | gewählt | Stand |
+|---|---|---|
+| **A1-17** — zu heller Text an 23 Stellen | **a)** alle 23 auf `TextFillColorSecondaryBrush` | umgesetzt, hell 6,03:1 statt 3,28:1 |
+| **A1-19** (zweite Hälfte) — zehn `async void` mit gefiltertem `catch` | **nichts davon** — bewusst offen gelassen | siehe unten |
+| **A1-21** — drei Tastenkürzel, die es nicht gibt | **b)** streichen, ToolTips ehrlich machen | umgesetzt |
+| **A1-22** — ein Klick, 62 Schreibvorgänge | **c)** beides, und die Ursache zuerst messen | umgesetzt; die Ursache war eine andere als angenommen |
+| **A1-23** — kein Weg zum Beenden nach Explorer-Neustart | **a)** auf `TaskbarCreated` hören | umgesetzt, mit Wiederholung |
+| **A1-24** — Präsenzpunkte folgen dem Kontrastmodus nicht | **a)** auf den Wechsel hören | umgesetzt; der Kanal war stumm, nicht die Farbe |
+
+**Drei Dinge haben sich beim Umsetzen als anders herausgestellt, als dieser
+Text sie beschrieb** — und das ist der Grund, warum die Optionen unten stehen
+bleiben statt weggekürzt zu werden:
+
+1. **A1-22 hiess «ein Klick, 62 Schreibvorgänge».** Der Klick war nicht die
+   Ursache. Vor jedem Block steht im Protokoll ein
+   `Register refresher [503] reason [io error]` — es war die fail2ban-Sperre,
+   die die Anmeldung in eine Schleife trieb. Geschrieben haben drei berechnete
+   Eigenschaften, die in keiner Sperrliste aus ADR-045 standen.
+2. **A1-23 wäre mit einem Abonnement allein nicht behoben gewesen.** Die
+   Nachricht kam an, und `Create()` warf trotzdem sofort. Es braucht die
+   Wiederholung — und das Neusetzen des ToolTips, sonst kommt das Symbol
+   namenlos zurück.
+3. **A1-24 lag nicht an den Farben.** `ApplyStatusBrushes` war seit dem
+   13.09.2026 richtig; gerufen wurde es nur nie, weil
+   `SystemEvents.UserPreferenceChanged` in dieser Anwendung nicht feuert. Das
+   betraf auch den ganz gewöhnlichen Hell/Dunkel-Wechsel im Betrieb, den der
+   Klassenkommentar ausdrücklich versprach.
+
+**Warum A1-19 offen bleibt.** Ein ungefiltertes `catch (Exception)` in zehn
+Ereignisbehandlern würde Programmierfehler verschlucken, die heute auffallen —
+und die Wurzel des Befundes (`ShowAsync`, wo eine `COMException` durch einen
+engen Filter flog und nipp beendete) ist repariert. Die zehn übrigen Filter
+einzeln durchzugehen lohnt erst, wenn einer davon wirklich etwas durchlässt.
+**Das ist eine Entscheidung für heute, keine für immer:** der nächste
+Absturz aus einem `async void` macht sie rückgängig.
+
+**Bezug:** `docs/plans/BEWEIS-PLAN.md` (A1-17 bis A1-24), ADR-044, ADR-045, ADR-053, ADR-060, §21.2
 
 **Kontext.** Die Schreibtisch-Runde A1 hat am 22.09.2026 acht Befunde
 hinterlassen. Zwei sind repariert (A1-18, A1-20), sechs stehen offen — und
@@ -17,8 +59,11 @@ zusammen aufzuschreiben ist billiger, als sie einzeln wieder aufzurufen: fünf
 von sechs hängen an derselben Frage, nämlich **wie viel Aufwand eine Zusage
 wert ist, die niemand bemerkt, solange nichts schiefgeht.**
 
-Dieser Entwurf trifft keine Entscheidung. Er legt je Befund die Optionen
-nebeneinander, mit dem, was gemessen ist, und mit dem Preis.
+**Was unten steht, ist die Vorlage vom 22.09.2026** — je Befund die Optionen
+nebeneinander, mit dem, was gemessen war, und mit dem Preis. Sie bleibt
+stehen: was abgewogen wurde, ist der Teil, den man in einem halben Jahr
+braucht, und bei dreien von sechs hat die Umsetzung die Annahme darin
+korrigiert.
 
 ---
 
@@ -140,9 +185,12 @@ einschaltet, und das ist genau der Moment, in dem jemand schlecht sieht.
 
 ---
 
-**Was dieser Entwurf braucht, um ein ADR zu werden:** je Befund eine gewählte
-Option und einen Satz warum. Danach wird er in einzelne ADRs aufgelöst oder
-bleibt als einer stehen — das entscheidet, wer entscheidet.
+**Entschieden am 23.09.2026**, in einem Durchgang und mit je einem Commit:
+`fa91800` (A1-23), `67efa83` (A1-22), `9593cf5` (A1-24), `6784d31` (A1-21 und
+A1-17). Jede Reparatur ist am laufenden Programm nachgemessen, und bei A1-22
+und A1-17 gehört die **Gegenprobe** dazu — eine zu grobe Bremse verschluckt
+das Speichern selbst, und ein Test, der nur Verbotenes sucht, ist auch dann
+grün, wenn gar nichts mehr da ist.
 
 ## ADR-069 — Das geprüfte SDK-ZIP liegt unter eigener Kontrolle
 
