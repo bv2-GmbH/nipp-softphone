@@ -268,6 +268,35 @@ Explorer-Neustart, und der kostet wieder das Symbol.
 **T95 bleibt liegen:** ein Logo-Wechsel ist Entwicklungsarbeit und keine
 Messung — dafür müsste erst ein neues Logo gebaut und eingebaut werden.
 
+#### E4 — was ohne Aufbau ging, und was nicht
+
+**Drei Zeilen bestanden: T47, T76, T230.** Keine neuen Befunde.
+
+**Das Diagnosepaket hält sein Versprechen** (T47): `integrationen.json` nennt
+den Rechnernamen der Quelle und sonst nichts, was schützenswert wäre — statt
+des Tokens steht `ZugangsdatenHinterlegt: true`, der Endpunktpfad fehlt, die
+Anfrageparameter fehlen, und die erste Zeile der Datei sagt es selbst. **Das
+ist §21.2, wie man es sich wünscht.**
+
+**Die letzte Gruppe lässt sich nicht entfernen** (T230), und die Kurzinfo sagt
+warum statt nur «geht nicht»: «Die letzte Gruppe bleibt — sie nimmt die
+Nebenstellen ohne eigene Gruppe auf.»
+
+**Vier Zeilen blieben liegen, und keine davon aus Zeitmangel:**
+
+- **T25** (Autostart nach Neustart) braucht einen **Windows-Neustart**. Das
+  ist kein Eingriff, den ein Werkzeug nebenbei macht: der Benutzer verliert
+  alles Offene.
+- **T93** (Klingelton) braucht **Ohren**. Ob der neue Klang «weicher ist und
+  eine Pause hat», kann kein Skript sagen.
+- **T273** (Diagnosepaket aus einer Beta-Fassung) braucht eine Beta-Fassung —
+  gebaut und installiert. Gehört zu einer Auslieferungsrunde.
+- **T311** (Mobilnummer ergänzen, ohne Neustart sichtbar) **ist an der
+  Werkzeugsteuerung gescheitert**: das Feld liegt in einem Formular, das erst
+  nach mehrfachem Scrollen erscheint, und ein Mausklick auf die errechnete
+  Stelle landete in einem fremden Fenster. Inhaltlich spricht nichts dagegen —
+  gemessen ist sie nicht.
+
 ### Der Stand der Runde (17.09.2026)
 
 **Gemessen wird gegen den Debug-Build von `4a7427b`**, der seit dem 16.09.2026
