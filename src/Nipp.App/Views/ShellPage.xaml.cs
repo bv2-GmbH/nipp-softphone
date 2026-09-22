@@ -344,10 +344,9 @@ public sealed partial class ShellPage : Page
                 {
                     ViewModel.DialCommand.Execute(null);
                 }
-                else if (ViewModel.HasSuggestions)
+                else
                 {
-                    SuggestionList.SelectedIndex = 0;
-                    SuggestionList.Focus(FocusState.Keyboard);
+                    SpringeInDieListe();
                 }
 
                 e.Handled = true;
@@ -358,14 +357,79 @@ public sealed partial class ShellPage : Page
                 e.Handled = true;
                 break;
 
-            case VirtualKey.Down when ViewModel.HasSuggestions:
-                SuggestionList.SelectedIndex = 0;
-                SuggestionList.Focus(FocusState.Keyboard);
+            case VirtualKey.Down when ViewModel.HasSuggestions || ViewModel.ShowSearchResults:
+                SpringeInDieListe();
                 e.Handled = true;
                 break;
 
             default:
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Setzt den Fokus in die Liste, die gerade steht (Befund A1-20).
+    ///
+    /// <para><b>Es sind zwei, und welche steht, entscheidet dieselbe Antwort
+    /// wie über die Eingabetaste</b> (ADR-051): eine wählbare Eingabe zeigt
+    /// die Vorschlagsliste, ein Name die Trefferliste. Bis zum 22.09.2026
+    /// kannte diese Stelle nur die erste — wer einen Namen tippte und Enter
+    /// drückte, blieb im Feld stehen, obwohl fünf Treffer darunter standen
+    /// und der Knopf «Anrufen» daneben sagte «Einen Treffer darunter
+    /// auswählen».</para>
+    ///
+    /// <para>Die Vorschlagsliste hat Vorrang, weil sie näher am Feld steht und
+    /// nur erscheint, wenn die Eingabe wählbar ist — beide gleichzeitig gibt
+    /// es nicht.</para>
+    /// </summary>
+    private void SpringeInDieListe()
+    {
+        // WELCHE Liste steht, entscheidet ShowSearchResults -- dieselbe
+        // Antwort, die auch ueber die Eingabetaste entscheidet (ADR-051).
+        //
+        // NICHT "welche hat Eintraege": beide haben welche. Gemessen am
+        // 22.09.2026 mit einer Spur im Protokoll -- bei einem Namen meldete
+        // HasSuggestions=True UND HasSearchResults=True, und der Sprung in die
+        // ausgeblendete Vorschlagsliste endete mit "Behaelter=null,
+        // Fokus=False". Eine unsichtbare ListView erzeugt keine Container.
+        if (ViewModel.ShowSearchResults)
+        {
+            FokusAufErsteZeile(SearchResultList);
+            return;
+        }
+
+        if (ViewModel.HasSuggestions)
+        {
+            FokusAufErsteZeile(SuggestionList);
+        }
+    }
+
+    /// <summary>
+    /// Wählt die erste Zeile und setzt den Fokus <b>auf ihren Container</b>.
+    ///
+    /// <para><b>Nicht auf die Liste selbst:</b> eine <c>ListView</c> meldet
+    /// <c>IsKeyboardFocusable = false</c> (am 22.09.2026 an
+    /// <c>SearchResultList</c> gemessen), und ein <c>Focus()</c> darauf
+    /// verpufft, ohne etwas zu melden — der Rückgabewert sagt es, und den
+    /// hatte niemand angesehen. Den Fokus trägt das
+    /// <c>ListViewItem</c>.</para>
+    ///
+    /// <para>Der Container entsteht erst mit der Auswahl; steht er wider
+    /// Erwarten noch nicht, bleibt der Fokus, wo er war — lieber das als ein
+    /// Sprung ins Leere.</para>
+    /// </summary>
+    private static void FokusAufErsteZeile(ListView liste)
+    {
+        if (liste.Items.Count == 0)
+        {
+            return;
+        }
+
+        liste.SelectedIndex = 0;
+
+        if (liste.ContainerFromIndex(0) is Control zeile)
+        {
+            zeile.Focus(FocusState.Keyboard);
         }
     }
 

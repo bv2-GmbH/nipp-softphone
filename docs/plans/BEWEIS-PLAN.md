@@ -219,7 +219,7 @@ Sekunden, die Treffer der Quelle nach rund vier — **jede Zeile mit
 Herkunftsabzeichen**. Bei einem Namen, den nur die Quelle kennt, bleibt die
 Vorschlagsliste leer: es steht **eine** Liste da.
 
-- **A1-20 — OFFEN, aus T227. Der Fokus springt nicht in die Vorschlagsliste.**
+- **A1-20 — BEHOBEN am 22.09.2026, aus T227. Der Fokus sprang nicht in die Liste.**
   Einen Namen getippt, Enter gedrückt: **kein Anruf** (richtig), «Anrufen»
   grau (richtig), und der Knopf sagt sogar warum — sein `HelpText` lautet «Das
   ist keine Nummer. Einen Treffer darunter auswählen.» **Nur springt der Fokus
@@ -230,6 +230,33 @@ Vorschlagsliste leer: es steht **eine** Liste da.
   auf dem ersten Vorschlag. Der Befund ist also keine Sackgasse, sondern ein
   fehlender Weg: der Satz am Knopf verspricht «einen Treffer darunter
   auswählen», und die nächstliegende Taste tut es nicht.
+
+  **Die Reparatur brauchte vier Anläufe, und die ersten drei waren falsch —
+  weil ich geraten habe statt gemessen.**
+
+  Der Code sprang durchaus, nur in `SuggestionList`. Meine Annahme: bei einem
+  Namen sei die Trefferliste gefüllt und die Vorschlagsliste leer, also müsse
+  man auf «welche hat Einträge» prüfen. **Eine Spur im Protokoll hat beides
+  widerlegt:**
+
+  > Enter: HasSuggestions=True, HasSearchResults=True
+  > SuggestionList: 3 Eintraege, Behaelter=null, Fokus=False
+
+  **Beide Listen sind gefüllt.** Ausgeblendet ist nur eine — und eine
+  unsichtbare `ListView` erzeugt keine Container, weshalb
+  `ContainerFromIndex(0)` null gibt und `Focus()` still scheitert. Der
+  Rückgabewert von `Focus()` hätte es gesagt; den hatte niemand angesehen.
+
+  **Richtig ist die Frage «welche Liste steht», und die beantwortet
+  `ShowSearchResults`** — dieselbe Eigenschaft, die auch über die Bedeutung
+  der Eingabetaste entscheidet (ADR-051). Dazu der Fokus auf den **Container**
+  der ersten Zeile statt auf die Liste: eine `ListView` meldet
+  `IsKeyboardFocusable = false`, was am 22.09.2026 an `SearchResultList`
+  gemessen ist.
+
+  **Nachgemessen in beide Richtungen:** ein Name bringt den Fokus auf «Hotline
+  AV, 904, frei», eine wählbare Eingabe auf «AV, 152, Team» — mit Enter und
+  mit der Pfeiltaste.
 
 **Zwei Hälften bleiben mit Grund liegen**, beide, weil sie einen echten Anruf
 riskieren oder brauchen: der Doppelklick auf einen Kontakt mit zwei Nummern

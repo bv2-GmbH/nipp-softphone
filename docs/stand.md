@@ -67,11 +67,16 @@ Outlook-Signatur wird richtig entfernt, das Filtern räumt Gruppen und Kacheln
 ab und bringt sie zurück, und die Treffer der Quelle stehen mit
 Herkunftsabzeichen in einer einzigen Liste.
 
-**A1-20:** Wer einen Namen tippt und Enter drückt, löst richtigerweise keinen
-Anruf aus, und «Anrufen» sagt grau und wörtlich «Das ist keine Nummer. Einen
-Treffer darunter auswählen.» — **nur springt der Fokus nicht dorthin**, und
-die Pfeiltaste auch nicht. Über drei Tabulatorschritte ist die Liste
-erreichbar; der Weg fehlt also nicht ganz, nur der naheliegende.
+**A1-20 ist behoben** — und die Reparatur brauchte vier Anläufe, weil ich
+dreimal geraten habe. Der Code sprang durchaus, nur in die falsche Liste; meine
+Annahme «bei einem Namen ist nur die Trefferliste gefüllt» war falsch. Eine
+Spur im Protokoll hat es gezeigt: **beide** Listen sind gefüllt, ausgeblendet
+ist nur eine, und eine unsichtbare `ListView` erzeugt keine Container —
+`Focus()` scheiterte still, und sein Rückgabewert hätte es gesagt.
+
+Richtig ist die Frage «welche Liste **steht**», und die beantwortet
+`ShowSearchResults`: dieselbe Eigenschaft, die über die Bedeutung der
+Eingabetaste entscheidet (ADR-051). Nachgemessen in beide Richtungen.
 
 ## Die Einstellungen halten, und die Matrix stempelt richtig (23.09.2026)
 

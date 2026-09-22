@@ -146,6 +146,19 @@ public sealed partial class ShellViewModel
         IsSearchActive && !IsSearching && SearchResults.Count == 0;
 
     /// <summary>
+    /// Ob die Trefferliste etwas zu zeigen hat — das Gegenstück zu
+    /// <c>HasSuggestions</c> für die zweite Liste (Befund A1-20).
+    ///
+    /// <para><b>Seit ADR-051 gibt es zwei Listen und eine Antwort, die
+    /// entscheidet, welche steht.</b> Wer einen Namen tippt, sieht die
+    /// Trefferliste; die Vorschlagsliste bleibt leer. Die Eingabetaste fragte
+    /// bis zum 22.09.2026 nur nach der Vorschlagsliste und tat deshalb bei
+    /// einem Namen gar nichts — obwohl der Knopf «Anrufen» daneben sagte
+    /// «Einen Treffer darunter auswählen».</para>
+    /// </summary>
+    public bool HasSearchResults => SearchResults.Count > 0;
+
+    /// <summary>
     /// Quellen, zu denen es etwas zu sagen gibt: eine, die lädt, oder eine,
     /// bei der etwas schiefging. Erfolgreiche lokale Quellen erwähnt niemand.
     /// </summary>
@@ -161,6 +174,7 @@ public sealed partial class ShellViewModel
         OnPropertyChanged(nameof(IsSearchActive));
         OnPropertyChanged(nameof(ShowSearchResults));
         OnPropertyChanged(nameof(SearchFoundNothing));
+        OnPropertyChanged(nameof(HasSearchResults));
         OnPropertyChanged(nameof(HasSuggestions));
 
         // Die Kacheln filtern mit (C11) — und der Sortiermodus geht dabei aus,
@@ -208,6 +222,7 @@ public sealed partial class ShellViewModel
         if (!SameContacts(SearchResults, rows))
         {
             Replace(SearchResults, rows);
+            OnPropertyChanged(nameof(HasSearchResults));
         }
 
         SearchSources.Clear();
