@@ -6,6 +6,144 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-072 — Entwurf: Was aus den sechs offenen Befunden der Runde A1 wird
+
+**Datum:** 22.09.2026 · **Status:** **Entwurf — nicht entschieden** · **Bezug:** `docs/plans/BEWEIS-PLAN.md` (A1-17 bis A1-24), ADR-044, ADR-053, ADR-060, §21.2
+
+**Kontext.** Die Schreibtisch-Runde A1 hat am 22.09.2026 acht Befunde
+hinterlassen. Zwei sind repariert (A1-18, A1-20), sechs stehen offen — und
+**keiner davon ist eine Fehlersuche, alle sind Entscheidungen.** Sie hier
+zusammen aufzuschreiben ist billiger, als sie einzeln wieder aufzurufen: fünf
+von sechs hängen an derselben Frage, nämlich **wie viel Aufwand eine Zusage
+wert ist, die niemand bemerkt, solange nichts schiefgeht.**
+
+Dieser Entwurf trifft keine Entscheidung. Er legt je Befund die Optionen
+nebeneinander, mit dem, was gemessen ist, und mit dem Preis.
+
+---
+
+### 1. A1-17 — der zu helle Text an 23 Stellen
+
+**Gemessen:** die Copyright-Zeile steht im hellen Thema bei **3,28:1**,
+verlangt sind 4,5:1 für Schrift. Die Farbe ist `TextFillColorTertiaryBrush`,
+ein **Fluent-Systempinsel**; `ThemedBrushTests` prüft nur die Töne aus
+`Tokens.xaml` und sieht ihn deshalb nicht. Derselbe Pinsel färbt **23
+Textstellen** in vier Dateien.
+
+| Option | Preis | Folge |
+|---|---|---|
+| **a)** alle 23 auf `TextFillColorSecondaryBrush` | eine Ersetzung, aber das Aussehen ändert sich überall | hell 6,53:1, dunkel 7,02:1 — beide über der Schwelle |
+| **b)** nur die Stellen umstellen, die Inhalt tragen | Auswahl je Stelle, also eine Liste, die gepflegt werden muss | die Schwäche bleibt dort, wo «wirklich nebensächlich» gilt |
+| **c)** nichts tun, aber `ThemedBrushTests` um die Fluent-Pinsel erweitern | ein Test mehr, der dann rot ist | der Befund wird sichtbar gehalten statt behoben |
+
+**Was dafür spricht, überhaupt etwas zu tun:** die Zeile ist Inhalt, kein
+Zierrat, und WCAG kennt für «weniger wichtig» keine Ausnahme. **Was dagegen
+spricht:** Microsoft selbst benutzt den Pinsel so, und 23 Stellen umzufärben
+ist eine Gestaltungsänderung, die niemand bestellt hat.
+
+---
+
+### 2. A1-19 (zweite Hälfte) — zehn `async void` mit gefiltertem `catch`
+
+**Gemessen:** `ExceptionBoundaryTests` akzeptiert **jedes** `catch` im Rumpf
+eines `async void`. Zehn Behandler haben eines mit engem `when`-Filter und
+gelten dem Test damit als geschützt. **Eine `COMException` ist durch genau so
+einen Filter geflogen und hat nipp beendet** (A1-19, erste Hälfte, an
+`ShowAsync` repariert).
+
+| Option | Preis | Folge |
+|---|---|---|
+| **a)** überall ein ungefiltertes `catch (Exception)` | zehn Stellen, schnell | Programmierfehler, die heute auffallen, verschwinden still im Protokoll |
+| **b)** je Stelle prüfen, was wirklich fliegen kann, und den Filter erweitern | zehnmal nachdenken | die Filter bleiben aussagekräftig, die Lücke schliesst sich nur dort, wo jemand hinsieht |
+| **c)** den Test verschärfen, dann a) oder b) erzwingen | der Test wird sofort rot | die Entscheidung fällt einmal und gilt danach für jeden neuen Behandler |
+
+**Die eigentliche Frage:** Soll ein Ereignisbehandler **jede** Ausnahme fangen?
+`AppLog.HandlerFailed` sagt «nipp laeuft weiter» — die Absicht ist also da.
+ADR-053 sagt, eine Ausnahme dürfe nie in den nativen Rahmen zurück. Beides
+spricht für a) oder c). Dagegen spricht nur, dass ein stiller Schlucker einen
+Fehler verstecken kann, den man sonst am Absturz merkt.
+
+---
+
+### 3. A1-21 — drei Tastenkürzel, die es nicht gibt
+
+**Gemessen:** `KeyboardAccelerator` mit `Key="Number1"` bis `"Number3"` wird
+**nie aufgerufen**; derselbe Handler mit `Key="G"` feuert sofort. Bei Strg+2
+kommt nicht einmal im `KeyDown` etwas an — nur `Control`. Kein systemweiter
+Hotkey fängt ab. Ein Reparaturversuch über `KeyDown` ist gescheitert.
+
+| Option | Preis | Folge |
+|---|---|---|
+| **a)** andere Tasten wählen (Buchstaben, etwa Strg+K / Strg+L / Strg+E) | drei Zeilen XAML, drei ToolTips | die Kürzel funktionieren, aber die gewohnten Ziffern sind weg |
+| **b)** die Kürzel streichen und die ToolTips ehrlich machen | drei Zeilen weniger | die Bereiche bleiben über Maus und Tabulator erreichbar |
+| **c)** weiter suchen | offen, WinUI-Interna | vielleicht gibt es einen Weg, vielleicht nicht |
+
+**Nichts zu tun ist die schlechteste Wahl:** der ToolTip verspricht heute
+«Kontakte (Strg+1)», und das stimmt nicht.
+
+---
+
+### 4. A1-22 — ein Klick, 62 Schreibvorgänge
+
+**Gemessen:** Ein umgelegter Schalter erzeugt **62-mal** «Zugangsdaten
+abgelegt» und **60-mal** «Nichts zu speichern», über 6,65 Sekunden. Die Bremse
+aus ADR-060 greift bei `SettingsService.Write` — **gerufen wird trotzdem
+sechzigmal**, und der `SecretStore` schreibt die verschlüsselte Datei jedes
+Mal.
+
+| Option | Preis | Folge |
+|---|---|---|
+| **a)** denselben Vergleich in `SecretStore.Write` einbauen | eine Stelle | die 62 Schreibvorgänge werden zu einem; die 60 Aufrufe bleiben |
+| **b)** die Ursache der 60 Durchläufe suchen | eine Messspur an `Changed`, dann offen | die Rückkopplung selbst verschwindet |
+| **c)** beides | mehr | sauber |
+
+**Empfehlung des Entwurfs:** erst b) messen, dann entscheiden. **a) allein
+kuriert das Symptom** — und ADR-060 hat genau das schon einmal getan, eine
+Ebene höher.
+
+---
+
+### 5. A1-23 — nach einem Explorer-Neustart ist nipp nur noch im Task-Manager erreichbar
+
+**Gemessen:** Das Symbol im Infobereich kommt nach einem Explorer-Neustart
+nicht wieder. nipp läuft weiter, aber **es gibt keinen zweiten Weg zum
+Beenden** — im ganzen UIA-Baum steht kein Knopf «Beenden», und das
+Fensterkreuz beendet nicht (§10). Nach ADR-038 lässt ein Prozess, der seine
+DLLs offen hält, jedes Update scheitern.
+
+| Option | Preis | Folge |
+|---|---|---|
+| **a)** auf `TaskbarCreated` hören und das Symbol neu anlegen | eine Nachricht, eine Stelle — **der übliche Weg** | das Symbol kommt von selbst zurück |
+| **b)** zusätzlich «Beenden» ins Fenster | eine Stelle mehr in der Oberfläche | ein zweiter Weg, unabhängig vom Infobereich |
+| **c)** beides | — | der Normalfall heilt sich, der Ausnahmefall hat einen Ausweg |
+
+**Ob `H.NotifyIcon` schon auf `TaskbarCreated` hört, ist nicht gemessen** — das
+ist der erste Schritt und kostet zehn Minuten.
+
+---
+
+### 6. A1-24 — die Präsenzpunkte folgen dem Kontrastmodus nicht
+
+**Gemessen, dreimal:** normal grün `#6CCB5F`; Kontrastmodus **im Betrieb**
+eingeschaltet → Fläche wechselt auf `#202020`, **der Punkt bleibt grün**;
+Kontrastmodus **beim Start** an → `#8EE3F0`, die Systemfarbe. Das ist wörtlich
+der Zustand von vor dem 13.09.2026, den die Testzeile als behoben annimmt.
+
+| Option | Preis | Folge |
+|---|---|---|
+| **a)** auf den Themenwechsel hören und die Pinsel neu auflösen | eine Stelle, dieselbe Klasse wie Befund A1-11 | die Punkte wechseln sofort |
+| **b)** hinnehmen und die Testzeile korrigieren | nichts | wer den Modus im Betrieb einschaltet, sieht bis zum Neustart die alten Farben |
+
+**Zur Einordnung:** Wer den Kontrastmodus braucht, hat ihn meist beim Anmelden
+schon an — dann stimmt es. Die Lücke trifft den, der ihn während der Arbeit
+einschaltet, und das ist genau der Moment, in dem jemand schlecht sieht.
+
+---
+
+**Was dieser Entwurf braucht, um ein ADR zu werden:** je Befund eine gewählte
+Option und einen Satz warum. Danach wird er in einzelne ADRs aufgelöst oder
+bleibt als einer stehen — das entscheidet, wer entscheidet.
+
 ## ADR-069 — Das geprüfte SDK-ZIP liegt unter eigener Kontrolle
 
 **Datum:** 17.09.2026 · **Status:** **angenommen** · **Bezug:** §5, **ADR-005**, ADR-040, `docs/sdk-setup.md`, `docs/stand.md` (17.09.2026)

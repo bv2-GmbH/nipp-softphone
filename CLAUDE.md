@@ -11,7 +11,7 @@ lesbar bleiben.
 | Was | Wo |
 |---|---|
 | Was nipp tun soll | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-069 |
+| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-069, dazu **ADR-072 als Entwurf**: die sechs offenen Befunde der Runde A1 mit ihren Optionen, **nicht entschieden** |
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
