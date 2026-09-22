@@ -44,6 +44,19 @@ das Argument dafür, dass sie eine ist.
 **Dafür ist T108 jetzt beantwortet:** Quelle mit Token entfernt und neu
 angelegt, die Zugangsdaten sind noch da — und die Rückfrage sagt es vorher zu.
 
+## Drei Tastenkürzel, die nichts tun (23.09.2026)
+
+**T222, T241, T289 und T319 bestanden**, T210 nicht. Der Karten-Designer warnt
+vor dem Verwerfen und legt den Fokus auf «Weiterbearbeiten»; T319 ist die
+Abnahme der eigenen Reparatur von A1-19.
+
+**A1-21:** Strg+1 bis Strg+3 wechseln den Bereich **nicht** — weder über
+`SendKeys` noch über echte Tastendrücke, weder mit dem Fokus im Feld noch auf
+einem Reiterknopf. **Strg+F am selben Grid wirkt.** Ein Klick auf denselben
+Reiter wechselt sofort, und der Code nimmt für beides denselben Weg. Die
+Ursache ist nicht gemessen; der nächste Schritt ist die Protokollspur, die bei
+A1-20 gewirkt hat — diesmal am Anfang statt am Ende.
+
 ## Für ein totes Netz legt man die Quelle tot (23.09.2026)
 
 **T281 bestanden**, T204 zur Hälfte: mit getrenntem WLAN stehen die lokalen

@@ -200,6 +200,43 @@ kaum prüfbar, weil es ohne Outlook fast keine lokalen Kontakte gibt (ADR-018).
 Gemessen ist die Nebenläufigkeit der beiden fremden Quellen, nicht das
 Verhältnis lokal gegen fremd.
 
+#### Die Designer- und Tastaturrunde, in der Nacht auf den 23.09.2026
+
+**Fünf Zeilen: T210, T222, T241, T289, T319.** Vier bestanden, eine nicht —
+und die eine ist ein Befund, der nicht zu erklären ist, ohne ihn zu messen.
+
+**Der Karten-Designer trägt** (T222, T241): eine Änderung setzt den Punkt in
+den Fenstertitel und «Noch nicht gespeichert.» neben die Knöpfe; das Kreuz
+bringt die Rückfrage «Änderungen an der Karte verwerfen?» mit drei Knöpfen —
+**und der Fokus liegt auf «Weiterbearbeiten»**, also auf der Eingabetaste. Bis
+zum 13.09.2026 ging die Arbeit hier lautlos verloren.
+
+**T319 ist die Abnahme der eigenen Reparatur** (A1-19): zwei Importversuche
+hintereinander, ohne die erste Meldung zu schliessen. nipp bleibt stehen, die
+zweite Meldung entfällt, und das Protokoll sagt warum. Vor der Reparatur
+beendete genau das den Prozess.
+
+- **A1-21 — OFFEN. Strg+1 bis Strg+3 wechseln den Bereich nicht.**
+  **Strg+F am selben Grid wirkt** — der Fokus springt ins Nummernfeld. Die
+  Bereichskürzel tun nichts: weder über `SendKeys` noch über echte
+  Tastendrücke (`keybd_event` mit VK_1 bis VK_3 plus Strg), weder mit dem
+  Fokus im Nummernfeld noch auf einem Reiterknopf. **Strg+4 tut
+  richtigerweise nichts** (ADR-062).
+
+  **Die Kontrolle sitzt:** ein Klick auf denselben Reiter wechselt den Bereich
+  sofort, und der Weg dorthin ist derselbe — `OnSectionAccelerator` ruft
+  `OnTabClick`, damit es keine zweite Fassung gibt.
+
+  **Die Ursache ist nicht gemessen.** Alle vier Accelerators hängen am selben
+  `Grid.KeyboardAccelerators`, drei davon greifen nicht, einer schon; im Code
+  ist kein Unterschied zu sehen. **Der nächste Schritt wäre dieselbe
+  Protokollspur, die A1-20 aufgeklärt hat** — sie gehört diesmal an den Anfang
+  und nicht ans Ende.
+
+**Zwei Zeilen bleiben liegen und sagen selbst warum:** T288 braucht eine Quelle
+mit einer Antwort über 8 KB, und T101 prüft das Ziehen aus der Palette, das mit
+K4 noch nicht gebaut ist — die Erwartung sagt es in der Zeile.
+
 #### Die Suchrunde, in der Nacht auf den 23.09.2026
 
 **Sechs Zeilen: T41, T59, T203, T227, T249, T260.** Vier bestanden, zwei mit
