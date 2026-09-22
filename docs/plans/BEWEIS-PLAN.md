@@ -227,11 +227,31 @@ beendete genau das den Prozess.
   sofort, und der Weg dorthin ist derselbe — `OnSectionAccelerator` ruft
   `OnTabClick`, damit es keine zweite Fassung gibt.
 
-  **Die Ursache ist nicht gemessen.** Alle vier Accelerators hängen am selben
-  `Grid.KeyboardAccelerators`, drei davon greifen nicht, einer schon; im Code
-  ist kein Unterschied zu sehen. **Der nächste Schritt wäre dieselbe
-  Protokollspur, die A1-20 aufgeklärt hat** — sie gehört diesmal an den Anfang
-  und nicht ans Ende.
+  **Eingekreist am 22.09.2026, nicht repariert.** Die Protokollspur kam diesmal
+  als Erstes, und sie hat vier Dinge geklärt:
+
+  | gemessen | Ergebnis |
+  |---|---|
+  | Spur in `OnSectionAccelerator` bei Strg+2 | **keine Zeile** — der Handler wird nie erreicht |
+  | Spur in `OnFocusNumberAccelerator` bei Strg+F | Zeile da — derselbe Weg funktioniert |
+  | derselbe Handler testweise mit `Key="G"` | **feuert sofort** («Section: Key=G») |
+  | Vordergrundfenster beim Tastendruck | bleibt nipp — **kein systemweiter Hotkey**, auch Teams fängt nichts ab |
+
+  **Es liegt an der Taste, nicht am Code:** ein `KeyboardAccelerator` mit
+  `Key="Number1"` bis `"Number3"` wird in dieser WinUI-Fassung nicht
+  aufgerufen, derselbe Handler mit einem Buchstaben schon.
+
+  **Ein Reparaturversuch über `KeyDown` am Grid ist gescheitert** und wurde
+  zurückgenommen: auch dort kamen die Ziffern nicht an. Damit ist offen, ob
+  die Tasten überhaupt bis zur Seite durchdringen — der nächste Schritt wäre
+  eine Spur im `KeyDown` selbst, die **jede** Taste protokolliert, statt nur
+  auf die drei zu warten.
+
+  **Was solange gilt:** die Bereiche sind mit der Maus und über den
+  Tabulator erreichbar, Strg+F funktioniert, und die ToolTips versprechen
+  etwas, das es nicht gibt («Kontakte (Strg+1)»). Wenn die Reparatur länger
+  dauert, gehören sie geändert — ein Kürzel, das dasteht und nichts tut, ist
+  schlechter als keins.
 
 **Zwei Zeilen bleiben liegen und sagen selbst warum:** T288 braucht eine Quelle
 mit einer Antwort über 8 KB, und T101 prüft das Ziehen aus der Palette, das mit

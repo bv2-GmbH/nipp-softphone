@@ -53,9 +53,16 @@ Abnahme der eigenen Reparatur von A1-19.
 **A1-21:** Strg+1 bis Strg+3 wechseln den Bereich **nicht** — weder über
 `SendKeys` noch über echte Tastendrücke, weder mit dem Fokus im Feld noch auf
 einem Reiterknopf. **Strg+F am selben Grid wirkt.** Ein Klick auf denselben
-Reiter wechselt sofort, und der Code nimmt für beides denselben Weg. Die
-Ursache ist nicht gemessen; der nächste Schritt ist die Protokollspur, die bei
-A1-20 gewirkt hat — diesmal am Anfang statt am Ende.
+Reiter wechselt sofort, und der Code nimmt für beides denselben Weg. **Die Spur kam diesmal
+als Erstes** und hat vier Dinge geklärt: der Handler wird bei Strg+2 nie
+erreicht, bei Strg+F schon; derselbe Handler mit `Key="G"` feuert sofort; und
+kein fremdes Fenster fängt die Taste ab. **Es liegt an der Taste, nicht am
+Code.** Ein Reparaturversuch über `KeyDown` am Grid ist gescheitert und
+zurückgenommen — auch dort kommen die Ziffern nicht an.
+
+**Offen ist damit, ob die Tasten überhaupt bis zur Seite durchdringen.** Und
+solange das so ist, versprechen die ToolTips etwas, das es nicht gibt
+(«Kontakte (Strg+1)»).
 
 ## Für ein totes Netz legt man die Quelle tot (23.09.2026)
 
