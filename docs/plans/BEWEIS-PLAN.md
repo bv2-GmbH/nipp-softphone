@@ -220,6 +220,54 @@ Infobereich weiter); die Sprechblase selbst bleibt am Auge.
   die Zeile später wiederholt, findet den Nachbau hier beschrieben** und muss
   ihn nicht raten.
 
+#### E3 — das Erscheinungsbild, und zwei Befunde am System
+
+**Vier Zeilen: T58, T75, T97, T269, T271.** Eine bestanden, zwei teilweise,
+zwei nicht — und die beiden Befunde sind die interessanten.
+
+- **A1-23 — OFFEN. Nach einem Explorer-Neustart ist das Symbol im Infobereich
+  weg und kommt nicht wieder** (T97). Gemessen: Explorer beendet, Windows
+  startet ihn neu, das Symbol fehlt — auch nach 45 Sekunden, auch nicht im
+  Überlauf. Die letzte Zeile «Symbol im Infobereich angelegt» stammt von
+  **vor** dem Neustart.
+
+  **Die Folge ist schlimmer als der Verlust des Symbols.** Über den
+  Infobereich wird nipp beendet (§10 — das Fensterkreuz tut es nicht), und im
+  Fenster gibt es keinen zweiten Weg: im ganzen UIA-Baum steht kein Knopf
+  «Beenden». **Es blieb der Task-Manager** — und genau das lässt nach ADR-038
+  jedes Update scheitern, weil der Prozess seine DLLs offen hält. Ein
+  Explorer-Absturz ist nichts Seltenes.
+
+  **Was hilft:** nipp neu starten, dann ist das Symbol sofort wieder da.
+  **Was fehlt:** dass nipp es selbst tut. Windows schickt dafür die Nachricht
+  `TaskbarCreated` an alle Fenster; ob `H.NotifyIcon` darauf hört, ist **nicht
+  gemessen**.
+
+- **A1-24 — OFFEN. Die Präsenzpunkte folgen dem Kontrastmodus nicht, wenn er
+  im Betrieb eingeschaltet wird** (T271, T75). Dreimal an den Pixeln gemessen:
+
+  | Zustand | Präsenzpunkt | Hintergrund |
+  |---|---|---|
+  | normal, dunkles Thema | grün `#6CCB5F` | `#292C2F` |
+  | Kontrastmodus **im Betrieb** an | **unverändert** `#6CCB5F` | `#202020` |
+  | Kontrastmodus **beim Start** an | `#8EE3F0` — Systemfarbe | `#202020` |
+
+  **Das ist wörtlich der Zustand von vor dem 13.09.2026**, den die Zeile als
+  behoben annimmt: «das Wörterbuch wirkte nur, wenn der Modus beim Start schon
+  an war». Die Fläche schaltet um, die Punkte nicht.
+
+**Zum Werkzeug, für die Wiederholung:** die Tastenkombination aus T75 und T271
+(linke Alt + linke Umschalt + Druck) **funktioniert auf dieser Maschine
+nicht** — die Drucktaste ist in Windows 11 vom Snipping Tool belegt.
+Geschaltet wurde über `SystemParametersInfo(SPI_SETHIGHCONTRAST)`, und zwar
+**Ein und Aus im selben Durchlauf**: bleibt ein Skript auf halbem Weg stehen,
+sitzt der Benutzer sonst im Hochkontrast. Dasselbe gilt für die
+Taskleistenfarbe (T269) — die Registry allein genügt nicht, es braucht einen
+Explorer-Neustart, und der kostet wieder das Symbol.
+
+**T95 bleibt liegen:** ein Logo-Wechsel ist Entwicklungsarbeit und keine
+Messung — dafür müsste erst ein neues Logo gebaut und eingebaut werden.
+
 ### Der Stand der Runde (17.09.2026)
 
 **Gemessen wird gegen den Debug-Build von `4a7427b`**, der seit dem 16.09.2026
