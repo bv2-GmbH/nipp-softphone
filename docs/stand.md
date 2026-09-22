@@ -60,9 +60,15 @@ kein fremdes Fenster fängt die Taste ab. **Es liegt an der Taste, nicht am
 Code.** Ein Reparaturversuch über `KeyDown` am Grid ist gescheitert und
 zurückgenommen — auch dort kommen die Ziffern nicht an.
 
-**Offen ist damit, ob die Tasten überhaupt bis zur Seite durchdringen.** Und
-solange das so ist, versprechen die ToolTips etwas, das es nicht gibt
-(«Kontakte (Strg+1)»).
+**Eine Spur über jede Taste hat es dann geklärt:** bei Strg+2 kommt nur
+`Key=Control` an, die Ziffer nicht; ohne Strg kommt `Number2` normal durch.
+**Strg+Ziffer erreicht weder den Accelerator noch `KeyDown`** — die Taste
+verschwindet, bevor die Seite sie sieht.
+
+Weiter kommt man von aussen nicht. Was bleibt, ist eine Entscheidung: andere
+Tasten wählen (Buchstaben kommen an) oder die Kürzel streichen und die
+ToolTips ehrlich machen. **Nichts zu tun ist die schlechteste Wahl** — heute
+verspricht der ToolTip «Kontakte (Strg+1)», und das stimmt nicht.
 
 ## Für ein totes Netz legt man die Quelle tot (23.09.2026)
 

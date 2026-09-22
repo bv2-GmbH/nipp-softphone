@@ -281,10 +281,32 @@ beendete genau das den Prozess.
   aufgerufen, derselbe Handler mit einem Buchstaben schon.
 
   **Ein Reparaturversuch über `KeyDown` am Grid ist gescheitert** und wurde
-  zurückgenommen: auch dort kamen die Ziffern nicht an. Damit ist offen, ob
-  die Tasten überhaupt bis zur Seite durchdringen — der nächste Schritt wäre
-  eine Spur im `KeyDown` selbst, die **jede** Taste protokolliert, statt nur
-  auf die drei zu warten.
+  zurückgenommen. **Eine Spur, die jede Taste protokolliert, hat dann gezeigt,
+  warum:**
+
+  | Tastendruck | was bei der Seite ankommt |
+  |---|---|
+  | **Strg+2** | nur `Key=Control` — **die Ziffer nicht** |
+  | **Strg+F** | nur `Key=Control` — und trotzdem feuert der Accelerator |
+  | «2» ohne Strg | `Key=Number2`, ganz normal |
+
+  **Strg+Ziffer erreicht also weder den Accelerator noch `KeyDown`.** Die
+  Taste verschwindet, bevor die Seite sie sieht; `Control` allein kommt durch.
+  Strg+Buchstabe erreicht den Accelerator, obwohl auch dort nur `Control` im
+  `KeyDown` ankommt — Accelerators laufen auf einem anderen Weg.
+
+  **Weiter kommt man von aussen nicht**, ohne in WinUI selbst zu sehen. Was
+  bleibt, ist eine Entscheidung und keine Fehlersuche:
+
+  1. **Andere Tasten wählen**, die nachweislich ankommen — Buchstaben. Etwa
+     Strg+K, Strg+L, Strg+E für die drei Bereiche. Kostet eine Zeile XAML je
+     Kürzel und drei geänderte ToolTips.
+  2. **Die Kürzel streichen** und die ToolTips ehrlich machen. Die Bereiche
+     bleiben über Maus und Tabulator erreichbar.
+
+  **Nichts zu tun ist die schlechteste Wahl:** die ToolTips versprechen heute
+  «Kontakte (Strg+1)», und das stimmt nicht. Die Entscheidungsvorlage steht in
+  Etappe E6.
 
   **Was solange gilt:** die Bereiche sind mit der Maus und über den
   Tabulator erreichbar, Strg+F funktioniert, und die ToolTips versprechen
