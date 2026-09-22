@@ -44,6 +44,18 @@ das Argument dafür, dass sie eine ist.
 **Dafür ist T108 jetzt beantwortet:** Quelle mit Token entfernt und neu
 angelegt, die Zugangsdaten sind noch da — und die Rückfrage sagt es vorher zu.
 
+## Eine Zeile unter der Kontrastschwelle (22.09.2026)
+
+**T74, T94 und T282 bestanden** — Textskalierung auf 150 %, hell und dunkel,
+nichts schief, alle Beschriftungen lesbar bis hin zu den Buchstabengruppen der
+Wähltastatur.
+
+**A1-17:** «© 2026 bv2 GmbH» steht im **hellen** Thema bei **3,28:1**, verlangt
+sind 4,5:1. Die Farbe ist `TextFillColorTertiaryBrush` — ein Fluent-Pinsel,
+keine nipp-eigene Farbe, und deshalb prüft ihn `ThemedBrushTests` nicht.
+**Derselbe Pinsel färbt 23 Textstellen.** Repariert ist nichts: 23 Stellen
+umzufärben ist eine Gestaltungsentscheidung und gehört in einen ADR.
+
 ## Zehn Listen ohne Namen, und die schlimmste war die Wählliste (22.09.2026)
 
 **A1-16, gefunden in der Quellenliste, beim Reparieren deutlich grösser

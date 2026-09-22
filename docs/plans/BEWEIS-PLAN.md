@@ -200,6 +200,48 @@ kaum prüfbar, weil es ohne Outlook fast keine lokalen Kontakte gibt (ADR-018).
 Gemessen ist die Nebenläufigkeit der beiden fremden Quellen, nicht das
 Verhältnis lokal gegen fremd.
 
+#### Die Kontrastrunde, am späten Abend des 22.09.2026
+
+**Drei Zeilen: T74, T94, T282.** Alle drei bestanden, soweit ohne Gespräch
+prüfbar — und ein Befund, den erst die Messung sichtbar gemacht hat.
+
+**Die Textskalierung trägt** (T74). `TextScaleFactor` auf 150 gesetzt, nipp neu
+gestartet: die Reiter wachsen von 69 auf 78 physische Pixel, die Beschriftungen
+stehen vollständig da, und auf der Wähltastatur bleiben sogar die
+Buchstabengruppen (ABC bis WXYZ) lesbar. Die Einstellung ist danach wieder
+entfernt.
+
+**Das Erscheinungsbild trägt ebenfalls** (T282), in hell und dunkel, bei 100 %
+und 150 %: nichts steht schief, nichts überlappt, die Symbolknöpfe sind
+abgerundete Quadrate, und das Abzeichen sitzt rechts am Uhrsymbol des
+Anruf-Reiters, ohne über den Knopf hinauszuragen. **Zwei Stellen bleiben dem
+Gerätetag:** der Auflegen-Knopf beim Überfahren (ADR-067 hing genau daran) und
+die Gesprächsknöpfe bei 150 %.
+
+- **A1-17 — OFFEN. Die Copyright-Zeile steht im hellen Thema bei 3,28:1.**
+  Gemessen an den Pixeln des laufenden Programms, in beiden Themen:
+
+  | | dunkel | hell |
+  |---|---|---|
+  | «nipp 0.9.2 (unpackaged)» | 16,23:1 | 15,81:1 |
+  | **«© 2026 bv2 GmbH»** | 5,53:1 | **3,28:1** |
+  | die beiden Verweise | 12,12:1 | 9,04:1 |
+
+  Verlangt sind 4,5:1 für Schrift. **Die Farbe ist `TextFillColorTertiaryBrush`**
+  — ein Fluent-Systempinsel, keine nipp-eigene Farbe, und genau deshalb hat ihn
+  nie etwas geprüft: `ThemedBrushTests` misst die Töne aus `Tokens.xaml`, und
+  was Microsoft mitbringt, steht dort nicht.
+
+  **Der Befund ist grösser als die eine Zeile:** derselbe Pinsel färbt **23**
+  Textstellen in vier Dateien. Gemessen ist bisher eine davon.
+
+  **Repariert habe ich nichts**, und das ist Absicht: 23 Stellen umzufärben
+  ändert das Aussehen der ganzen Anwendung, und ob «weniger wichtiger Text»
+  heller sein darf als 4,5:1, ist eine Gestaltungsentscheidung — die gehört
+  Dominic und in einen ADR, nicht in eine Messrunde. **Die nächste Frage wäre:**
+  `TextFillColorSecondaryBrush` liegt an den gemessenen Stellen bei 6,53:1 hell
+  und 7,02:1 dunkel, wäre also die naheliegende Wahl.
+
 #### Die Quellenrunde, am Abend des 22.09.2026
 
 **Drei Zeilen: T98, T108, T109.** Eine bestanden, eine teilweise, eine nicht —
