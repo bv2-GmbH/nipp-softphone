@@ -117,6 +117,45 @@ kommen gesammelt nach A1; danach laufen die betroffenen Zeilen erneut.
 
 **Fertig, wenn:** jede S-Zeile ein Ergebnis, ein Datum und einen Build trägt.
 
+### Der Rest von A1, in Etappen (ab 22.09.2026, abends)
+
+**27 S-Zeilen und vier Befunde stehen noch offen**, und der Auftrag lautet:
+alles abarbeiten, was ohne Gerät und ohne fremde Entscheidung geht, in Etappen
+mit je einem Commit. **Was eine Entscheidung braucht, wird vorbereitet und
+nicht getroffen.**
+
+| Etappe | Inhalt | Zeilen | selbständig? |
+|---|---|---|---|
+| **E1** | A1-21 zu Ende: dringt überhaupt eine Taste durch? | — | ja |
+| **E2** | Wanderungen der Dateien | T168, T197, T231, T267, T268, T286 | ja |
+| **E3** | Erscheinungsbild mit Eingriff ins System | T58, T75, T95, T97, T269, T271 | ja, mit Rückweg |
+| **E4** | Was ohne Aufbau geht | T25, T47, T76, T93, T230, T273, T311 | ja |
+| **E5** | Der frische Klon | T174 | ja, dauert |
+| **E6** | Zwei Entscheidungsvorlagen | A1-17, A1-19 | **Entwurf ja, Entscheid nein** |
+| **E7** | Abschluss: Zählung, Stand, was bleibt | — | ja |
+
+**Was gar nicht geht und warum:**
+
+- **T101** — das Ziehen aus der Palette ist mit K4 nicht gebaut; die Erwartung
+  sagt es selbst.
+- **T288** — braucht eine Quelle, die über 8 KB antwortet.
+- **T128** — Start ohne Netz. **Das WLAN zu trennen kappt auf dieser Maschine
+  die Verbindung des Werkzeugs** (am 22.09.2026 schon einmal beinahe
+  passiert), und Windows verbindet nach einer Minute von selbst wieder. Die
+  Zeile braucht einen Menschen am Gerät oder einen zweiten Weg.
+- **T21** — `tel:` aus Outlook; das neue Outlook hat kein COM (ADR-018).
+  Gehört zu `O`.
+- **T22** — `tel:` aus dem Browser: **das öffnet einen echten Wählversuch**.
+  Gehört an den Test-Trunk.
+- **T72, T246** — brauchen eine Datenlage in der Quelle, die erst herzustellen
+  wäre (zwei Personen mit derselben Zentrale; ein Name, der im Team **und** in
+  der Quelle steht).
+
+**Die Regel für jede Etappe** bleibt die von A1: gemessen wird gegen einen
+festen Build, ein Fehlschlag wird eingetragen und liegen gelassen, repariert
+wird gesammelt — und **vor jedem Eingriff ins System oder in eine Datei steht
+der Rückweg fest**, nicht danach.
+
 ### Der Stand der Runde (17.09.2026)
 
 **Gemessen wird gegen den Debug-Build von `4a7427b`**, der seit dem 16.09.2026
