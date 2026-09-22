@@ -16,23 +16,35 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 **Stand 22.09.2026, abends.** Zwei Messrunden an einem Tag: **elf Zeilen
 abgenommen**, dazu T318 neu angelegt. Die beiden Befunde der Anruflistenrunde
 sind noch am selben Abend repariert und nachgemessen; aus der Quellenrunde
-stehen **A1-15 und A1-16 offen**, und A1-15 ist der schwerste seit Langem.
-Gezählt sind **186 offene Matrixzeilen von 308**, davon 59 am Schreibtisch —
-und die Zählung ist zum ersten Mal nachrechenbar.
+bleibt **A1-16**, während **A1-15 sich als falscher Alarm herausstellte** —
+eine Stunde nachdem er gepusht war. Gezählt sind **186 offene Matrixzeilen von
+308**, davon 59 am Schreibtisch — und die Zählung ist zum ersten Mal
+nachrechenbar.
 
-## Ein API-Token lässt sich nicht eintragen (22.09.2026)
+## Ein Befund, der keiner war (22.09.2026)
 
-**A1-15.** Feld gefüllt, «Übernehmen» gedrückt, die Oberfläche meldet
-«Übernommen.» — und danach ist das Feld leer, `secrets.dat` unverändert, das
-Protokoll stumm, und die Quelle sagt weiter «Zugangsdaten fehlen auf diesem
-Gerät». **Damit lässt sich «Eigene REST-API» nicht in Betrieb nehmen**, und
-das ist seit ADR-040 die einzige mitgelieferte Vorlage. Zweimal gegengeprüft,
-mit zwei Quellen und mit einer.
+**A1-15 stand eine Stunde lang im Repo und war falsch.** Behauptet war, ein
+API-Token lasse sich nicht eintragen — gemessen mit echtem Tippen, zweimal
+gegengeprüft, Protokoll und Datei verglichen. **Nur hatte ich den falschen
+Knopf gedrückt:** das Tokenfeld hat ein eigenes «Ablegen» direkt darunter,
+«Übernehmen» weiter unten gehört zu den Verbindungsdaten. Mit «Ablegen» geht
+es auf Anhieb — «Zugangsdaten abgelegt (4 Einträge)» statt 3, und am Feld
+steht «API-Token ist hinterlegt».
 
-Die stille Rückmeldung ist die zweite Hälfte davon: «Übernommen.» bei einem
-Vorgang, der nichts übernommen hat, ist genau die Lücke aus W1.7.
+**Sorgfalt im Messen ersetzt nicht das Lesen der Oberfläche, die man misst.**
+Der Knopf stand an diesem Abend mehrfach mit Namen im Baum; ich habe ihn für
+etwas anderes gehalten und nicht nachgesehen. Dasselbe wie A1-4 am 21.09.2026.
 
-**A1-16:** die Quellenliste heisst für einen Bildschirmleser
+**Was als Beobachtung bleibt:** wer ein Token eintippt und «Übernehmen»
+drückt, verliert die Eingabe stillschweigend — Feld geleert, keine Warnung,
+Rückmeldung «Übernommen.». Zwei Knöpfe mit verschiedenem Wirkungsbereich in
+einem Abschnitt sind eine Falle, und dass ich selbst hineingetreten bin, ist
+das Argument dafür, dass sie eine ist.
+
+**Dafür ist T108 jetzt beantwortet:** Quelle mit Token entfernt und neu
+angelegt, die Zugangsdaten sind noch da — und die Rückfrage sagt es vorher zu.
+
+**A1-16 bleibt:** die Quellenliste heisst für einen Bildschirmleser
 `Nipp.Core.ViewModels.IntegrationSourceRow`, und die Schalter je Zeile tragen
 gar keinen Namen. Derselbe Befund wie am 07.09.2026, an einer dritten Stelle.
 

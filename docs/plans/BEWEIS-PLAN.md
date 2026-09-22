@@ -206,6 +206,12 @@ Verhältnis lokal gegen fremd.
 und zwei neue Befunde, von denen einer die einzige mitgelieferte Vorlage
 betrifft.
 
+**T108 ist beantwortet, nachdem A1-15 aufgeklärt war:** eine Quelle mit
+abgelegtem Token entfernt und neu angelegt — die Zugangsdaten sind noch da, und
+**die Rückfrage sagt es vorher zu**: «Endpunkte und Feldzuordnungen dieser
+Quelle gehen verloren. Die hinterlegten Zugangsdaten bleiben auf diesem Gerät.»
+Genau die Erwartung der Zeile, samt Begründung an der richtigen Stelle.
+
 **T98 haelt, und das ist eine gute Nachricht.** Zwei Quellen nacheinander
 angelegt: beide stehen da, beide abgeschaltet, die bestehenden unangetastet.
 Der Befund vom 07.09.2026 — das Einlesen ersetzte die ganze Datei — tritt nicht
@@ -214,34 +220,36 @@ Auswahl gibt es allerdings nicht mehr**: seit ADR-040 liegt genau eine Vorlage
 bei, und der Knopf legt sie ohne Zwischenschritt an. Die Zeile spricht noch vom
 Katalog; das ist kein Fehlschlag, aber ihr Wortlaut ist ueberholt.
 
-- **A1-15 — OFFEN, und der schwerste dieser Runde. Ein API-Token laesst sich
-  nicht eintragen.** Feld gefuellt (echtes Tippen, Fokus nachweislich im Feld,
-  der Wert steht als `●●●●●●` darin), Fokus weiter, «Uebernehmen» gedrueckt —
-  die Oberflaeche meldet **«Uebernommen.»**, und danach:
+- **A1-15 — FALSCHER ALARM, aufgeklärt am 22.09.2026, eine Stunde nachdem er
+  aufgeschrieben und gepusht war.** Behauptet war: ein API-Token lasse sich
+  nicht eintragen. **Das stimmt nicht. Ich hatte den falschen Knopf gedrückt.**
 
-  - das Feld ist **leer**,
-  - `secrets.dat` ist **unveraendert** (Zeitstempel und Inhalt),
-  - das Protokoll schreibt **keine** Zeile; «Zugangsdaten abgelegt (3
-    Eintraege)» steht an dem Tag **86-mal mit derselben Zahl**, vor und nach
-    jedem Versuch,
-  - die Quelle meldet weiter «Zugangsdaten fehlen auf diesem Geraet», und die
-    Infoleiste nennt den Grund: «Zum Verweis 'eigene.token' ist auf diesem
-    Geraet kein Wert hinterlegt».
+  Das Tokenfeld hat einen **eigenen** Knopf «Ablegen» direkt darunter
+  (`OnSaveSecretClick`, `SettingsPage.xaml`); «Übernehmen» weiter unten gehört
+  zu den Verbindungsdaten — Anzeigename, Basisadresse, Zeitgrenze. Mit
+  «Ablegen» funktioniert alles auf Anhieb: das Protokoll meldet «Zugangsdaten
+  abgelegt (**4** Einträge)» statt der 3 davor, am Feld steht «API-Token ist
+  hinterlegt. Jetzt die Verbindung testen», und die Quelle verliert ihren
+  Hinweis «Zugangsdaten fehlen auf diesem Gerät».
 
-  **Damit laesst sich «Eigene REST-API» nicht in Betrieb nehmen** — und das ist
-  seit ADR-040 die einzige mitgelieferte Vorlage. Die beiden vorhandenen
-  Quellen haben ihre Zugangsdaten auf einem anderen Weg bekommen.
+  **Was daran lehrreich ist, und zwar gegen mich:** die Messung war sorgfältig
+  — echtes Tippen statt `SetValue`, Fokus nachweislich im Feld, zweimal
+  gegengeprüft, Protokoll und Datei verglichen. **Sie war trotzdem wertlos,
+  weil sie die falsche Frage stellte.** Der Knopf «Ablegen» stand in mehreren
+  Baumauszügen dieses Abends mit Namen da; ich habe ihn für etwas anderes
+  gehalten und nicht nachgesehen, was er tut. Sorgfalt im Messen ersetzt nicht
+  das Lesen der Oberfläche, die man misst — **derselbe Fehler wie bei A1-4 am
+  21.09.2026, und dort ging es auch um eine Meldung, die stimmte.**
 
-  **Gemessen, nicht vermutet, und zweimal gegengeprueft:** einmal mit zwei
-  eigenen Quellen (die sich denselben `secretRef` `eigene.token` teilen — auch
-  das gehoert angesehen), einmal mit nur einer nach dem Entfernen der zweiten.
-  Beide Male dasselbe. **Was nicht gemessen ist:** ob es einen anderen Weg
-  gibt, ein Geheimnis abzulegen, und ob der Fehler beim Lesen des Feldes oder
-  beim Schreiben liegt.
-
-  **Und die stille Rueckmeldung ist die zweite Haelfte des Befunds.**
-  «Uebernommen.» bei einem Vorgang, der nichts uebernommen hat, ist genau die
-  Luecke, die dieses Projekt zweimal bezahlt hat (`QuietFailures`, W1.7).
+  **Was als kleiner Befund bleibt** (nicht als A1-15, sondern als Beobachtung
+  für die Bedienbarkeit): wer ein Token eintippt und danach **«Übernehmen»**
+  drückt, verliert die Eingabe **stillschweigend** — das Feld wird geleert, es
+  kommt keine Warnung, und die Rückmeldung lautet «Übernommen.». Zwei Knöpfe
+  mit verschiedenem Wirkungsbereich in einem Abschnitt sind eine Falle, in die
+  jemand, der die Oberfläche zum ersten Mal sieht, zuverlässig tritt. **Dass
+  ich selbst hineingetreten bin, ist das Argument.** Und die Infoleiste «Die
+  Konfiguration hat Befunde» zeigt nach dem Ablegen weiter den alten Eintrag
+  zum fehlenden Verweis, bis die Seite neu aufgebaut wird.
 
 - **A1-16 — OFFEN, aus T109. Die Quellenliste heisst fuer einen
   Bildschirmleser `Nipp.Core.ViewModels.IntegrationSourceRow`.** Jede Zeile
