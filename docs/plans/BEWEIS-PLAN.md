@@ -200,6 +200,79 @@ kaum prüfbar, weil es ohne Outlook fast keine lokalen Kontakte gibt (ADR-018).
 Gemessen ist die Nebenläufigkeit der beiden fremden Quellen, nicht das
 Verhältnis lokal gegen fremd.
 
+#### Die Quellenrunde, am Abend des 22.09.2026
+
+**Drei Zeilen: T98, T108, T109.** Eine bestanden, eine teilweise, eine nicht —
+und zwei neue Befunde, von denen einer die einzige mitgelieferte Vorlage
+betrifft.
+
+**T98 haelt, und das ist eine gute Nachricht.** Zwei Quellen nacheinander
+angelegt: beide stehen da, beide abgeschaltet, die bestehenden unangetastet.
+Der Befund vom 07.09.2026 — das Einlesen ersetzte die ganze Datei — tritt nicht
+mehr auf, und die Wartezeiten setzen sich nicht zurueck. **Einen Katalog zur
+Auswahl gibt es allerdings nicht mehr**: seit ADR-040 liegt genau eine Vorlage
+bei, und der Knopf legt sie ohne Zwischenschritt an. Die Zeile spricht noch vom
+Katalog; das ist kein Fehlschlag, aber ihr Wortlaut ist ueberholt.
+
+- **A1-15 — OFFEN, und der schwerste dieser Runde. Ein API-Token laesst sich
+  nicht eintragen.** Feld gefuellt (echtes Tippen, Fokus nachweislich im Feld,
+  der Wert steht als `●●●●●●` darin), Fokus weiter, «Uebernehmen» gedrueckt —
+  die Oberflaeche meldet **«Uebernommen.»**, und danach:
+
+  - das Feld ist **leer**,
+  - `secrets.dat` ist **unveraendert** (Zeitstempel und Inhalt),
+  - das Protokoll schreibt **keine** Zeile; «Zugangsdaten abgelegt (3
+    Eintraege)» steht an dem Tag **86-mal mit derselben Zahl**, vor und nach
+    jedem Versuch,
+  - die Quelle meldet weiter «Zugangsdaten fehlen auf diesem Geraet», und die
+    Infoleiste nennt den Grund: «Zum Verweis 'eigene.token' ist auf diesem
+    Geraet kein Wert hinterlegt».
+
+  **Damit laesst sich «Eigene REST-API» nicht in Betrieb nehmen** — und das ist
+  seit ADR-040 die einzige mitgelieferte Vorlage. Die beiden vorhandenen
+  Quellen haben ihre Zugangsdaten auf einem anderen Weg bekommen.
+
+  **Gemessen, nicht vermutet, und zweimal gegengeprueft:** einmal mit zwei
+  eigenen Quellen (die sich denselben `secretRef` `eigene.token` teilen — auch
+  das gehoert angesehen), einmal mit nur einer nach dem Entfernen der zweiten.
+  Beide Male dasselbe. **Was nicht gemessen ist:** ob es einen anderen Weg
+  gibt, ein Geheimnis abzulegen, und ob der Fehler beim Lesen des Feldes oder
+  beim Schreiben liegt.
+
+  **Und die stille Rueckmeldung ist die zweite Haelfte des Befunds.**
+  «Uebernommen.» bei einem Vorgang, der nichts uebernommen hat, ist genau die
+  Luecke, die dieses Projekt zweimal bezahlt hat (`QuietFailures`, W1.7).
+
+- **A1-16 — OFFEN, aus T109. Die Quellenliste heisst fuer einen
+  Bildschirmleser `Nipp.Core.ViewModels.IntegrationSourceRow`.** Jede Zeile
+  traegt den Typnamen statt ihres Inhalts, weil das `DataTemplate` in
+  `SettingsPage.xaml` kein `AutomationProperties.Name` setzt und die Automation
+  deshalb `ToString()` nimmt. **Dazu die Schalter je Zeile:** die
+  `ToggleSwitch` haben `OffContent=""`, `OnContent=""` und keinen Namen — ein
+  Bildschirmleser sagt «Ein/Aus-Schalter», ohne wofuer. **Das ist derselbe
+  Befund wie am 07.09.2026**, damals an Katalog und Palette, jetzt an einer
+  dritten Stelle; **die Palette selbst ist in Ordnung** und traegt Namen wie
+  «Nummer international, Anruf».
+
+**Was die Runde am Werkzeug gekostet hat — eine halbe Stunde, und die Lehre
+steht jetzt im Skript:** der Quellenbereich liegt **nicht** bei «Kontakte»,
+sondern unter **«Fuer Administratoren»**, neben Netzwerk, Codecs und Sichern.
+Sein Kopf heisst «Quellen: CRM, ERP, Ticketing» und steht inhaltlich bei den
+Kontakten — gesucht wurde er deshalb dort, mehrfach, samt Scrollen durch
+vierzig Nebenstellen. `Oeffne-Quellen.ps1` in den Testaufbauten macht die drei
+Schritte jetzt zuverlaessig. **Ein zugeklappter Expander hat seinen Inhalt gar
+nicht im UIA-Baum**, und der Kopf eines Unter-Expanders steht erst darin, wenn
+die Gruppe darueber offen ist; ein leerer Baum heisst hier also nie «gibt es
+nicht».
+
+**Und einmal hat `ValuePattern.SetValue` fast einen Befund erfunden.** Der
+erste Versuch, das Token zu setzen, ging ueber das Wertmuster — das Feld zeigte
+danach `●●●●●●●●●●●●●●●`, gespeichert wurde nichts. Bevor daraus ein Befund
+wurde, kam die Gegenprobe mit echtem Tippen (CLAUDE.md: «Setzen ist nicht
+Tippen»), und die brauchte zwei Anlaeufe, weil Tastendruecke ins Leere gehen,
+solange das Fenster nicht im Vordergrund steht. **Erst der dritte Weg hat
+gemessen, was A1-15 behauptet.**
+
 #### Die Anruflisten- und Kartenrunde, am 22.09.2026
 
 **Acht Zeilen an einem Nachmittag: T111 bis T118.** Sieben bestanden, eine

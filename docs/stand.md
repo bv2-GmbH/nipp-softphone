@@ -13,11 +13,37 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
-**Stand 22.09.2026, abends.** Die sechste Messrunde der Schreibtisch-Runde A1
-ist durch, **und ihre beiden Befunde sind noch am selben Abend repariert und
-nachgemessen**: acht Zeilen gemessen, dazu T318 neu angelegt und in beide
-Richtungen belegt. Gezählt sind **189 offene Matrixzeilen von 308**, davon 62
-am Schreibtisch — und die Zählung ist zum ersten Mal nachrechenbar.
+**Stand 22.09.2026, abends.** Zwei Messrunden an einem Tag: **elf Zeilen
+abgenommen**, dazu T318 neu angelegt. Die beiden Befunde der Anruflistenrunde
+sind noch am selben Abend repariert und nachgemessen; aus der Quellenrunde
+stehen **A1-15 und A1-16 offen**, und A1-15 ist der schwerste seit Langem.
+Gezählt sind **186 offene Matrixzeilen von 308**, davon 59 am Schreibtisch —
+und die Zählung ist zum ersten Mal nachrechenbar.
+
+## Ein API-Token lässt sich nicht eintragen (22.09.2026)
+
+**A1-15.** Feld gefüllt, «Übernehmen» gedrückt, die Oberfläche meldet
+«Übernommen.» — und danach ist das Feld leer, `secrets.dat` unverändert, das
+Protokoll stumm, und die Quelle sagt weiter «Zugangsdaten fehlen auf diesem
+Gerät». **Damit lässt sich «Eigene REST-API» nicht in Betrieb nehmen**, und
+das ist seit ADR-040 die einzige mitgelieferte Vorlage. Zweimal gegengeprüft,
+mit zwei Quellen und mit einer.
+
+Die stille Rückmeldung ist die zweite Hälfte davon: «Übernommen.» bei einem
+Vorgang, der nichts übernommen hat, ist genau die Lücke aus W1.7.
+
+**A1-16:** die Quellenliste heisst für einen Bildschirmleser
+`Nipp.Core.ViewModels.IntegrationSourceRow`, und die Schalter je Zeile tragen
+gar keinen Namen. Derselbe Befund wie am 07.09.2026, an einer dritten Stelle.
+
+**T98 dagegen hält** — zwei Quellen nacheinander angelegt, beide abgeschaltet,
+die bestehenden unangetastet, die Wartezeiten unverändert.
+
+**Und zweimal hat das Werkzeug fast einen Befund erfunden.** Der Quellenbereich
+liegt unter «Für Administratoren», nicht bei «Kontakte» — dort gesucht, findet
+man ihn nie. Und `ValuePattern.SetValue` füllt das Tokenfeld sichtbar, ohne
+dass das Programm es sieht; erst echtes Tippen bei Fenster im Vordergrund hat
+gemessen, was A1-15 behauptet.
 
 ## A1-13 hätte nipp jederzeit beenden können (22.09.2026)
 
