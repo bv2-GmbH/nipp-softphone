@@ -1,5 +1,6 @@
 ﻿using H.NotifyIcon.Core;
 using Microsoft.Extensions.Logging;
+using Microsoft.UI.Dispatching;
 using Nipp.App.Theming;
 using Nipp.Core.Services.Integrations.Context;
 using Nipp.Core.Services.Settings;
@@ -35,6 +36,25 @@ public sealed class TrayIconHost : IDisposable
 
     private bool _disposed;
 
+    /// <summary>
+    /// Der UI-Thread. <b>Die Nachricht <c>TaskbarCreated</c> kommt darauf an</b>
+    /// (das Nachrichtenfenster entsteht in <see cref="Start"/>), aber die
+    /// Wiederholung danach laeuft ueber eine Uhr, und die braucht ihn.
+    /// </summary>
+    private DispatcherQueue? _dispatcher;
+
+    private DispatcherQueueTimer? _wiederholung;
+    private DispatcherQueueTimer? _nachzuegler;
+    private int _versuche;
+
+    /// <summary>
+    /// Wie oft nach einem Explorer-Neustart versucht wird, das Symbol wieder
+    /// anzulegen. <b>Zehn Versuche im Sekundenabstand</b> — der Infobereich
+    /// braucht nach dem Neustart einen Moment, und ein Fehlschlag ist hier
+    /// teurer als zehn Sekunden Geduld.
+    /// </summary>
+    private const int MaxVersuche = 10;
+
     public TrayIconHost(
         ISipService sip,
         ThemeService theme,
@@ -59,6 +79,7 @@ public sealed class TrayIconHost : IDisposable
     {
         try
         {
+            _dispatcher = DispatcherQueue.GetForCurrentThread();
             _iconResource = LoadIcon();
 
             // <b>Hier steht der Name, im ToolTip nur der Zustand</b>
@@ -96,6 +117,18 @@ public sealed class TrayIconHost : IDisposable
             // OnKeyboardEvent — ein Klick auf das Symbol kommt hier an, nicht
             // beim Mausereignis.
             _icon.MessageWindow.KeyboardEventReceived += OnKeyboardEvent;
+
+            // <b>Der Explorer nimmt das Symbol mit, wenn er neu startet</b>
+            // (Befund A1-23). Windows schickt danach die Nachricht
+            // TaskbarCreated an alle Fenster -- wer sie ueberhoert, ist weg.
+            //
+            // Gemessen am 22.09.2026: nach einem Explorer-Neustart fehlte das
+            // Symbol dauerhaft, auch nach 45 Sekunden und nicht im Ueberlauf.
+            // nipp lief weiter, war aber nur noch ueber den Task-Manager zu
+            // beenden -- das Fensterkreuz beendet nicht (Paragraph 10), und im
+            // Fenster gibt es keinen zweiten Weg. Nach ADR-038 laesst genau
+            // das jedes Update scheitern.
+            _icon.MessageWindow.TaskbarCreated += OnTaskbarCreated;
 
             _icon.Create();
 
@@ -174,6 +207,167 @@ public sealed class TrayIconHost : IDisposable
     /// war „der Doppelklick tut nichts" nicht von „hier kommt gar nichts an"
     /// zu unterscheiden, und genau daran hing dieser Befund.</para>
     /// </summary>
+    /// <summary>
+    /// Legt das Symbol neu an, nachdem der Explorer neu gestartet ist
+    /// (Befund A1-23).
+    ///
+    /// <para><b>Windows schickt <c>TaskbarCreated</c> an alle Fenster</b>,
+    /// sobald der Infobereich wieder da ist. Wer nicht darauf hoert, ist
+    /// verschwunden — und bei nipp heisst das: kein Weg mehr zum Beenden, denn
+    /// das Fensterkreuz beendet nicht (§10).</para>
+    ///
+    /// <para><b>Der Zustand wird danach neu gesetzt</b>, nicht nur das Symbol:
+    /// ToolTip und Menue haengen am Anmelde- und Gespraechszustand, und ein
+    /// frisch angelegtes Symbol traegt beides nicht von selbst.</para>
+    /// </summary>
+    private void OnTaskbarCreated(object? sender, EventArgs e)
+    {
+        if (_disposed || _icon is null)
+        {
+            return;
+        }
+
+        _versuche = 0;
+        NeuAnlegen();
+    }
+
+    /// <summary>
+    /// Ein Versuch, das Symbol wieder anzulegen — und, wenn er scheitert, die
+    /// Planung des naechsten (Befund A1-23).
+    ///
+    /// <para><b>Ein einzelner Versuch genuegt nicht.</b> Gemessen am
+    /// 22.09.2026: die Nachricht <c>TaskbarCreated</c> kam an, und
+    /// <c>Create()</c> warf trotzdem sofort «TryCreate failed» — einmal, in
+    /// drei spaeteren Messungen nie wieder (dort trug schon der erste Versuch).
+    /// <b>Warum es das eine Mal scheiterte, ist nicht gemessen</b>; vermutlich
+    /// meldet sich der Explorer, bevor sein Infobereich Anfragen annimmt.
+    /// Microsoft empfiehlt zu <c>Shell_NotifyIcon</c> genau das Naheliegende:
+    /// nach einem Fehlschlag spaeter erneut versuchen. Die Protokollzeile des
+    /// Fehlversuchs nennt den Zustand der Bibliothek mit, damit beim naechsten
+    /// Mal nicht wieder geraten werden muss.</para>
+    ///
+    /// <para><b>Der ToolTip muss neu gesetzt werden, und zwar in zwei
+    /// Schritten.</b> Gemessen am 23.09.2026: nach dem Neuanlegen stand das
+    /// Symbol <b>namenlos</b> im Ueberlauf — den Text traegt die Bibliothek
+    /// nicht mit hinueber, und ein namenloses Symbol ist weder zu finden noch
+    /// vorzulesen. Gesetzt wird deshalb zuerst wieder «nipp», genau wie beim
+    /// Start: Windows haelt den ersten Text nach dem Anlegen als Anzeigenamen
+    /// fest und stellt ihn jedem spaeteren voran (Befund A1-2). Der Zustand
+    /// kommt <b>verzoegert</b> nach — sofort gesetzt wuerde er selbst zum
+    /// Anzeigenamen und stuende danach doppelt da.</para>
+    /// </summary>
+    private void NeuAnlegen()
+    {
+        if (_disposed || _icon is null)
+        {
+            return;
+        }
+
+        _versuche++;
+
+        // Fuer die Protokollzeile: sie unterscheidet die beiden moeglichen
+        // Ursachen. Haelt die Bibliothek das Symbol noch fuer angelegt, hilft
+        // kein Warten; antwortet nur die Shell noch nicht, hilft genau das.
+        var warAngelegt = _icon.IsCreated;
+        var entfernt = false;
+
+        // <b>Der Fehlschlag ist hier eine Ausnahme, kein Rueckgabewert.</b>
+        // H.NotifyIcon kennt nur Create(), und das wirft eine
+        // InvalidOperationException mit «TryCreate failed» -- ein TryCreate()
+        // gibt es nach aussen nicht. Deshalb wird nicht nach dem Text
+        // unterschieden, sondern schlicht wiederholt: welche Ausnahme es war,
+        // steht in der Protokollzeile.
+        try
+        {
+            if (warAngelegt)
+            {
+                entfernt = _icon.TryRemove();
+            }
+
+            // Vor dem Anlegen, nicht danach: dieser Text wird der
+            // Anzeigename (Befund A1-2).
+            _icon.ToolTip = "nipp";
+
+            _icon.Create();
+            BuildMenu();
+            PlaneZustandImToolTip();
+            TrayLog.Recreated(_logger, _versuche);
+            return;
+        }
+        catch (Exception ex)
+        {
+            if (_versuche >= MaxVersuche)
+            {
+                TrayLog.RecreateGaveUp(
+                    _logger, _versuche, ex.GetType().Name, ex.Message,
+                    warAngelegt, entfernt, _icon.IsCreated);
+                return;
+            }
+
+            TrayLog.RecreateRetry(
+                _logger, _versuche, ex.GetType().Name,
+                warAngelegt, entfernt, _icon.IsCreated);
+        }
+
+        PlaneNaechstenVersuch();
+    }
+
+    private void PlaneNaechstenVersuch()
+    {
+        if (_dispatcher is null)
+        {
+            return;
+        }
+
+        _wiederholung ??= _dispatcher.CreateTimer();
+        _wiederholung.Interval = TimeSpan.FromSeconds(1);
+        _wiederholung.IsRepeating = false;
+
+        // Der Tick haengt an einer Methode, nicht an einer neuen Lambda je
+        // Versuch -- sonst sammeln sich zehn Abonnenten an derselben Uhr.
+        _wiederholung.Tick -= OnWiederholung;
+        _wiederholung.Tick += OnWiederholung;
+        _wiederholung.Start();
+    }
+
+    private void OnWiederholung(DispatcherQueueTimer sender, object args)
+    {
+        sender.Stop();
+        NeuAnlegen();
+    }
+
+    /// <summary>
+    /// Traegt den Zustand in den ToolTip nach — <b>mit Abstand</b>, damit
+    /// Windows vorher «nipp» als Anzeigenamen festhalten kann (Befund A1-2).
+    /// Beim Start uebernimmt diese Rolle der erste Zustandswechsel, der
+    /// ohnehin Sekunden spaeter kommt; nach einem Explorer-Neustart kaeme er
+    /// vielleicht stundenlang nicht.
+    /// </summary>
+    private void PlaneZustandImToolTip()
+    {
+        if (_dispatcher is null)
+        {
+            return;
+        }
+
+        _nachzuegler ??= _dispatcher.CreateTimer();
+        _nachzuegler.Interval = TimeSpan.FromSeconds(3);
+        _nachzuegler.IsRepeating = false;
+        _nachzuegler.Tick -= OnZustandNachtragen;
+        _nachzuegler.Tick += OnZustandNachtragen;
+        _nachzuegler.Start();
+    }
+
+    private void OnZustandNachtragen(DispatcherQueueTimer sender, object args)
+    {
+        sender.Stop();
+
+        if (!_disposed)
+        {
+            UpdateToolTip();
+        }
+    }
+
     private void OnMouseEvent(object? sender, MessageWindow.MouseEventReceivedEventArgs e)
     {
         TrayLog.MouseEvent(_logger, e.MouseEvent.ToString());
@@ -517,6 +711,20 @@ public sealed class TrayIconHost : IDisposable
 
         _disposed = true;
 
+        if (_wiederholung is not null)
+        {
+            _wiederholung.Tick -= OnWiederholung;
+            _wiederholung.Stop();
+            _wiederholung = null;
+        }
+
+        if (_nachzuegler is not null)
+        {
+            _nachzuegler.Tick -= OnZustandNachtragen;
+            _nachzuegler.Stop();
+            _nachzuegler = null;
+        }
+
         _sip.RegistrationChanged -= OnRegistrationChanged;
         _sip.CallStateChanged -= OnCallStateChanged;
         _party.PartyChanged -= OnPartyChanged;
@@ -536,6 +744,40 @@ internal static partial class TrayLog
     [LoggerMessage(EventId = 3200, Level = LogLevel.Information,
         Message = "Symbol im Infobereich angelegt")]
     public static partial void Started(ILogger logger);
+
+    /// <summary>Nach einem Explorer-Neustart neu angelegt (Befund A1-23).</summary>
+    [LoggerMessage(EventId = 3220, Level = LogLevel.Information,
+        Message = "Symbol im Infobereich nach einem Neustart der Taskleiste wieder angelegt "
+            + "(Versuch {Attempt})")]
+    public static partial void Recreated(ILogger logger, int attempt);
+
+    /// <summary>
+    /// Ein Versuch ist gescheitert, der naechste folgt in einer Sekunde.
+    /// <b>Die drei Zustaende nennen die Ursache:</b> stand das Symbol noch als
+    /// angelegt in der Bibliothek, liess es sich entfernen, und was sagt sie
+    /// danach.
+    /// </summary>
+    [LoggerMessage(EventId = 3222, Level = LogLevel.Information,
+        Message = "Symbol im Infobereich noch nicht wieder anzulegen (Versuch {Attempt}, "
+            + "{ExceptionType}; vorher angelegt: {WasCreated}, entfernt: {Removed}, jetzt "
+            + "angelegt: {NowCreated}) - naechster Versuch in einer Sekunde")]
+    public static partial void RecreateRetry(
+        ILogger logger, int attempt, string exceptionType,
+        bool wasCreated, bool removed, bool nowCreated);
+
+    /// <summary>
+    /// Nach allen Versuchen ist das Symbol weg. <b>Das ist ernst</b>: ohne
+    /// Symbol gibt es keinen Weg zum Beenden (Paragraph 10), und nach ADR-038
+    /// scheitert damit jedes Update.
+    /// </summary>
+    [LoggerMessage(EventId = 3223, Level = LogLevel.Warning,
+        Message = "Symbol im Infobereich liess sich nach {Attempts} Versuchen nicht wieder "
+            + "anlegen ({ExceptionType}): {Reason}. Vorher angelegt: {WasCreated}, entfernt: "
+            + "{Removed}, jetzt angelegt: {NowCreated}. nipp laeuft weiter, ist aber nur ueber "
+            + "das Fenster erreichbar.")]
+    public static partial void RecreateGaveUp(
+        ILogger logger, int attempts, string exceptionType, string reason,
+        bool wasCreated, bool removed, bool nowCreated);
 
     [LoggerMessage(EventId = 3201, Level = LogLevel.Warning,
         Message = "Symbol im Infobereich nicht moeglich: {Reason}")]

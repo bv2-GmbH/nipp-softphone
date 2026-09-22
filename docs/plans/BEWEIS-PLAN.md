@@ -225,8 +225,8 @@ Infobereich weiter); die Sprechblase selbst bleibt am Auge.
 **Vier Zeilen: T58, T75, T97, T269, T271.** Eine bestanden, zwei teilweise,
 zwei nicht — und die beiden Befunde sind die interessanten.
 
-- **A1-23 — OFFEN. Nach einem Explorer-Neustart ist das Symbol im Infobereich
-  weg und kommt nicht wieder** (T97). Gemessen: Explorer beendet, Windows
+- **A1-23 — ERLEDIGT am 23.09.2026. Nach einem Explorer-Neustart war das Symbol
+  im Infobereich weg und kam nicht wieder** (T97). Gemessen: Explorer beendet, Windows
   startet ihn neu, das Symbol fehlt — auch nach 45 Sekunden, auch nicht im
   Überlauf. Die letzte Zeile «Symbol im Infobereich angelegt» stammt von
   **vor** dem Neustart.
@@ -238,10 +238,36 @@ zwei nicht — und die beiden Befunde sind die interessanten.
   jedes Update scheitern, weil der Prozess seine DLLs offen hält. Ein
   Explorer-Absturz ist nichts Seltenes.
 
-  **Was hilft:** nipp neu starten, dann ist das Symbol sofort wieder da.
-  **Was fehlt:** dass nipp es selbst tut. Windows schickt dafür die Nachricht
-  `TaskbarCreated` an alle Fenster; ob `H.NotifyIcon` darauf hört, ist **nicht
-  gemessen**.
+  **Repariert.** `TrayIconHost` hört jetzt auf `TaskbarCreated` — die Nachricht,
+  die Windows nach einem Explorer-Neustart an alle Fenster schickt — und legt
+  das Symbol wieder an. `H.NotifyIcon` reicht das Ereignis durch, hört aber
+  selbst nicht darauf.
+
+  **Drei Dinge, die der erste Anlauf nicht wusste, und alle drei kamen aus der
+  Messung:**
+
+  1. **Ein Versuch genügt nicht.** Beim ersten Mal kam die Nachricht an, und
+     `Create()` warf sofort «TryCreate failed» — ein Abonnement allein hätte
+     also gar nichts geändert. In drei späteren Messungen trug schon der erste
+     Versuch. **Warum es das eine Mal scheiterte, ist nicht gemessen**;
+     Microsoft empfiehlt zu `Shell_NotifyIcon` das Naheliegende, nämlich später
+     erneut zu versuchen. Es sind jetzt zehn Versuche im Sekundenabstand, und
+     die Protokollzeile eines Fehlversuchs nennt den Zustand der Bibliothek
+     mit, damit beim nächsten Mal nicht geraten werden muss.
+  2. **`TryCreate` gibt es gar nicht** — nach aussen kennt `H.NotifyIcon` nur
+     `Create()`, und das wirft. Der Fehlschlag ist also eine Ausnahme und kein
+     Rückgabewert, und wiederholt wird darauf, nicht auf einen Meldungstext.
+  3. **Das Symbol kam namenlos zurück.** Den ToolTip trägt die Bibliothek beim
+     Neuanlegen nicht mit hinüber — im Überlauf stand ein Knopf ohne
+     Beschriftung. Gesetzt wird deshalb zuerst wieder «nipp» (der Text, den
+     Windows als Anzeigenamen festhält, Befund A1-2) und der Zustand **drei
+     Sekunden später**; sofort gesetzt würde er selbst zum Anzeigenamen und
+     stünde danach doppelt da.
+
+  **Nachgemessen am 23.09.2026:** Explorer über `Stop-Process` beendet — das
+  Symbol steht nach dem Neustart im **sichtbaren** Bereich, heisst «nipp
+  angemeldet» (keine Doppelung), und `Beende-Nipp.ps1` beendet nipp darüber
+  sauber. Protokoll: «wieder angelegt (Versuch 1)».
 
 - **A1-24 — OFFEN. Die Präsenzpunkte folgen dem Kontrastmodus nicht, wenn er
   im Betrieb eingeschaltet wird** (T271, T75). Dreimal an den Pixeln gemessen:
@@ -339,8 +365,8 @@ Zeile:**
 2. **Das WLAN zu trennen kappt die eigene Verbindung** — beinahe mitten in
    einer Messung, und Windows verbindet nach einer Minute von selbst wieder,
    was eine Messung still ungültig macht.
-3. **Ein Explorer-Neustart nimmt nipp das Symbol** (A1-23), und damit den
-   einzigen Weg, es zu beenden.
+3. **Ein Explorer-Neustart nahm nipp das Symbol** (A1-23), und damit den
+   einzigen Weg, es zu beenden — repariert und nachgemessen am 23.09.2026.
 
 ### Der Stand der Runde (17.09.2026)
 
