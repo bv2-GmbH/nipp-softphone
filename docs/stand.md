@@ -44,6 +44,19 @@ das Argument dafür, dass sie eine ist.
 **Dafür ist T108 jetzt beantwortet:** Quelle mit Token entfernt und neu
 angelegt, die Zugangsdaten sind noch da — und die Rückfrage sagt es vorher zu.
 
+## Die Suche trägt, nur die Tastatur kommt nicht hin (23.09.2026)
+
+**T41, T59, T203, T249 und T260 bestanden.** Die Klammernull aus einer
+Outlook-Signatur wird richtig entfernt, das Filtern räumt Gruppen und Kacheln
+ab und bringt sie zurück, und die Treffer der Quelle stehen mit
+Herkunftsabzeichen in einer einzigen Liste.
+
+**A1-20:** Wer einen Namen tippt und Enter drückt, löst richtigerweise keinen
+Anruf aus, und «Anrufen» sagt grau und wörtlich «Das ist keine Nummer. Einen
+Treffer darunter auswählen.» — **nur springt der Fokus nicht dorthin**, und
+die Pfeiltaste auch nicht. Über drei Tabulatorschritte ist die Liste
+erreichbar; der Weg fehlt also nicht ganz, nur der naheliegende.
+
 ## Die Einstellungen halten, und die Matrix stempelt richtig (23.09.2026)
 
 **T86, T194, T196, T201 und T280 bestanden**, ohne neue Befunde. T280 ist das

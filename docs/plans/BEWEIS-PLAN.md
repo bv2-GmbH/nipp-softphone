@@ -200,6 +200,44 @@ kaum prüfbar, weil es ohne Outlook fast keine lokalen Kontakte gibt (ADR-018).
 Gemessen ist die Nebenläufigkeit der beiden fremden Quellen, nicht das
 Verhältnis lokal gegen fremd.
 
+#### Die Suchrunde, in der Nacht auf den 23.09.2026
+
+**Sechs Zeilen: T41, T59, T203, T227, T249, T260.** Vier bestanden, zwei mit
+einer Hälfte, die hier niemand herstellen kann — und ein Befund.
+
+**Die Nummernerkennung trägt** (T260): `+41 (0)79 123 45 67` aus der
+Zwischenablage ergibt «wählt +41791234567». Die Klammernull ist weg, und es
+steht nicht `+410791234567` — der Fehler, der bis zum 13.09.2026 eine Nummer
+wählte, die es nicht gibt.
+
+**Das Filtern trägt** (T41, T249): 3 Gruppen und 10 Kacheln werden zu 1 und 3,
+Escape leert das Feld, alles kommt zurück; im Sortiermodus verschwindet der
+Umschalter, solange gefiltert wird, und ist danach wieder da.
+
+**Die Suche über die Quelle trägt** (T203): lokale Vorschläge nach 0,6
+Sekunden, die Treffer der Quelle nach rund vier — **jede Zeile mit
+Herkunftsabzeichen**. Bei einem Namen, den nur die Quelle kennt, bleibt die
+Vorschlagsliste leer: es steht **eine** Liste da.
+
+- **A1-20 — OFFEN, aus T227. Der Fokus springt nicht in die Vorschlagsliste.**
+  Einen Namen getippt, Enter gedrückt: **kein Anruf** (richtig), «Anrufen»
+  grau (richtig), und der Knopf sagt sogar warum — sein `HelpText` lautet «Das
+  ist keine Nummer. Einen Treffer darunter auswählen.» **Nur springt der Fokus
+  nicht dorthin:** er bleibt im Nummernfeld, und die Pfeiltaste nach unten tut
+  dasselbe.
+
+  **Erreichbar ist die Liste trotzdem** — mit drei Tabulatorschritten steht man
+  auf dem ersten Vorschlag. Der Befund ist also keine Sackgasse, sondern ein
+  fehlender Weg: der Satz am Knopf verspricht «einen Treffer darunter
+  auswählen», und die nächstliegende Taste tut es nicht.
+
+**Zwei Hälften bleiben mit Grund liegen**, beide, weil sie einen echten Anruf
+riskieren oder brauchen: der Doppelklick auf einen Kontakt mit zwei Nummern
+(T59 — kommt die Rückfrage wider Erwarten nicht, klingelt es bei einem
+Kollegen) und die Gegenprobe zum Sortieren nach dem Filtern (T249 — sie
+braucht einen echten Zug, den synthetische Zeigerereignisse seit ADR-065 nicht
+nachstellen). **Dieselbe Begründung wie bei «Enter wählt» in T190.**
+
 #### Die Einstellungsrunde, in der Nacht auf den 23.09.2026
 
 **Fünf Zeilen: T86, T194, T196, T201, T280.** Alle bestanden, eine mit einer
