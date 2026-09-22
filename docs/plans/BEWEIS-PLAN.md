@@ -297,6 +297,51 @@ Nebenstellen ohne eigene Gruppe auf.»
   Stelle landete in einem fremden Fenster. Inhaltlich spricht nichts dagegen —
   gemessen ist sie nicht.
 
+#### E7 — was A1 am Schreibtisch noch übrig lässt
+
+**Stand nach dem 22.09.2026:** **147 offene Zeilen von 309**, davon noch
+**14 mit dem Stempel `S`**. Am Morgen dieses Tages waren es 190 und 69.
+
+**Diese vierzehn bleiben, und bei jeder steht, warum sie nicht ohne Weiteres
+geht:**
+
+| Zeile | was fehlt |
+|---|---|
+| **T25** | ein **Windows-Neustart** — der Benutzer verliert alles Offene |
+| **T93** | **Ohren**: «weicher, mit einer Pause» kann kein Skript hören |
+| **T95** | ein **Logo-Wechsel**, also Entwicklungsarbeit vor der Messung |
+| **T101** | **K4 ist nicht gebaut** — die Erwartung sagt es selbst |
+| **T128** | **Start ohne Netz**; das WLAN zu trennen kappt die Verbindung des Werkzeugs |
+| **T174** | ein **frischer Klon** samt SDK, gut eine halbe Stunde Bauzeit |
+| **T21, T22** | `tel:`-Links — **Outlook ohne COM** (ADR-018) und ein echter Wählversuch |
+| **T72, T246** | eine **Datenlage in der Quelle**, die erst herzustellen wäre |
+| **T273** | eine **gebaute Beta-Fassung** |
+| **T288** | eine Quelle, die **über 8 KB** antwortet |
+| **T311** | an der **Werkzeugsteuerung** gescheitert; inhaltlich spricht nichts dagegen |
+
+**Vier davon sind eine Frage von Aufwand, nicht von Möglichkeit** — T174
+(bauen), T273 (Beta), T288 und T72/T246 (Daten herstellen). Wer einen halben
+Tag investiert, bekommt sie.
+
+**Der Rest braucht einen Menschen oder ein Gerät.**
+
+**Was der Tag gebracht hat:** 79 Zeilen abgenommen, acht Befunde gefunden
+(A1-17 bis A1-24), **zwei davon repariert und nachgemessen** (A1-18, A1-20),
+sechs als Entscheidungsvorlage in ADR-072 gelegt. Dazu vier Werkzeuge in
+`nipp-testaufbauten`, die es vorher nicht gab: die Anrufliste, das saubere
+Beenden, das Bildschirmfoto mit Kontrastmessung und die Matrixzählung.
+
+**Und drei Dinge, die nicht in der Matrix stehen, aber teurer waren als jede
+Zeile:**
+
+1. **Eine einzige Fehlanmeldung sperrt die Adresse** (T267). fail2ban auf der
+   Asterisk, und nipp war eine Viertelstunde offline.
+2. **Das WLAN zu trennen kappt die eigene Verbindung** — beinahe mitten in
+   einer Messung, und Windows verbindet nach einer Minute von selbst wieder,
+   was eine Messung still ungültig macht.
+3. **Ein Explorer-Neustart nimmt nipp das Symbol** (A1-23), und damit den
+   einzigen Weg, es zu beenden.
+
 ### Der Stand der Runde (17.09.2026)
 
 **Gemessen wird gegen den Debug-Build von `4a7427b`**, der seit dem 16.09.2026

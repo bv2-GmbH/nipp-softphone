@@ -13,13 +13,21 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
-**Stand 22.09.2026, abends.** Zwei Messrunden an einem Tag: **elf Zeilen
-abgenommen**, dazu T318 neu angelegt. Die beiden Befunde der Anruflistenrunde
-sind noch am selben Abend repariert und nachgemessen; aus der Quellenrunde
-bleibt **A1-16**, während **A1-15 sich als falscher Alarm herausstellte** —
-eine Stunde nachdem er gepusht war. Gezählt sind **186 offene Matrixzeilen von
-308**, davon 59 am Schreibtisch — und die Zählung ist zum ersten Mal
-nachrechenbar.
+**Stand 23.09.2026, nachts.** Ein durchgearbeiteter Tag: **79 Matrixzeilen
+abgenommen** — von 190 offenen auf **147 von 309**, am Schreibtisch von 69 auf
+**14**. Acht Befunde gefunden (A1-17 bis A1-24), **zwei repariert und
+nachgemessen**, sechs als Entscheidungsvorlage in **ADR-072** gelegt.
+
+**Die vierzehn verbleibenden S-Zeilen brauchen etwas, das ein Werkzeug nicht
+hat:** einen Windows-Neustart, Ohren, ein neues Logo, eine Beta-Fassung, eine
+halbe Stunde Bauzeit oder eine Datenlage in der Quelle. Bei jeder steht es im
+`BEWEIS-PLAN.md`.
+
+**Drei Dinge waren teurer als jede einzelne Zeile:** eine Fehlanmeldung sperrt
+die Adresse (fail2ban auf der Asterisk, nipp eine Viertelstunde offline); das
+WLAN zu trennen kappt die Verbindung des Werkzeugs und verbindet sich nach
+einer Minute stillschweigend wieder; und ein Explorer-Neustart nimmt nipp das
+Symbol im Infobereich — und damit den einzigen Weg, es zu beenden.
 
 ## Ein Befund, der keiner war (22.09.2026)
 
