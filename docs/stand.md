@@ -160,7 +160,7 @@ Ausgangszustand vollständig hergestellt, nachgesehen und nicht angenommen —
 Keep-Alive 30, alle sechs Einträge in `UserOverrides`, zehn Nebenstellen, keine
 graue Gruppe, keine Leiste, Werksdatei gelöscht.
 
-## Alle elf Befunde aus A1 sind erledigt (21.09.2026)
+## Alle zwölf Befunde aus A1 sind erledigt (21.09.2026)
 
 **A1-2 war der letzte**, und er hat eine Regel zutage gefördert, die niemand
 kannte: **Windows hält den ersten ToolTip nach `Create()` als Anzeigenamen des

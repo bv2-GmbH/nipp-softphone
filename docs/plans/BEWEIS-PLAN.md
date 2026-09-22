@@ -319,7 +319,7 @@ Hinweis darauf ist sehr leise.
 
 #### Die siebte Runde (21.09.2026) — A1-2, und damit ist A1 sauber
 
-**Alle elf Befunde sind erledigt.**
+**Alle zwölf Befunde sind erledigt** — zehn repariert, A1-3 durch die Streichung in §10, A1-4 als falscher Alarm aufgeklärt.
 
 **Die Ursache stand im Befund als «vermutlich von Windows» — das stimmte, aber
 die Regel dahinter kannte niemand.** Vier Messungen haben sie ergeben:
