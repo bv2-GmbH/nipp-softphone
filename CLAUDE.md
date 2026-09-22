@@ -440,6 +440,12 @@ Nie ein blankes `dotnet build` — siehe „Bauen auf dieser Maschine".
 - Kein Feature ohne Auftrag aus NIPP-BUILD.md.
 - Abweichungen als ADR in docs/decisions.md.
 - Nie gegen Kundentenants testen — nur der Test-Trunk.
+- **Eine einzige Fehlanmeldung sperrt die Adresse** (22.09.2026, T267).
+  fail2ban auf der Asterisk greift sofort; danach meldet nipp nicht mehr
+  «Zugangsdaten abgelehnt», sondern «Server nicht erreichbar» — und drei
+  Neustarts helfen nicht, die Sperre muss **auf der Anlage** aufgehoben
+  werden. Wer mit falschen Zugangsdaten prüft, nimmt den Arbeitsplatz vom
+  Netz: erst am Ende eines Gerätetags, und den Zugang zur Anlage bereithalten.
 - **Keine Rufnummer, kein Name, kein Suchtext und kein Antwortinhalt ins
   Protokoll** (§21.2, ADR-022). Nummern werden maskiert (`LogMasking`), und
   das Diagnosepaket nimmt sie gefiltert mit. Ein Softphone, das mitschreibt,

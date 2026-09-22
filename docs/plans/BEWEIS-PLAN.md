@@ -156,6 +156,52 @@ festen Build, ein Fehlschlag wird eingetragen und liegen gelassen, repariert
 wird gesammelt — und **vor jedem Eingriff ins System oder in eine Datei steht
 der Rückweg fest**, nicht danach.
 
+#### E2 — die Wanderungen, und was eine Fehlanmeldung kostet
+
+**Drei Zeilen zuerst: T267, T268, T286.** Zwei bestanden, eine nicht — und
+eine Nebenwirkung, die niemand aufgeschrieben hatte.
+
+**T267 hat die Anlage dazu gebracht, die Adresse zu sperren.** Die Zeile
+selbst ist bestanden: «Zugangsdaten abgelehnt», darunter der Verweis
+«Zugangsdaten prüfen», ein Klick ins Formular mit Fokus in «Benutzername».
+**Aber danach kam die Anmeldung nicht mehr zustande** — nicht mehr
+«abgelehnt», sondern «Server nicht erreichbar (Zeitüberschreitung)». Drei
+Neustarts und zwei Minuten Pause halfen nicht; **fail2ban auf der Asterisk
+hatte die IP gesperrt**, und Dominic musste sie dort entfernen.
+
+**Eine einzige Fehlanmeldung genügt dafür.** Das steht jetzt in der Zeile:
+wer sie auf einem Arbeitsplatz prüft, der danach klingeln soll, nimmt ihn vom
+Netz. Erst am Ende eines Gerätetags prüfen, und den Zugang zur Anlage
+bereithalten.
+
+**Und eine Regel für die Werkzeuge:** ab hier wird `secrets.dat` **nicht
+mehr** aus einer Sicherung zurückgespielt. Dominics Fassung ist jünger als
+jede, die diese Runde angelegt hat — ein Rückweg, der das überschreibt, nimmt
+ihm das Passwort ein zweites Mal (dieselbe Falle wie A1-9, nur andersherum).
+
+- **A1-22 — OFFEN, aus T286. Ein Klick erzeugt 62 Schreibvorgänge auf die
+  Geheimnisdatei.** Einen Schalter umgelegt, Protokoll auf Debug: **198
+  Zeilen**, darunter **62-mal** «Zugangsdaten abgelegt (3 Eintraege)» und
+  **60-mal** «Nichts zu speichern — die Einstellungen sind unveraendert». Die
+  Kette läuft **6,65 Sekunden** und hört dann auf.
+
+  **Die Bremse aus ADR-060 greift, aber nur halb.** `SettingsService.Write`
+  vergleicht und schreibt nicht mehr — das ist die Hälfte, die funktioniert.
+  **Gerufen wird es trotzdem sechzigmal**, und der `SecretStore` hat keinen
+  solchen Vergleich: er verschlüsselt und schreibt bei jedem Durchlauf.
+
+  **Warum das mehr ist als Rauschen im Protokoll:** 62 Schreibvorgänge auf
+  eine verschlüsselte Datei kosten Zeit und Schreibzyklen, und sie verdecken
+  im Protokoll alles andere. Vor allem aber ist es dieselbe Rückkopplung, die
+  ADR-060 eigentlich beenden sollte — sie ist nur eine Ebene tiefer gerutscht.
+
+  **Was nicht gemessen ist:** woher die sechzig Durchläufe kommen. Der
+  nächste Schritt wäre eine Spur an `SettingsService.Changed` mit dem
+  Aufrufer.
+
+**T268 hält** (`TrayHintSeen` von fehlend auf `true`, nipp läuft im
+Infobereich weiter); die Sprechblase selbst bleibt am Auge.
+
 ### Der Stand der Runde (17.09.2026)
 
 **Gemessen wird gegen den Debug-Build von `4a7427b`**, der seit dem 16.09.2026
