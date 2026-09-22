@@ -44,6 +44,22 @@ das Argument dafür, dass sie eine ist.
 **Dafür ist T108 jetzt beantwortet:** Quelle mit Token entfernt und neu
 angelegt, die Zugangsdaten sind noch da — und die Rückfrage sagt es vorher zu.
 
+## Für ein totes Netz legt man die Quelle tot (23.09.2026)
+
+**T281 bestanden**, T204 zur Hälfte: mit getrenntem WLAN stehen die lokalen
+Vorschläge nach 1,3 Sekunden da — das Netz liegt nicht im Tippweg. Die Zeile
+«welche Quelle nicht antwortet» war dagegen nirgends zu finden.
+
+**Zwei Fehler auf dem Weg dorthin, und beide sind lehrreich.** Das WLAN zu
+trennen kappt auf dieser Maschine auch die Verbindung des Werkzeugs — Dominic
+hat es bemerkt, bevor ich mich selbst abgeschnitten hatte. Und **Windows
+verbindet nach rund einer Minute von selbst wieder**: die zweite Messung lief
+längst mit Netz, während ich noch von einer Trennung ausging.
+
+**Die Regel:** für «keine Verbindung zur Quelle» wird die Quelle totgelegt
+(`http://127.0.0.1:9/`), nicht das Netz. Das hält, kostet niemanden seine
+Verbindung und ist in Sekunden gesetzt.
+
 ## Die Suche trägt, nur die Tastatur kommt nicht hin (23.09.2026)
 
 **T41, T59, T203, T249 und T260 bestanden.** Die Klammernull aus einer

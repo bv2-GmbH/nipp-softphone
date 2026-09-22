@@ -238,6 +238,37 @@ Kollegen) und die Gegenprobe zum Sortieren nach dem Filtern (T249 — sie
 braucht einen echten Zug, den synthetische Zeigerereignisse seit ADR-065 nicht
 nachstellen). **Dieselbe Begründung wie bei «Enter wählt» in T190.**
 
+#### Zwei Netzzeilen, und ein Fehlgriff, der die Regel liefert
+
+**T204 und T281**, unmittelbar nach der Suchrunde. Eine bestanden, eine zur
+Hälfte — und die Lehre steckt im Weg dorthin.
+
+**Das Netz liegt nicht im Tippweg** (T204): mit getrenntem WLAN stehen die
+lokalen Vorschläge nach **1,3 Sekunden** da. Das ist die Zusage aus ADR-025,
+und sie hält. **Offen bleibt** die Zeile «welche Quelle nicht antwortet» über
+der Trefferliste — sie war weder bei getrenntem Netz noch bei einer toten
+Quelle zu finden.
+
+**Kein Absturz beim Ansichtswechsel** (T281): Quelle auf `http://127.0.0.1:9/`
+gesetzt, Suche ausgelöst, dreimal die Ansicht gewechselt, während sie lief.
+nipp lebt, keine `[FTL]`-Zeile.
+
+**Der Fehlgriff, und er gehört aufgeschrieben:** um «getrenntes Netz»
+herzustellen, habe ich das WLAN getrennt. **Auf dieser Maschine läuft darüber
+auch die Verbindung des Werkzeugs** — ich hätte mich mitten in der Messung
+selbst abgeschnitten, und Dominic hat es bemerkt, bevor es so weit kam. Dazu
+kam ein zweiter, stillerer Fehler: **Windows verbindet nach rund einer Minute
+von selbst wieder**, und die zweite Messung lief längst wieder mit Netz — das
+Protokoll zeigte «Quelle hat geantwortet: HTTP 200 in 117 ms», während ich
+noch von einer Trennung ausging. Eine Messung, die sich still selbst
+aufhebt.
+
+**Die Regel daraus:** für «keine Verbindung zur Quelle» wird **die Quelle**
+totgelegt und nicht das Netz — eine Adresse auf `127.0.0.1:9` genügt, ist in
+Sekunden gesetzt, hält so lange man will und kostet niemanden seine eigene
+Verbindung. Ein getrenntes Netz braucht es nur dort, wo der Netzwechsel selbst
+geprüft wird (T284, T285), und das sind P-Zeilen.
+
 #### Die Einstellungsrunde, in der Nacht auf den 23.09.2026
 
 **Fünf Zeilen: T86, T194, T196, T201, T280.** Alle bestanden, eine mit einer
