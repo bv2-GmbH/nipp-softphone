@@ -44,6 +44,19 @@ das Argument dafür, dass sie eine ist.
 **Dafür ist T108 jetzt beantwortet:** Quelle mit Token entfernt und neu
 angelegt, die Zugangsdaten sind noch da — und die Rückfrage sagt es vorher zu.
 
+## Die Einstellungen halten, und die Matrix stempelt richtig (23.09.2026)
+
+**T86, T194, T196, T201 und T280 bestanden**, ohne neue Befunde. T280 ist das
+Gegenstück zu T318: `settings.json` schreibgeschützt, ein Konto entfernt —
+**nipp bleibt stehen**, die Meldung nennt Ursache und Abhilfe, das Protokoll
+schreibt mit. Hier sitzt der Schutz an der richtigen Stelle.
+
+**Vier Zeilen sind umgestempelt**, weil sie nie Schreibtischfälle waren: T42,
+T46, T219 und T220 brauchen klassisches Outlook mit COM (neuer Code `O`,
+ADR-018), T228 wählt wirklich (`P`), T132 erreicht seinen Pfad nur installiert
+(`F`). Damit sind es **41 offene S-Zeilen** statt der 52, die vorher als «am
+Schreibtisch offen» gezählt wurden, obwohl niemand sie hier herstellen kann.
+
 ## Eine Vorlage mit Zugangsschlüssel kam durch (22./23.09.2026)
 
 **A1-18, und es war die Zusage, auf der der ganze Importweg steht.** Eine

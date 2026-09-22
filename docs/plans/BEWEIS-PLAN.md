@@ -200,6 +200,39 @@ kaum prüfbar, weil es ohne Outlook fast keine lokalen Kontakte gibt (ADR-018).
 Gemessen ist die Nebenläufigkeit der beiden fremden Quellen, nicht das
 Verhältnis lokal gegen fremd.
 
+#### Die Einstellungsrunde, in der Nacht auf den 23.09.2026
+
+**Fünf Zeilen: T86, T194, T196, T201, T280.** Alle bestanden, eine mit einer
+offenen Hälfte — und keine neuen Befunde.
+
+**Das Wichtigste ist T280**, weil es dieselbe Frage stellt wie T318 an der
+Anrufliste: `settings.json` im laufenden Betrieb schreibgeschützt, dann ein
+Konto entfernen. **nipp bleibt stehen**, die Meldung nennt Ursache und Abhilfe,
+und im Protokoll steht eine Warnzeile. **Hier greift der Schutz also** — der
+Unterschied zu A1-13 ist, dass er hier an der richtigen Stelle sitzt.
+
+**T194 und T196 zusammen belegen ADR-045:** kein «Speichern»-Knopf im ganzen
+Baum, ein umgelegter Schalter steht sofort in der Datei und nach dem Neustart
+noch dort, und eine angelegte Nebenstelle überlebt den Weg «Hinzufügen → Pfeil
+zurück → Neustart». **Offen bleibt die Gegenprobe mit dem Neustarthinweis** für
+die drei neustartpflichtigen Werte.
+
+**T86 war falsch gestempelt und ist bestanden:** die Zeile braucht kein
+Headset, sondern keins — heute steckte keines, nipp startet in 0,56 Sekunden
+und schreibt die Zeile mit Grund und Folge.
+
+**Zur Maskierung in T280, als Beobachtung und nicht als Befund:** der Pfad
+läuft durch `LogMasking.Path`, aber diese Funktion meint die **Rufnummer in
+einem Aufnahmepfad**. Bei `settings.json` gibt es nichts zu maskieren, und der
+Windows-Benutzername bleibt im Protokoll stehen. Das Diagnosepaket nimmt ihn
+mit. Ob das stört, ist eine Frage an den Support und keine an diese Zeile.
+
+**Und ein Werkzeughinweis, der zwei Anläufe gekostet hat:** das
+Nebenstellenformular hat ein Feld «Name», und **zwei Felder dieses Namens
+stehen auf der Seite** — das andere gehört zum Umbenennen einer Gruppe. Wer das
+erste nimmt, füllt das falsche und wundert sich, dass «Hinzufügen» grau bleibt.
+Gesucht wird es über die Lage: das Namensfeld **direkt über** «Nebenstelle».
+
 #### Die Importrunde, in der Nacht auf den 23.09.2026
 
 **Fünf Zeilen: T169 bis T173.** Drei bestanden, eine teilweise, **eine nicht —
