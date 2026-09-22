@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Nipp.Core.Services.Telephony.Model;
 
 namespace Nipp.Core.ViewModels;
@@ -47,6 +47,18 @@ public sealed partial class CallRow : ObservableObject
     /// <summary>Was rechts unter dem Namen steht.</summary>
     public CallStatus Status => Call.Status;
 
-    /// <summary>Für die Sprachausgabe und die Fehlersuche.</summary>
+    /// <summary>
+    /// Was eine Sprachausgabe vorliest (Befund A1-16).
+    ///
+    /// <para><b>Der Zustand gehört dazu.</b> In der Zeile steht er als zweite,
+    /// kleinere Zeile; wer nur <see cref="Label"/> hört, weiss nicht, ob das
+    /// Gespräch läuft oder gehalten wird — und genau zwischen diesen beiden
+    /// wird hier umgeschaltet. Wie der Zustand heisst, entscheidet
+    /// <see cref="CallStateCatalog"/> und nicht diese Stelle (ADR-044).</para>
+    /// </summary>
+    public string AccessibleName => $"{Label}, {CallStateCatalog.Of(Status)}";
+
+    /// <summary>Für die Fehlersuche. Was vorgelesen wird, steht in
+    /// <see cref="AccessibleName"/>.</summary>
     public override string ToString() => Label;
 }

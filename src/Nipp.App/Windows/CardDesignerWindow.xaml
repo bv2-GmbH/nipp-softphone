@@ -147,6 +147,7 @@
                                 <DataTemplate x:DataType="vm:PaletteGroup">
                                     <TextBlock
                                         Margin="0,8,0,2"
+                                        AutomationProperties.Name="{x:Bind Name}"
                                         Style="{StaticResource BodyStrongTextBlockStyle}"
                                         Text="{x:Bind Name}" />
                                 </DataTemplate>

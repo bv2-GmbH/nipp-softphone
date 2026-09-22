@@ -251,7 +251,7 @@ Katalog; das ist kein Fehlschlag, aber ihr Wortlaut ist ueberholt.
   Konfiguration hat Befunde» zeigt nach dem Ablegen weiter den alten Eintrag
   zum fehlenden Verweis, bis die Seite neu aufgebaut wird.
 
-- **A1-16 — OFFEN, aus T109. Die Quellenliste heisst fuer einen
+- **A1-16 — BEHOBEN am 22.09.2026, aus T109. Die Quellenliste heisst fuer einen
   Bildschirmleser `Nipp.Core.ViewModels.IntegrationSourceRow`.** Jede Zeile
   traegt den Typnamen statt ihres Inhalts, weil das `DataTemplate` in
   `SettingsPage.xaml` kein `AutomationProperties.Name` setzt und die Automation
@@ -261,6 +261,37 @@ Katalog; das ist kein Fehlschlag, aber ihr Wortlaut ist ueberholt.
   Befund wie am 07.09.2026**, damals an Katalog und Palette, jetzt an einer
   dritten Stelle; **die Palette selbst ist in Ordnung** und traegt Namen wie
   «Nummer international, Anruf».
+
+  **Beim Reparieren wurde er groesser, und zwar deutlich.** Ein Durchgang
+  durch alle `DataTemplate`s der App fand **zehn** Vorlagen ohne Namen, und
+  die schlimmste ist nicht die Quellenliste, sondern die **Wählvorschlagsliste**:
+
+  > DialSuggestion { Title = AV, Subtitle = +41…, Number = +41…, Source = Team,
+  > HasSubtitle = True }
+
+  Das ist der `ToString()` eines Records — die **Nummer zweimal**, dazu ein
+  internes Feld, und das bei **jedem Tastendruck** für fünf Zeilen neu. Wer
+  nipp mit einer Sprachausgabe bedient, hört beim Wählen nichts anderes mehr.
+
+  **Repariert sind alle zehn** über eine `AccessibleName`-Eigenschaft am
+  Modell, gebunden in der Vorlage — dasselbe Muster, das `ContactRow` und
+  `HistoryRow` seit jeher benutzen. Nachgemessen: «AV, 152, Team»,
+  «<Name der Quelle>, Anruferkontext, Kontaktsuche, Kontakt öffnen», und im ganzen
+  Baum kein Typname mehr.
+
+  **Und die Prüflücke ist geschlossen** (`ListenNamenTests`): der Test liest
+  jede XAML-Datei der App und verlangt für jedes `DataTemplate` mit
+  `x:DataType` ein `AutomationProperties.Name`. **Ein eigenes `ToString()`
+  lässt er bewusst nicht als Ausweg gelten** — es ist für die Fehlersuche da,
+  nicht für die Sprachausgabe, und wer es ändert, denkt an das Debugfenster
+  und nicht an den Menschen, der zuhört. Die einzige Ausnahme ist eine
+  Sperrliste mit einem Eintrag: der Detailbereich einer Kontaktzeile, ein
+  `ItemsControl`, dessen Kinder ihre eigenen Namen tragen.
+
+  **Dass es dreimal reingekommen ist** — 07.09. an Katalog und Palette, jetzt
+  an Quellenliste und Vorschlägen —, liegt daran, dass nichts es sehen konnte:
+  `UserTextTests` liest Literale, und ein Komponententest sieht die Oberfläche
+  gar nicht.
 
 **Was die Runde am Werkzeug gekostet hat — eine halbe Stunde, und die Lehre
 steht jetzt im Skript:** der Quellenbereich liegt **nicht** bei «Kontakte»,

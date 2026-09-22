@@ -1864,6 +1864,24 @@ public sealed record DialSuggestion(string Title, string Subtitle, string Number
     public bool HasSubtitle => Subtitle.Length > 0;
 
     /// <summary>
+    /// Was eine Sprachausgabe vorliest (Befund A1-16).
+    ///
+    /// <para><b>Ohne diese Eigenschaft liest sie den <c>ToString()</c> des
+    /// Records</b> — gemessen am 22.09.2026 stand im Namen der Zeile
+    /// «DialSuggestion { Title = …, Subtitle = …, Number = …, Source = Team,
+    /// HasSubtitle = True }»: die Nummer zweimal, dazu ein internes Feld, und
+    /// das bei jedem Tastendruck fünfmal neu. Dasselbe wie der Befund vom
+    /// 07.09.2026 am Katalog.</para>
+    ///
+    /// <para>Der Untertitel bleibt weg, wenn er nur die Nummer aus dem Titel
+    /// wiederholt — <see cref="HasSubtitle"/> entscheidet das schon für die
+    /// Anzeige, und was man nicht sieht, will man auch nicht hören.</para>
+    /// </summary>
+    public string AccessibleName => HasSubtitle
+        ? $"{Title}, {Subtitle}, {Source}"
+        : $"{Title}, {Source}";
+
+    /// <summary>
     /// Baut einen Vorschlag und lässt den Untertitel weg, wenn er nur die
     /// Nummer wiederholt, die schon im Titel steht.
     /// </summary>

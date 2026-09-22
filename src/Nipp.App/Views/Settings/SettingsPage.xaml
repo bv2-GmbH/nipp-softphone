@@ -1117,7 +1117,10 @@
                                 SelectionMode="Single">
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="vm:IntegrationSourceRow">
-                                        <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
+                                        <Grid
+                                            Padding="0,4,0,4"
+                                            AutomationProperties.Name="{x:Bind AccessibleName}"
+                                            ColumnSpacing="{StaticResource NippGapLarge}">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
@@ -1143,9 +1146,17 @@
                                                     TextWrapping="Wrap" />
                                             </StackPanel>
 
+                                            <!--
+                                                Der Schalter traegt einen eigenen Namen, weil seine
+                                                Beschriftung leer ist: OnContent und OffContent sind
+                                                mit Absicht weg (die Zeile sagt den Zustand schon),
+                                                und ohne Namen sagt eine Sprachausgabe nur
+                                                "Ein/Aus-Schalter", ohne wofuer (Befund A1-16).
+                                            -->
                                             <ToggleSwitch
                                                 Grid.Column="2"
                                                 VerticalAlignment="Center"
+                                                AutomationProperties.Name="{x:Bind DisplayName}"
                                                 IsOn="{x:Bind IsEnabled, Mode=TwoWay}"
                                                 OffContent=""
                                                 OnContent="" />
@@ -1235,7 +1246,10 @@
                                     ItemsSource="{x:Bind IntegrationViewModel.Secrets}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:IntegrationSecretRow">
-                                            <StackPanel Margin="0,0,0,8" Spacing="{StaticResource NippGapSmall}">
+                                            <StackPanel
+                                                Margin="0,0,0,8"
+                                                AutomationProperties.Name="{x:Bind AccessibleName, Mode=OneWay}"
+                                                Spacing="{StaticResource NippGapSmall}">
                                                 <PasswordBox
                                                     Header="{x:Bind Label}"
                                                     Password="{x:Bind Value, Mode=TwoWay}"

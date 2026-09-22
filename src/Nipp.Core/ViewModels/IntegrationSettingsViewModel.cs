@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -62,6 +62,21 @@ public sealed partial class IntegrationSourceRow : ObservableObject
     /// sonst aus wie eine, die läuft.
     /// </summary>
     public bool NeedsAttention => !SecretsReady;
+
+    /// <summary>
+    /// Was eine Sprachausgabe vorliest (Befund A1-16).
+    ///
+    /// <para>Ohne diese Eigenschaft nimmt die Automation den
+    /// <c>ToString()</c> der Zeile — gemessen am 22.09.2026 hiess jede Zeile
+    /// der Quellenliste «Nipp.Core.ViewModels.IntegrationSourceRow».</para>
+    ///
+    /// <para><b>Das Warnzeichen gehört mit hinein</b>, denn es steht in der
+    /// Zeile als Symbol und sonst nirgends: wer nicht sieht, hört sonst
+    /// nicht, dass diese Quelle aus ist.</para>
+    /// </summary>
+    public string AccessibleName => NeedsAttention
+        ? $"{DisplayName}, {StatusText}, braucht Aufmerksamkeit"
+        : $"{DisplayName}, {StatusText}";
 }
 
 /// <summary>
@@ -163,6 +178,13 @@ public sealed partial class IntegrationSecretRow : ObservableObject
     public string StatusText => IsConfigured
         ? "hinterlegt — an dieses Gerät und Benutzerkonto gebunden"
         : "fehlt auf diesem Gerät; ohne Wert bleibt die Quelle aus";
+
+    /// <summary>
+    /// Was eine Sprachausgabe vorliest (Befund A1-16). Der Zustand gehört
+    /// dazu: ob ein Wert hinterlegt ist, steht sonst nur als kleiner Text
+    /// neben dem Feld.
+    /// </summary>
+    public string AccessibleName => $"{Label}, {StatusText}";
 
     partial void OnIsConfiguredChanged(bool value) => OnPropertyChanged(nameof(StatusText));
 }

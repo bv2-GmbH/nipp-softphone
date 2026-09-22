@@ -44,9 +44,25 @@ das Argument dafür, dass sie eine ist.
 **Dafür ist T108 jetzt beantwortet:** Quelle mit Token entfernt und neu
 angelegt, die Zugangsdaten sind noch da — und die Rückfrage sagt es vorher zu.
 
-**A1-16 bleibt:** die Quellenliste heisst für einen Bildschirmleser
-`Nipp.Core.ViewModels.IntegrationSourceRow`, und die Schalter je Zeile tragen
-gar keinen Namen. Derselbe Befund wie am 07.09.2026, an einer dritten Stelle.
+## Zehn Listen ohne Namen, und die schlimmste war die Wählliste (22.09.2026)
+
+**A1-16, gefunden in der Quellenliste, beim Reparieren deutlich grösser
+geworden.** Ein Durchgang durch alle Vorlagen der App fand **zehn** ohne
+`AutomationProperties.Name`. Die schlimmste sind die **Wählvorschläge**: dort
+stand der `ToString()` des Records — die Nummer **zweimal**, dazu
+`HasSubtitle = True`, und das bei jedem Tastendruck für fünf Zeilen neu. Wer
+nipp mit einer Sprachausgabe bedient, hört beim Wählen nichts anderes mehr.
+
+Alle zehn tragen jetzt einen `AccessibleName` am Modell, gebunden in der
+Vorlage — dasselbe Muster wie `ContactRow` und `HistoryRow` seit jeher.
+Nachgemessen: «AV, 152, Team», und im ganzen Baum kein Typname mehr.
+
+**`ListenNamenTests` hält es fest.** Der Test liest jede XAML-Datei der App und
+verlangt für jedes `DataTemplate` einen Namen; ein eigenes `ToString()` lässt
+er bewusst nicht als Ausweg gelten. **Dass derselbe Fehler dreimal
+hereinkam** — 07.09. an Katalog und Palette, jetzt an Quellenliste und
+Vorschlägen —, lag daran, dass nichts ihn sehen konnte: `UserTextTests` liest
+Literale, ein Komponententest sieht die Oberfläche gar nicht.
 
 **T98 dagegen hält** — zwei Quellen nacheinander angelegt, beide abgeschaltet,
 die bestehenden unangetastet, die Wartezeiten unverändert.

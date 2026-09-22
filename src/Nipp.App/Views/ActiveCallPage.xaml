@@ -343,7 +343,10 @@
                     <ItemsControl x:Name="CallerCardFields">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:CallerCardField">
-                                <Grid Padding="0,2,0,2" ColumnSpacing="{StaticResource NippGapLarge}">
+                                <Grid
+                                    Padding="0,2,0,2"
+                                    AutomationProperties.Name="{x:Bind AccessibleName}"
+                                    ColumnSpacing="{StaticResource NippGapLarge}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" MinWidth="120" />
                                         <ColumnDefinition Width="*" />
@@ -374,6 +377,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:CallerCardSource">
                                 <TextBlock
+                                    AutomationProperties.Name="{x:Bind Text}"
                                     Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                                     Style="{StaticResource CaptionTextBlockStyle}"
                                     Text="{x:Bind Text}"
@@ -412,7 +416,7 @@
                         SelectionMode="Single">
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="vm:CallRow">
-                                <StackPanel Padding="0,4,0,4">
+                                <StackPanel Padding="0,4,0,4" AutomationProperties.Name="{x:Bind AccessibleName, Mode=OneWay}">
                                     <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind Label, Mode=OneWay}" />
                                     <TextBlock
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"

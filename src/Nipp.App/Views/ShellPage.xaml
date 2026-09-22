@@ -635,7 +635,10 @@
             SelectionChanged="OnAccountSelectionChanged">
             <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="model:AccountStatus">
-                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource NippGapLarge}">
+                    <StackPanel
+                        AutomationProperties.Name="{x:Bind ShortLabel}"
+                        Orientation="Horizontal"
+                        Spacing="{StaticResource NippGapLarge}">
                         <Ellipse
                             Width="{StaticResource NippPresenceBadgeSize}"
                             Height="{StaticResource NippPresenceBadgeSize}"
@@ -868,6 +871,7 @@
                         <DataTemplate x:DataType="vm:DialSuggestion">
                             <Grid
                                 Padding="0,4,0,4"
+                                AutomationProperties.Name="{x:Bind AccessibleName}"
                                 ColumnSpacing="{StaticResource NippGapMedium}"
                                 Tapped="OnSuggestionTapped">
                                 <Grid.ColumnDefinitions>
@@ -1221,6 +1225,7 @@
                                         <DataTemplate x:DataType="vm:CallerCardSource">
                                             <TextBlock
                                                 Padding="0,2,0,2"
+                                                AutomationProperties.Name="{x:Bind Text}"
                                                 Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                                                 Style="{StaticResource CaptionTextBlockStyle}"
                                                 Text="{x:Bind Message}"

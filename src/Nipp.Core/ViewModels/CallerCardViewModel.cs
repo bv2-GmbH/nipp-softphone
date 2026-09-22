@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Nipp.Core.Services.Integrations.Cards;
 using Nipp.Core.Services.Integrations.Context;
@@ -13,7 +13,16 @@ namespace Nipp.Core.ViewModels;
 /// <param name="Label">Was links steht.</param>
 /// <param name="Value">Was rechts steht.</param>
 /// <param name="SourceId">Aus welcher Quelle — für die Fehlersuche.</param>
-public sealed record CallerCardField(string Label, string Value, string SourceId);
+public sealed record CallerCardField(string Label, string Value, string SourceId)
+{
+    /// <summary>
+    /// Was eine Sprachausgabe vorliest (Befund A1-16). Beschriftung und Wert
+    /// stehen nebeneinander in zwei Spalten; ohne diese Zeile liest sie sie
+    /// als zwei zusammenhanglose Bruchstücke oder, schlimmer, die ganze
+    /// Aufstellung des Records samt <see cref="SourceId"/>.
+    /// </summary>
+    public string AccessibleName => $"{Label}, {Value}";
+}
 
 /// <summary>
 /// Was eine Quelle gerade beiträgt — die Zeile unter der Karte.
