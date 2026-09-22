@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -58,6 +58,20 @@ public sealed class SecretStore(ILogger<SecretStore> logger, string? path = null
     public void Set(string key, string secret)
     {
         var all = ReadAll();
+
+        // <b>Dasselbe wie in Remove, das es seit jeher richtig macht</b>
+        // (Befund A1-22): ein Ablegen, das nichts aendert, ist keines. Am
+        // 22.09.2026 stand «Zugangsdaten abgelegt» 787-mal an einem Tag im
+        // Protokoll, fast immer mit demselben Inhalt — jedes Mal wurde die
+        // verschluesselte Datei neu geschrieben. Ein Absturz mitten darin
+        // traefe die Passwoerter, und der Anlass waere ein Kontoereignis
+        // gewesen, das mit ihnen nichts zu tun hat.
+        if (all.TryGetValue(key, out var bisher)
+            && string.Equals(bisher, secret, StringComparison.Ordinal))
+        {
+            return;
+        }
+
         all[key] = secret;
         WriteAll(all);
     }

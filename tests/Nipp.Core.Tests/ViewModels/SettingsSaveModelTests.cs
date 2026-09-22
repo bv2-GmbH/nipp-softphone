@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Nipp.Core.Services.Settings;
 using Nipp.Core.ViewModels;
 
@@ -53,6 +53,71 @@ public sealed class SettingsSaveModelTests
         // beiden, entschiede die Reihenfolge der Abfrage — und die steht an
         // einer Stelle, die niemand liest, wenn er die Listen pflegt.
         var beide = NamesIn("NurAnzeige").Intersect(NamesIn("ErstBeimVerlassen")).ToList();
+
+        Assert.Empty(beide);
+    }
+
+    /// <summary>
+    /// Berechnete Eigenschaften speichern nicht (Befund A1-22).
+    ///
+    /// <para>Sie werden nicht von Hand gefuehrt, sondern aus dem Typ gelesen —
+    /// dieser Test haelt fest, dass die Ableseregel greift und die drei Werte
+    /// trifft, an denen der Befund haengt.</para>
+    /// </summary>
+    [Fact]
+    public void Berechnete_Eigenschaften_stehen_in_OhneSetter()
+    {
+        var ohneSetter = NamesIn("OhneSetter");
+
+        // Die drei aus RefreshAccounts: sie haben den Befund ausgeloest.
+        Assert.Contains("CanAddAccount", ohneSetter);
+        Assert.Contains("AccountFormIssue", ohneSetter);
+        Assert.Contains("AccountCapacity", ohneSetter);
+    }
+
+    /// <summary>
+    /// <b>Die Gegenprobe, und sie ist die wichtigere Haelfte.</b> Eine zu grobe
+    /// Bremse verschluckt das Speichern selbst — dann sieht ein kaputter
+    /// einziger Weg aus wie ein funktionierender (CLAUDE.md zu ADR-045).
+    /// Keine Eigenschaft, die wirklich etwas einstellt, darf als «berechnet»
+    /// gelten.
+    /// </summary>
+    [Fact]
+    public void Keine_echte_Einstellung_gilt_als_berechnet()
+    {
+        var ohneSetter = NamesIn("OhneSetter");
+
+        // Ein Querschnitt durch die Einstellungsseite: Schalter, Auswahl,
+        // Freitext, Zahl. Jede davon MUSS schreiben.
+        string[] echteEinstellungen =
+        [
+            "SipPort", "StunServer", "CountryPrefix", "RecordingDirectory",
+            "HistoryRetentionDays", "ProvisioningUri",
+        ];
+
+        foreach (var name in echteEinstellungen)
+        {
+            Assert.True(
+                HatEigenschaft(name),
+                $"«{name}» gibt es nicht mehr — der Test misst am falschen Ort.");
+
+            Assert.False(
+                ohneSetter.Contains(name),
+                $"«{name}» gilt als berechnet und wuerde nicht mehr gespeichert.");
+        }
+    }
+
+    /// <summary>
+    /// <c>OhneSetter</c> und die beiden gepflegten Listen duerfen sich
+    /// ueberschneiden — ein Eintrag in <c>NurAnzeige</c>, der ohnehin keinen
+    /// Setter hat, ist bloss ueberfluessig. <b>Eine Ueberschneidung mit
+    /// <c>ErstBeimVerlassen</c> waere dagegen ein stiller Datenverlust:</b>
+    /// das Feld kaeme dann auf keinem Weg mehr auf die Platte.
+    /// </summary>
+    [Fact]
+    public void Kein_Freitextfeld_gilt_als_berechnet()
+    {
+        var beide = NamesIn("ErstBeimVerlassen").Intersect(NamesIn("OhneSetter")).ToList();
 
         Assert.Empty(beide);
     }

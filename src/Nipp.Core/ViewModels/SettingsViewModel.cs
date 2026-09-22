@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -90,6 +90,34 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     /// Oberfläche ruft <see cref="ApplyEdits"/>, sobald das Feld den Fokus
     /// verliert.</para>
     /// </summary>
+    /// <summary>
+    /// Eigenschaften <b>ohne oeffentlichen Setter</b> — berechnete Werte wie
+    /// <c>CanAddAccount</c> oder <c>AccountFormIssue</c>.
+    ///
+    /// <para><b>Warum das keine dritte Liste ist.</b> Die beiden Listen darueber
+    /// sind Entscheidungen, die jemand treffen und pflegen muss. Dies hier ist
+    /// keine: eine Eigenschaft ohne Setter <b>kann</b> keinen neuen Wert tragen,
+    /// also gibt es an ihr nichts zu speichern. Deshalb wird sie aus dem Typ
+    /// gelesen und nicht von Hand gefuehrt — vergessen kann man sie damit
+    /// nicht.</para>
+    ///
+    /// <para><b>Der Befund dahinter (A1-22).</b> <c>RefreshAccounts</c> meldet
+    /// nach jedem Kontoereignis drei solche Werte. Am 22.09.2026 gemessen:
+    /// waehrend die Anmeldung wackelte, schrieb nipp die Einstellungen
+    /// <b>727-mal</b> und die verschluesselte Datei mit den Zugangsdaten
+    /// <b>787-mal</b> — achtzehn Mal je Runde, sechs Runden je Wackler. Der
+    /// Vergleich aus ADR-060 fing das Schreiben auf die Platte ab, aber erst
+    /// <b>nach</b> dem Ablegen der Geheimnisse; und ein Aufruf, den es nicht
+    /// geben muesste, ist auch mit Bremse einer.</para>
+    /// </summary>
+    private static readonly HashSet<string> OhneSetter = new(
+        typeof(SettingsViewModel)
+            .GetProperties(System.Reflection.BindingFlags.Public
+                | System.Reflection.BindingFlags.Instance)
+            .Where(p => p.GetSetMethod(nonPublic: false) is null)
+            .Select(p => p.Name),
+        StringComparer.Ordinal);
+
     private static readonly HashSet<string> ErstBeimVerlassen = new(StringComparer.Ordinal)
     {
         nameof(SipPort), nameof(KeepAliveSeconds), nameof(StunServer),
@@ -388,9 +416,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Jede Aenderung an einer Einstellung schreibt sie (ADR-045).
     ///
-    /// <para>Ausgenommen ist, was nichts einstellt (<see cref="NurAnzeige"/>)
-    /// und was erst beim Verlassen des Feldes wirkt
-    /// (<see cref="ErstBeimVerlassen"/>).</para>
+    /// <para>Ausgenommen ist, was nichts einstellt (<see cref="NurAnzeige"/>
+    /// und <see cref="OhneSetter"/>) und was erst beim Verlassen des Feldes
+    /// wirkt (<see cref="ErstBeimVerlassen"/>).</para>
     /// </summary>
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
@@ -398,6 +426,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
         if (e.PropertyName is not { Length: > 0 } name
             || NurAnzeige.Contains(name)
+            || OhneSetter.Contains(name)
             || ErstBeimVerlassen.Contains(name))
         {
             return;

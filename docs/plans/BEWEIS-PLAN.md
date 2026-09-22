@@ -179,25 +179,51 @@ mehr** aus einer Sicherung zurückgespielt. Dominics Fassung ist jünger als
 jede, die diese Runde angelegt hat — ein Rückweg, der das überschreibt, nimmt
 ihm das Passwort ein zweites Mal (dieselbe Falle wie A1-9, nur andersherum).
 
-- **A1-22 — OFFEN, aus T286. Ein Klick erzeugt 62 Schreibvorgänge auf die
-  Geheimnisdatei.** Einen Schalter umgelegt, Protokoll auf Debug: **198
-  Zeilen**, darunter **62-mal** «Zugangsdaten abgelegt (3 Eintraege)» und
-  **60-mal** «Nichts zu speichern — die Einstellungen sind unveraendert». Die
-  Kette läuft **6,65 Sekunden** und hört dann auf.
+- **A1-22 — ERLEDIGT am 23.09.2026, aus T286. 62 Schreibvorgänge auf die
+  Geheimnisdatei.** Protokoll auf Debug: **198 Zeilen**, darunter **62-mal**
+  «Zugangsdaten abgelegt (3 Eintraege)» und **60-mal** «Nichts zu speichern —
+  die Einstellungen sind unveraendert», über **6,65 Sekunden**.
 
-  **Die Bremse aus ADR-060 greift, aber nur halb.** `SettingsService.Write`
-  vergleicht und schreibt nicht mehr — das ist die Hälfte, die funktioniert.
-  **Gerufen wird es trotzdem sechzigmal**, und der `SecretStore` hat keinen
-  solchen Vergleich: er verschlüsselt und schreibt bei jedem Durchlauf.
+  **Die Bremse aus ADR-060 griff, aber nur halb.** `SettingsService.Write`
+  verglich und schrieb nicht mehr — das ist die Hälfte, die funktionierte.
+  **Gerufen wurde es trotzdem sechzigmal**, und der `SecretStore` hatte keinen
+  solchen Vergleich: er verschlüsselte und schrieb bei jedem Durchlauf.
 
-  **Warum das mehr ist als Rauschen im Protokoll:** 62 Schreibvorgänge auf
-  eine verschlüsselte Datei kosten Zeit und Schreibzyklen, und sie verdecken
-  im Protokoll alles andere. Vor allem aber ist es dieselbe Rückkopplung, die
-  ADR-060 eigentlich beenden sollte — sie ist nur eine Ebene tiefer gerutscht.
+  **Der Auslöser war nicht der Klick.** Das stand so im Befund, und es stimmte
+  nicht. Die Spur durch das Protokoll des 22.09.2026 zeigt vor **jedem** Block
+  denselben Vorlauf: `Register refresher [503] reason [io error]`, dann ein
+  Kontozustandswechsel. Über den ganzen Tag sind es **727** «Nichts zu
+  speichern» und **787** «Zugangsdaten abgelegt», in Blöcken von achtzehn —
+  und am 23.09.2026, mit sauberer Anmeldung, **keine einzige**. Es war die
+  fail2ban-Sperre, die die Anmeldung in eine Schleife trieb; der Klick war nur
+  das, was zufällig danebenstand.
 
-  **Was nicht gemessen ist:** woher die sechzig Durchläufe kommen. Der
-  nächste Schritt wäre eine Spur an `SettingsService.Changed` mit dem
-  Aufrufer.
+  **Und wer dabei schreibt, sind drei berechnete Werte.** `RefreshAccounts`
+  meldet nach jedem Kontoereignis `CanAddAccount`, `AccountFormIssue` und
+  `AccountCapacity` — drei Eigenschaften **ohne Setter**, die nichts
+  einstellen, aber in keiner der beiden Sperrlisten aus ADR-045 stehen. Drei
+  je Ereignis, sechs Ereignisse je Runde: genau die achtzehn.
+
+  **Repariert an beiden Stellen, und die zweite ist die Absicherung:**
+
+  1. **Eine Eigenschaft ohne öffentlichen Setter speichert nicht mehr**
+     (`SettingsViewModel.OhneSetter`). Das ist **keine dritte Liste**: es wird
+     aus dem Typ gelesen, nicht von Hand gepflegt — eine Eigenschaft ohne
+     Setter kann keinen neuen Wert tragen, also gibt es an ihr nichts zu
+     speichern. Vergessen kann man sie damit nicht, und das ist der
+     Unterschied zu `NurAnzeige`, wo genau das passiert ist.
+  2. **`SecretStore.Set` vergleicht vor dem Schreiben** — dasselbe, was
+     `Remove` daneben seit jeher tut. Die Asymmetrie war der Grund, warum die
+     Bremse eine Ebene höher nicht reichte.
+
+  **Nachgemessen am 23.09.2026** — und die Gegenprobe ist die wichtigere
+  Hälfte (eine zu grobe Bremse verschluckt das Speichern selbst): Schalter
+  «Immer im Vordergrund» über UI Automation umgelegt, `settings.json` trägt
+  `"AlwaysOnTop": true` und den Vermerk `advanced.always-on-top`, zurück
+  geschaltet steht wieder `false`. Im Protokoll dieser Sitzung: **14 echte
+  Speichervorgänge, null «Zugangsdaten abgelegt», null «Nichts zu
+  speichern».** Dazu drei neue Tests in `SettingsSaveModelTests`, einer davon
+  die Gegenrichtung: keine echte Einstellung darf als berechnet gelten.
 
 **T268 hält** (`TrayHintSeen` von fehlend auf `true`, nipp läuft im
 Infobereich weiter); die Sprechblase selbst bleibt am Auge.

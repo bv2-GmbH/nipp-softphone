@@ -107,6 +107,16 @@ lesbar bleiben.
   `NumberBox` übertragen ihren Inhalt aber erst mit `LostFocus` in die
   Bindung. Vier Tage lang las `ApplyEdits` dort den alten Stand und schrieb
   ihn zurück.
+  **Eine Eigenschaft ohne öffentlichen Setter speichert gar nicht** (Befund
+  A1-22, 23.09.2026). Sie kann keinen neuen Wert tragen, also gibt es an ihr
+  nichts zu schreiben; `OhneSetter` liest das aus dem Typ und wird **nicht von
+  Hand geführt**. Das ist der Unterschied zu `NurAnzeige`, und er hatte einen
+  Preis: `RefreshAccounts` meldet nach jedem Kontoereignis drei berechnete
+  Werte, und weil sie in keiner Liste standen, schrieb nipp an einem Tag mit
+  wackelnder Anmeldung **727-mal** die Einstellungen und **787-mal** die
+  verschlüsselte Datei mit den Zugangsdaten. **Wer eine Eigenschaft *mit*
+  Setter hinzufügt, die nichts einstellt, trägt sie weiterhin in `NurAnzeige`
+  ein.**
   **Und was die Sperrliste sonst noch bedeutet:** für die neun Felder darin
   ist `ApplyEdits` der **einzige** Weg auf die Platte — `OnPropertyChanged`
   überspringt sie. Ein kaputter einziger Weg sieht aus wie ein
