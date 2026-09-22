@@ -931,7 +931,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   stehen.» Er beschreibt die Absicht, nicht das Verhalten. Das ist dieselbe
   Sorte Satz wie in Befund A8 der Welle 2.7, zum vierten Mal.
 
-- **A1-13 — OFFEN, gefunden am 22.09.2026 beim Lesen, nicht beim Messen.**
+- **A1-13 — BEHOBEN am 22.09.2026, und vorher am laufenden Programm belegt.**
   **In `CallHistoryStore` schützt `Guarded` sechs von sieben Zugriffen nicht.**
   Das Muster steht in derselben Datei zweimal, einmal richtig und sechsmal
   verdreht:
@@ -972,11 +972,36 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   `settings.json`, für die Anrufliste fehlt das Gegenstück. Vorgeschlagen als
   **T318**.
 
-  Die Reparatur ist klein (die Körper der sechs Paare tauschen), aber sie
-  gehört gemessen und nicht geraten: ein `Guarded`, das den Fehler verschluckt,
-  wo vorher eine Ausnahme kam, ändert das Verhalten der Aufrufer.
+  **Gemessen wurde zuerst, repariert danach — und die Messung hat den Befund
+  von «gelesen» auf «belegt» gehoben.** T318 am selben Weg, in beide
+  Richtungen:
 
-- **A1-14 — OFFEN, aus T118.** **Die Meldung sagt nicht, welcher Baustein
+  | | vor der Reparatur | nach der Reparatur |
+  |---|---|---|
+  | **nipp** | **weg** — `0xc000027b` in `combase.dll` | bleibt stehen |
+  | **Protokoll** | `[FTL] Unbehandelte Ausnahme` samt Stapel | `[WRN] Zugriff auf die Anrufliste fehlgeschlagen (MarkSeen)` |
+  | **Start** | — | `Purge` scheitert ebenso protokolliert, die Liste bleibt lesbar |
+
+  Der Stapel des Absturzes endet in `ABI…SelectionChangedEventHandler.Do_Abi_Invoke`
+  — dem Reverse-P/Invoke-Rahmen. **Das ist ADR-053 wörtlich**, an genau der
+  Stelle, für die `Guarded` gebaut worden war.
+
+  **Die Reparatur ist der Tausch der sechs Methodenpaare** (Signatur der
+  öffentlichen an den `Guarded`-Aufruf, die private an den Körper — so, wie
+  `Query` es seit jeher macht), dazu sechs Tests auf einer schreibgeschützten
+  Datei. **Die Gegenprobe ist gemacht:** mit zurückgenommener Reparatur fallen
+  vier der sechs, mit ihr sind alle grün. Ein Test, der auch mit dem Fehler
+  grün bliebe, wäre keiner — und genau das waren die bestehenden Tests, die
+  alle auf einer funktionierenden Datei arbeiten.
+
+  **Was die Messung nebenbei gelehrt hat, und es kostete zwei Fehlversuche:**
+  wer `history.db` **im laufenden Betrieb** schreibgeschützt setzt, misst den
+  Verbindungspool von `Microsoft.Data.Sqlite`. Eine schon offene, schreibfähige
+  Verbindung schreibt weiter, der Fehlerfall tritt gar nicht ein — beim ersten
+  Anlauf gelang das Schreiben, und der Eintrag galt als gesehen. **Die Datei
+  gehört vor dem Start geschützt**; das steht jetzt in T318.
+
+- **A1-14 — BEHOBEN am 22.09.2026, aus T118.** **Die Meldung sagt nicht, welcher Baustein
   gemeint ist, und nennt einen .NET-Typnamen.** Beim Übernehmen der
   Gesprächskarte in die Benachrichtigung steht unten **achtmal wortgleich**:
 
@@ -1002,7 +1027,27 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   **Was richtig funktioniert:** Speichern ist gesperrt, solange ein solcher
   Baustein drinsteht, **gekürzt wird nichts**, und nach dem Entfernen der acht
   plus einem Textbaustein geht das Speichern wieder. Der Mechanismus stimmt;
-  es fehlt die Auskunft, die ihn bedienbar macht.
+  es fehlte die Auskunft, die ihn bedienbar macht.
+
+  **Repariert:** eine Meldung statt acht, und sie nennt jeden Baustein mit
+  seiner Beschriftung — «In einer Benachrichtigung erscheinen «Art», «Letzte
+  Arbeit», «Wer» … nicht — Windows nimmt dort nur Text. Entfernen oder durch
+  einen Textbaustein ersetzen.» Am laufenden Programm nachgemessen: zwei
+  Zeilen, vollständig sichtbar, Speichern weiterhin gesperrt.
+
+  **Wie ein Baustein heisst, entscheidet jetzt eine Stelle:**
+  `Cards/CardElementNames.cs`. **Der Karten-Designer ist noch nicht darauf
+  gezogen** — er beschriftet seine Knöpfe in `CardDesignerWindow.xaml` selbst
+  («Text», «Abzeichen», «Linie», «Abstand»). Das ist die zweite Stelle, und
+  solange sie besteht, müssen die Wörter zueinander passen; der Kommentar an
+  `CardElementNames` sagt es.
+
+  **Und die Prüflücke ist geschlossen:** `CardElementNameTests` baut für jeden
+  Bausteintyp eine Toast-Karte und prüft, dass in keiner Meldung ein
+  .NET-Typname steht — über Reflexion, damit ein künftiger Typ mitgeprüft
+  wird. Ein zweiter Test hält die Liste der Bausteine vollständig. **Der
+  bestehende Test blieb grün**, weil er auf «nur Text» prüfte; der Typname
+  stand daneben.
 
 **Was die Runde sich selbst beigebracht hat:** **Wer `settings.json` bei
 laufendem nipp ändert, verliert die Änderung.** Beim Beenden schreibt nipp

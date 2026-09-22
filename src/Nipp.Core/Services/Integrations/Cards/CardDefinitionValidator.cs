@@ -1,4 +1,4 @@
-using Nipp.Core.Services.Integrations.Config;
+﻿using Nipp.Core.Services.Integrations.Config;
 
 namespace Nipp.Core.Services.Integrations.Cards;
 
@@ -207,6 +207,7 @@ public static class CardDefinitionValidator
         }
 
         var texte = 0;
+        var ohneEntsprechung = new List<string>();
 
         foreach (var element in card.Sections
             .SelectMany(static s => s.Rows)
@@ -227,13 +228,23 @@ public static class CardDefinitionValidator
                     break;
 
                 default:
-                    issues.Add(new ValidationIssue(
-                        path,
-                        IssueSeverity.Warning,
-                        $"Ein Baustein der Art '{element.GetType().Name}' erscheint in einer "
-                            + "Benachrichtigung nicht. Windows nimmt dort nur Text."));
+                    ohneEntsprechung.Add(CardElementNames.Beschreibe(element));
                     break;
             }
+        }
+
+        // EINE Meldung mit allen Namen, nicht eine je Baustein (Befund A1-14).
+        // Beim Übernehmen einer Gesprächskarte kamen hier acht wortgleiche
+        // Sätze heraus, von denen fünf ins Feld passten — sie sagten dem
+        // Benutzer nur, dass es acht sind, und nicht welche.
+        if (ohneEntsprechung.Count > 0)
+        {
+            issues.Add(new ValidationIssue(
+                path,
+                IssueSeverity.Warning,
+                $"In einer Benachrichtigung {(ohneEntsprechung.Count == 1 ? "erscheint" : "erscheinen")} "
+                    + $"{string.Join(", ", ohneEntsprechung)} nicht — Windows nimmt dort nur Text. "
+                    + "Entfernen oder durch einen Textbaustein ersetzen."));
         }
 
         if (texte > MaxToastTextRows)

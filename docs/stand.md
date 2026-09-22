@@ -14,9 +14,37 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 
 
 **Stand 22.09.2026, abends.** Die sechste Messrunde der Schreibtisch-Runde A1
-ist durch: **acht Zeilen, sieben bestanden, eine teilweise, zwei neue
-Befunde.** Gezählt sind jetzt **190 offene Matrixzeilen von 308**, davon 63 am
-Schreibtisch — und die Zählung ist zum ersten Mal nachrechenbar.
+ist durch, **und ihre beiden Befunde sind noch am selben Abend repariert und
+nachgemessen**: acht Zeilen gemessen, dazu T318 neu angelegt und in beide
+Richtungen belegt. Gezählt sind **189 offene Matrixzeilen von 308**, davon 62
+am Schreibtisch — und die Zählung ist zum ersten Mal nachrechenbar.
+
+## A1-13 hätte nipp jederzeit beenden können (22.09.2026)
+
+**Der Befund kam beim Lesen, der Beweis vom laufenden Programm.** In
+`CallHistoryStore` trug die private `…Core`-Methode den `Guarded`-Aufruf und
+rief sich selbst; der öffentliche Weg, den alle Aufrufer nehmen, hatte kein
+`try`. Sechs von sieben Zugriffen waren so gebaut, seit dem 13.09.2026 —
+eingeführt ausgerechnet von dem Commit, der ADR-053 umsetzt und den
+Schreibzugriff auf die Anrufliste als einen der drei Absturzpfade nennt.
+
+**T318, am selben Weg gemessen:** `history.db` schreibgeschützt, ein Klick auf
+einen ungelesenen verpassten Anruf. **Vorher** war nipp weg — `0xc000027b` in
+`combase.dll`, der Stapel endet in `Do_Abi_Invoke`. **Nachher** bleibt es
+stehen und schreibt `[WRN] Zugriff auf die Anrufliste fehlgeschlagen
+(MarkSeen)`; beim Start dasselbe für `Purge`, die Liste bleibt lesbar.
+
+**Zwei Fehlversuche gehören zur Messung dazu.** Wer die Datei im laufenden
+Betrieb schützt, misst den Verbindungspool von `Microsoft.Data.Sqlite`: eine
+offene, schreibfähige Verbindung schreibt weiter, und der Fehlerfall tritt gar
+nicht ein. Die Datei gehört **vor** dem Start geschützt.
+
+**A1-14 ist ebenfalls repariert**: eine Meldung statt acht, und sie nennt jeden
+Baustein mit seiner Beschriftung. Wie ein Baustein heisst, entscheidet jetzt
+`CardElementNames` — **der Karten-Designer ist noch nicht darauf gezogen**,
+das bleibt die zweite Stelle. Und die Prüflücke, an der der .NET-Typname
+vorbeikam, ist geschlossen: `CardElementNameTests` baut für jeden Bausteintyp
+eine Karte und prüft die fertige Meldung, nicht das Literal im Code.
 
 ## Die Anrufliste und die Karten tragen (22.09.2026)
 

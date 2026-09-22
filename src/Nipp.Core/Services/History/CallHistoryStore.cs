@@ -252,10 +252,10 @@ public sealed class CallHistoryStore
     }
 
     /// <summary>Trägt einen abgeschlossenen Anruf ein.</summary>
-    private long AddCore(CallHistoryEntry entry) =>
+    public long Add(CallHistoryEntry entry) =>
         Guarded(nameof(Add), () => AddCore(entry), 0L);
 
-    public long Add(CallHistoryEntry entry)
+    private long AddCore(CallHistoryEntry entry)
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
@@ -380,9 +380,9 @@ public sealed class CallHistoryStore
     /// und nicht „da ist noch etwas offen". Ein Abzeichen, das man nicht
     /// wegbekommt, wird nach zwei Wochen nicht mehr gelesen.</para>
     /// </summary>
-    private int CountMissedCore() => Guarded(nameof(CountMissed), CountMissedCore, 0);
+    public int CountMissed() => Guarded(nameof(CountMissed), CountMissedCore, 0);
 
-    public int CountMissed()
+    private int CountMissedCore()
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
@@ -398,10 +398,10 @@ public sealed class CallHistoryStore
     /// nichts — der erste Zeitpunkt bleibt stehen.
     /// </summary>
     /// <returns>Ob dieser Aufruf etwas geaendert hat.</returns>
-    private bool MarkSeenCore(long id) =>
+    public bool MarkSeen(long id) =>
         Guarded(nameof(MarkSeen), () => MarkSeenCore(id), false);
 
-    public bool MarkSeen(long id)
+    private bool MarkSeenCore(long id)
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
@@ -421,9 +421,9 @@ public sealed class CallHistoryStore
     /// hat, loescht irgendwann die Liste.</para>
     /// </summary>
     /// <returns>Wie viele Eintraege betroffen waren.</returns>
-    private int MarkAllSeenCore() => Guarded(nameof(MarkAllSeen), MarkAllSeenCore, 0);
+    public int MarkAllSeen() => Guarded(nameof(MarkAllSeen), MarkAllSeenCore, 0);
 
-    public int MarkAllSeen()
+    private int MarkAllSeenCore()
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
@@ -445,10 +445,10 @@ public sealed class CallHistoryStore
     /// Löscht Einträge, die älter sind als die Aufbewahrungsfrist (§8.3,
     /// Standard 365 Tage). Beim Start zu rufen.
     /// </summary>
-    private int PurgeCore(int retentionDays) =>
+    public int Purge(int retentionDays) =>
         Guarded(nameof(Purge), () => PurgeCore(retentionDays), 0);
 
-    public int Purge(int retentionDays)
+    private int PurgeCore(int retentionDays)
     {
         if (retentionDays <= 0)
         {
@@ -473,9 +473,9 @@ public sealed class CallHistoryStore
     }
 
     /// <summary>Leert die Liste vollständig.</summary>
-    private void ClearCore() => Guarded(nameof(Clear), () => { ClearCore(); return true; }, false);
+    public void Clear() => Guarded(nameof(Clear), () => { ClearCore(); return true; }, false);
 
-    public void Clear()
+    private void ClearCore()
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
@@ -519,6 +519,26 @@ public sealed class CallHistoryStore
     ///
     /// <para><b>Nie still.</b> Der Benutzer merkt nur, dass ein Eintrag fehlt;
     /// die Protokollzeile ist die einzige Spur, die sagt, warum.</para>
+    ///
+    /// <para><b>Die Reihenfolge der beiden Methoden ist die ganze Sache, und
+    /// sie war vom 13.09. bis zum 22.09.2026 falsch.</b> Oeffentlich ist die
+    /// Methode mit dem <c>Guarded</c>-Aufruf, privat die mit dem Koerper:
+    /// <c>public Add(…) => Guarded(nameof(Add), () =&gt; AddCore(…), 0L);</c>
+    /// und darunter <c>private AddCore(…) { … }</c>. Andersherum ruft die
+    /// private Methode sich selbst — sie ist dann tot und endlos rekursiv —,
+    /// und der oeffentliche Weg, den alle Aufrufer nehmen, traegt den
+    /// Datenbankzugriff ohne <c>try</c>. Sechs von sieben Paaren standen so
+    /// da, und der Compiler sagt dazu nichts: eine ungenutzte private Methode
+    /// ist keine Warnung.</para>
+    ///
+    /// <para><b>Gemessen, nicht vermutet (T318, Befund A1-13):</b>
+    /// <c>history.db</c> im laufenden Betrieb schreibgeschuetzt, dann einen
+    /// ungelesenen verpassten Anruf angeklickt — nipp war weg. Die
+    /// <c>SqliteException</c> aus <c>MarkSeen</c> geht ueber
+    /// <c>OnHistorySelectionChanged</c> in <c>Do_Abi_Invoke</c>, den
+    /// WinRT-Rahmen, und endet als <c>0xc000027b</c> in
+    /// <c>combase.dll</c> — dieselbe Signatur wie ADR-067. Genau der Weg, den
+    /// ADR-053 beschreibt.</para>
     /// </summary>
     private T Guarded<T>(string operation, Func<T> work, T fallback)
     {
