@@ -187,6 +187,16 @@ internal static partial class AppLog
             + "({ExceptionType}). nipp laeuft weiter.")]
     public static partial void HandlerFailed(ILogger logger, string handler, string exceptionType);
 
+    /// <summary>
+    /// Eine Meldung, die nicht gezeigt wurde, weil schon eine offen ist
+    /// (Befund A1-19). <b>Nicht still:</b> der Benutzer sieht die erste und
+    /// wundert sich sonst, warum auf seinen zweiten Versuch nichts kommt.
+    /// </summary>
+    [LoggerMessage(EventId = 1061, Level = LogLevel.Information,
+        Message = "Die Meldung «{Titel}» wurde nicht gezeigt — es steht schon eine offen. "
+            + "WinUI laesst nur einen Dialog zu.")]
+    public static partial void DialogUebersprungen(ILogger logger, string titel);
+
     // W1.1: der Rueckfall beim Klingeln, wenn keine Benachrichtigung
     // durchkommt. Eigene Zeile und nicht ShownByFallback: die beiden Wege
     // unterscheiden sich genau darin, ob der Fokus wechselt, und das ist die

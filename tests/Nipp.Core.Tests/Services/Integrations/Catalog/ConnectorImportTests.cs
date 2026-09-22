@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using Nipp.Core.Services.Integrations.Catalog;
 
 namespace Nipp.Core.Tests.Services.Integrations.Catalog;
@@ -121,6 +121,45 @@ public sealed class ConnectorImportTests : IDisposable
 
         Assert.False(Bibliothek().TryImport(mitToken, replaceExisting: false, out _, out var fehler));
         Assert.Contains("Geheimnis", fehler!, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>Auch dort, wo das Geheimnis hingehört</b> (Befund A1-18).
+    ///
+    /// <para>Die Prüfung darüber sucht Feldnamen, die auf «token», «secret»
+    /// oder «key» enden — und lief bis zum 22.09.2026 nur über den Aufbau der
+    /// Quelle. In der Liste <c>secrets</c> heisst das Feld aber schlicht
+    /// <c>value</c>, und dort stand der Wert: die Vorlage kam durch, nipp
+    /// meldete «steht jetzt unter Quelle hinzufügen», und der Schlüssel lag
+    /// danach im Klartext im Vorlagenordner.</para>
+    ///
+    /// <para><b>In einem Geheimnis-Eintrag zählt der Ort und nicht der
+    /// Name:</b> alles ausser <c>ref</c>, <c>label</c> und <c>hint</c> ist ein
+    /// Fund.</para>
+    /// </summary>
+    [Fact]
+    public void Ein_Wert_in_der_Geheimnisliste_wird_abgelehnt()
+    {
+        var mitWert = Gut.Replace(
+            "\"hint\": \"Im Fremdsystem unter Profil.\"",
+            "\"hint\": \"Im Fremdsystem unter Profil.\", \"value\": \"abc123geheim\"",
+            StringComparison.Ordinal);
+
+        Assert.NotEqual(Gut, mitWert);
+        Assert.False(Bibliothek().TryImport(mitWert, replaceExisting: false, out _, out var fehler));
+        Assert.Contains("Geheimnis", fehler!, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Die Gegenprobe, und sie ist die wichtigere Hälfte: eine Vorlage, die in
+    /// <c>secrets</c> nur beschreibt, <b>welchen</b> Schlüssel sie braucht,
+    /// kommt weiterhin herein. Ein Wächter, der auch die guten Dateien
+    /// ablehnt, wird abgeschaltet.
+    /// </summary>
+    [Fact]
+    public void Eine_Geheimnisliste_ohne_Wert_kommt_herein()
+    {
+        Assert.True(Bibliothek().TryImport(Gut, replaceExisting: false, out _, out var fehler), fehler);
     }
 
     [Fact]

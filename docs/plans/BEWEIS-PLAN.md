@@ -200,6 +200,75 @@ kaum prüfbar, weil es ohne Outlook fast keine lokalen Kontakte gibt (ADR-018).
 Gemessen ist die Nebenläufigkeit der beiden fremden Quellen, nicht das
 Verhältnis lokal gegen fremd.
 
+#### Die Importrunde, in der Nacht auf den 23.09.2026
+
+**Fünf Zeilen: T169 bis T173.** Drei bestanden, eine teilweise, **eine nicht —
+und die eine war die Zusage, auf der der ganze Importweg steht.**
+
+**Das Rüstzeug:** zwei erfundene Anbietervorlagen in `nipp-testaufbauten/vorlagen`,
+abgeleitet aus der mitgelieferten `custom-rest.json` — eine saubere und eine mit
+einem Wert im Geheimnis. Beide zeigen auf `example.ch` und sprechen kein echtes
+System an.
+
+- **A1-18 — BEHOBEN am 22.09.2026. Eine Vorlage mit einem Zugangsschlüssel
+  darin wurde angenommen.** Gemessen: die Datei kam herein, nipp meldete
+  «steht jetzt unter Quelle hinzufügen», und der Wert lag danach **im Klartext**
+  im Vorlagenordner.
+
+  **Die Ursache ist doppelt**, und beide Hälften stehen in derselben Methode:
+  die Prüfung lief nur über den Knoten `source` (`Geheimnisfund(objekt["source"])`),
+  und sie sucht **Feldnamen**, die auf «token», «secret», «password», «apikey»
+  oder «key» enden. Der Wert stand unter `secrets[].value` — **ausserhalb des
+  geprüften Bereichs und unter einem Namen, der auf nichts davon endet.**
+
+  **Was hielt:** die Quelle kam abgeschaltet herein. Die zweite Zusage aus
+  ADR-040 greift also unabhängig davon.
+
+  **Repariert** über eine zweite Prüfung, die nicht nach Namen, sondern nach
+  **Ort** fragt: in einem Eintrag von `secrets` ist alles ausser `ref`, `label`
+  und `hint` ein Fund. Umgekehrt ginge es nicht — `value` in die Namensliste zu
+  nehmen träfe jede Feldzuordnung, in der ein Zielsystem ein Feld «value» nennt,
+  und ein Wächter mit ständigem Fehlalarm wird abgeschaltet. Nachgemessen: «In
+  der Vorlage steht ein Wert, der wie ein Geheimnis aussieht (secrets[].value)»,
+  und der Ordner bleibt leer. Zwei Tests dazu, mit Gegenprobe.
+
+- **A1-19 — die Wurzel behoben, die Prüflücke offen. Zwei Meldungen
+  hintereinander haben nipp beendet.** Aufgefallen durch einen Messfehler: ich
+  hatte den Dialog des ersten Importversuchs nicht geschlossen und den zweiten
+  ausgelöst. Im Protokoll:
+
+  > [FTL] Unbehandelte Ausnahme: Only a single ContentDialog can be open at any time.
+  > at SettingsPage.ShowAsync(…) :712 → OnImportConnectorClick(…) :1195
+
+  **Die Ausnahme ist eine `COMException`**, und der Behandler fängt
+  `catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)`
+  — der Filter greift nicht, die Ausnahme fliegt aus einem `async void`, und
+  nipp ist weg.
+
+  **Repariert an der Wurzel:** `ShowAsync` zeigt keine zweite Meldung, solange
+  eine offen ist, und schreibt stattdessen eine Protokollzeile (nicht still,
+  W1.7). Prüfzeile **T319** dafür angelegt.
+
+  **Offen bleibt die Prüflücke, und sie ist der grössere Teil.**
+  `ExceptionBoundaryTests` akzeptiert **jedes** `catch` im Rumpf eines
+  `async void` — auch eines mit engem `when`-Filter, das genau die Ausnahme
+  durchlässt, die dann den Prozess beendet. **Zehn Behandler stehen so da**
+  (drei in `ShellPage`/`ActiveCallPage`, sieben in `SettingsPage`), und alle
+  zehn gelten dem Test heute als geschützt. **Das ist dieselbe Sorte Befund wie
+  A1-13:** ein Schutz, der aussieht wie einer.
+
+  **Repariert habe ich die zehn nicht.** Ein ungefiltertes `catch` überall wäre
+  schnell hingeschrieben und würde Programmierfehler verstecken, die heute
+  auffallen sollen — wo die Grenze liegt, ist eine Entscheidung und gehört in
+  einen ADR.
+
+**Was sonst trägt:** die eigene Konfiguration wird als solche erkannt und
+ändert nichts (T171), dieselbe Vorlage zweimal ergibt `probe-crm` und
+`probe-crm-2` mit erhaltener Beschriftung (T170), und nach dem Neustart steht
+alles da — **mit der richtigen Reihenfolge im Protokoll**: «Core gestartet»
+um 20:25:17.119, «Anbietervorlagen geladen: 2» um 20:25:17.844. Die Telefonie
+hängt von keiner Integration ab, und das Protokoll belegt es (T173, §21.2).
+
 #### Die Kontrastrunde, am späten Abend des 22.09.2026
 
 **Drei Zeilen: T74, T94, T282.** Alle drei bestanden, soweit ohne Gespräch

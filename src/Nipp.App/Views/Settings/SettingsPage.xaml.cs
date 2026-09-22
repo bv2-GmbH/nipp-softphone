@@ -699,8 +699,30 @@ public sealed partial class SettingsPage : Page
     /// Eine Meldung mit einer Schaltfläche. Dieselbe Form wie die Rückfragen
     /// dieser Seite, nur ohne Wahl.
     /// </summary>
+    /// <summary>
+    /// Ob gerade ein Dialog dieser Seite offen ist (Befund A1-19).
+    ///
+    /// <para><b>WinUI lässt genau einen zu</b> und wirft beim zweiten eine
+    /// <c>COMException</c> mit «Only a single ContentDialog can be open at any
+    /// time» — aus einem <c>async void</c> heraus, und damit war nipp weg.
+    /// Gemessen am 22.09.2026: zwei Importversuche, bei denen die Meldung des
+    /// ersten noch offen stand.</para>
+    /// </summary>
+    private bool _dialogOffen;
+
     private async Task ShowAsync(string title, string message)
     {
+        // Lieber keine zweite Meldung als kein Programm mehr. Die erste steht
+        // noch da und sagt dasselbe Thema; wer sie schliesst, bekommt den
+        // nächsten Versuch.
+        if (_dialogOffen)
+        {
+            AppLog.DialogUebersprungen(
+                ((App)Application.Current).Services.GetRequiredService<ILogger<SettingsPage>>(),
+                title);
+            return;
+        }
+
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
@@ -709,7 +731,16 @@ public sealed partial class SettingsPage : Page
             CloseButtonText = "Schliessen",
         };
 
-        _ = await dialog.ShowAsync();
+        _dialogOffen = true;
+
+        try
+        {
+            _ = await dialog.ShowAsync();
+        }
+        finally
+        {
+            _dialogOffen = false;
+        }
     }
 
     // --- Integrationen (§21.4, K3) ---

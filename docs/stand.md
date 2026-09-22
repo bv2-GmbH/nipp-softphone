@@ -44,6 +44,32 @@ das Argument dafür, dass sie eine ist.
 **Dafür ist T108 jetzt beantwortet:** Quelle mit Token entfernt und neu
 angelegt, die Zugangsdaten sind noch da — und die Rückfrage sagt es vorher zu.
 
+## Eine Vorlage mit Zugangsschlüssel kam durch (22./23.09.2026)
+
+**A1-18, und es war die Zusage, auf der der ganze Importweg steht.** Eine
+Anbietervorlage mit einem Wert unter `secrets[].value` wurde **angenommen**;
+der Schlüssel lag danach im Klartext im Vorlagenordner. Die Prüfung lief nur
+über den Knoten `source` und suchte Feldnamen auf «token» oder «key» — `value`
+in `secrets` traf keines von beidem.
+
+**Repariert** über eine Prüfung, die nach dem **Ort** fragt statt nach dem
+Namen: in einem Geheimnis-Eintrag ist alles ausser `ref`, `label` und `hint`
+ein Fund. Umgekehrt ginge es nicht — `value` in die Namensliste zu nehmen
+träfe jede Feldzuordnung mit einem Feld «value». Nachgemessen, zwei Tests mit
+Gegenprobe. **Was hielt:** die Quelle kam auch vorher schon abgeschaltet
+herein.
+
+**A1-19 — zwei Meldungen hintereinander haben nipp beendet.** WinUI lässt
+genau einen `ContentDialog` zu; der zweite wirft eine `COMException`, und der
+Behandler fängt nur `IOException`. Die Wurzel ist repariert (`ShowAsync` zeigt
+keine zweite Meldung und protokolliert das), Prüfzeile T319 angelegt.
+
+**Die Prüflücke dahinter bleibt offen und ist der grössere Teil:**
+`ExceptionBoundaryTests` akzeptiert jedes `catch` im Rumpf eines `async void`,
+auch eines mit engem Filter. **Zehn Behandler stehen so da.** Dieselbe Sorte
+Befund wie A1-13 — ein Schutz, der aussieht wie einer. Wo die Grenze zwischen
+«fangen» und «Programmierfehler auffallen lassen» liegt, gehört in einen ADR.
+
 ## Eine Zeile unter der Kontrastschwelle (22.09.2026)
 
 **T74, T94 und T282 bestanden** — Textskalierung auf 150 %, hell und dunkel,

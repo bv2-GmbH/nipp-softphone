@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Nipp.Core.Services.Integrations.Catalog;
@@ -137,7 +137,15 @@ public static class ConnectorTemplateReader
             return false;
         }
 
-        if (Geheimnisfund(objekt["source"]) is { } fund)
+        // Zwei Stellen, und beide sind noetig (Befund A1-18): der Aufbau der
+        // Quelle UND die Liste der Geheimnisse. Bis zum 22.09.2026 wurde nur
+        // "source" abgeklopft -- ein Token unter secrets[].value kam unbesehen
+        // durch und lag danach im Klartext im Vorlagenordner. Gemessen, nicht
+        // vermutet: die Vorlage wurde angenommen, und die Meldung lautete
+        // "steht jetzt unter Quelle hinzufuegen".
+        var fund = Geheimnisfund(objekt["source"]) ?? GeheimnisInListe(objekt["secrets"]);
+
+        if (fund is not null)
         {
             error = $"In der Vorlage steht ein Wert, der wie ein Geheimnis aussieht ({fund}). "
                 + "Eine Anbietervorlage beschreibt nur, wo ein Zugangsschlüssel gebraucht wird — "
@@ -216,6 +224,59 @@ public static class ConnectorTemplateReader
     /// verschwände also lautlos. Wer eine so gelesene Vorlage weitergibt, gibt
     /// das Geheimnis mit.</para>
     /// </summary>
+    /// <summary>
+    /// Ein Geheimnis in der Liste <c>secrets</c> — also dort, wo eine Vorlage
+    /// sagt, <b>welchen</b> Schlüssel sie braucht, und niemals <b>welcher</b>
+    /// es ist.
+    ///
+    /// <para><b>Hier zählt der Ort und nicht der Name</b>, und das ist der
+    /// Unterschied zu <see cref="Geheimnisfund"/>. Dort wird nach Feldnamen
+    /// gesucht, die auf «token» oder «key» enden — in <c>secrets</c> heisst
+    /// das Feld aber schlicht <c>value</c>, und unter diesem Namen kam am
+    /// 22.09.2026 ein Token durch (Befund A1-18). In einem Eintrag dieser
+    /// Liste ist deshalb <b>jedes</b> Feld ein Fund, das nicht zur
+    /// Beschreibung gehört.</para>
+    ///
+    /// <para>Umgekehrt ginge es nicht: <c>value</c> in die Namensliste zu
+    /// nehmen würde jede Feldzuordnung treffen, in der ein Zielsystem ein Feld
+    /// «value» nennt — und ein Wächter, der bei jeder zweiten Vorlage falschen
+    /// Alarm schlägt, wird abgeschaltet.</para>
+    /// </summary>
+    private static string? GeheimnisInListe(JsonNode? knoten)
+    {
+        if (knoten is not JsonArray liste)
+        {
+            return null;
+        }
+
+        foreach (var eintrag in liste)
+        {
+            if (eintrag is not JsonObject geheimnis)
+            {
+                continue;
+            }
+
+            foreach (var (name, wert) in geheimnis)
+            {
+                var klein = name.ToLowerInvariant();
+
+                if (klein is "ref" or "label" or "hint")
+                {
+                    continue;
+                }
+
+                if (wert is JsonValue value
+                    && value.TryGetValue<string>(out var text)
+                    && !string.IsNullOrWhiteSpace(text))
+                {
+                    return $"secrets[].{name}";
+                }
+            }
+        }
+
+        return null;
+    }
+
     private static string? Geheimnisfund(JsonNode? knoten)
     {
         if (knoten is JsonObject objekt)
