@@ -365,10 +365,17 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
         catch (TooManyCallsException ex)
         {
+            // Die Zahl mitschreiben, nicht nur die Ablehnung. Am 23.09.2026
+            // stand diese Meldung auf dem Bildschirm, waehrend genau ein
+            // Gespraech lief — und das Protokoll schwieg elf Minuten lang,
+            // weil hier nur LastError gesetzt wurde. Hinterher war nicht zu
+            // klaeren, ob nipp falsch zaehlt oder ob etwas anderes geschah.
+            ShellLog.DialRejectedTooManyCalls(_logger, _sip.ActiveCalls.Count);
             LastError = ex.Message;
         }
         catch (InvalidOperationException ex)
         {
+            ShellLog.DialFailed(_logger, ex.GetType().Name);
             LastError = ex.Message;
         }
     }

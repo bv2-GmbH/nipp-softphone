@@ -13,6 +13,115 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**Stand 23.09.2026, abends — der erste Tag an der Anlage, und er war schon
+gelaufen, bevor er begann.** nipp lief an diesem Tag **11 Stunden 55 Minuten
+am Stück** im echten Betrieb, auf Debug, mit **17 Gesprächen** und einem
+Headset. Damit lag ein vollständiger Messtag im Protokoll, bevor irgendjemand
+eine Prüfzeile aufgeschlagen hatte — **197 532 Zeilen**, aus denen sich fünf
+Zeilen der Matrix abnehmen liessen, ohne dass ein einziger Anruf dafür geführt
+werden musste.
+
+| Zeile | was jetzt gilt |
+|---|---|
+| **T255** (Abbruchkriterium) | **bestanden.** Alle 864 `response="…"` und alle 15 355 Anzeigenamen maskiert, die Benutzerteile der Adressen ebenso; keine der 3 423 Ziffernfolgen ab sieben Stellen ist eine Rufnummer. Gegenprobe bestanden — Antwortcodes, Zustände und Filterketten lesbar, `Test-Blf.ps1` läuft durch |
+| **T256** | **bestanden, mit einer Korrektur an der Erwartung:** ein voller Tag ergibt **197 532 Zeilen**, nicht die dort angenommenen ~34 000 |
+| **T143** | **bestanden.** Early Media, Audiostrom nach 418 ms, `RingbackWatch` schweigt — so soll es sein |
+| **T82** | **bestanden am Jabra Link 400.** Vier Annahmen und vier Auflegen am Gerät, kein `DeviceLost`. Engage 75 und PRO 9470 stehen aus |
+| **T34** | 11 h 55 min, **0 Abstürze, 0 fehlgeschlagene Anmeldungen** bei 36 Erneuerungen. Die Zeitvorgabe ist übererfüllt, **die 50 Anrufe fehlen** |
+
+**T310 ist geschärft, ohne dass die Ursache gefunden wäre.** Die
+`Could not get buffer`-Fehler liegen nicht verstreut, sondern als **Burst in
+ein bis zwei Millisekunden, rund 1,9 s nach Beginn des Audiostroms** — zweimal
+an diesem Tag, 68 und 9 Stück, beide Male im Early Media, und beide Gespräche
+liefen danach sauber weiter. Damit ist es **kein Dauerzustand, sondern ein
+einmaliger Stall, der in einer Schleife gemeldet wird**: die Zahl sagt, wie
+lang die Schleife lief, nicht wie schlimm es war. Das erklärt, warum sie über
+sechs Messungen zwischen 2 und 68 schwankt. A7 bleibt offen.
+
+## Die Zwei-Gespräche-Meldung, und warum sie eine Stunde gekostet hat
+
+Gemeldet war: das begleitete Weiterleiten habe nicht funktioniert, nipp habe
+gemeldet, es gingen nur zwei Kanäle. Die Suche danach hat den Tag bestimmt und
+**drei Dinge ergeben, von denen nur das letzte zählt**.
+
+**Erstens: die Episode lag anderthalb Stunden später als erinnert.** Gesucht
+wurde bei 10:00, gelaufen ist sie um 13:29 — und zwar **erfolgreich**, Schritt
+für Schritt so, wie sie beschrieben war: Gespräch angenommen, auf Halten
+gelegt, die interne Nebenstelle angerufen, gesprochen, die Gegenseite legt
+auf, sofort blind übergeben, «die Übergabe steht». **Zwei gleichzeitige
+Gespräche funktionieren nachweislich**, und T07 ist damit auf dem heutigen
+Build nachgemessen.
+
+**Zweitens: es gibt drei verschiedene Zwei-Gespräche-Texte**, und das ist der
+eigentliche Fund. `DialIssue` unter dem grauen «Anrufen»-Knopf,
+`DescribeTooManyCalls` nach einem abgelehnten Aufbau, und die Ablehnung der
+begleiteten Übergabe. **Nur die letzten beiden waren Ausnahmen, und keine der
+drei hinterliess eine Spur** — beide `catch`-Zweige setzten `LastError` und
+schrieben nichts. Deshalb waren elf Minuten Gespräch im Protokoll nicht von
+elf Minuten Nichtstun zu unterscheiden.
+
+**Drittens, und das ist die Lehre: die naheliegende Reparatur war die falsche.**
+Eingebaut wurde eine Protokollzeile in **beiden** `catch`-Zweigen, mit der
+Zahl der offenen Gespräche. Beim Nachprüfen am laufenden Programm zeigte sich:
+**die Zeile in `DialAsync` ist tot.** `CanDial` macht den Knopf bei zwei
+Gesprächen vorher grau, `PlaceCallAsync` wird über die Oberfläche nie
+erreicht, und die Ausnahme, die dort gefangen wird, kann gar nicht mehr
+entstehen. Sie bleibt stehen, weil sie nichts kostet — **aber sie war nicht
+die Lösung, als die sie eine Stunde lang galt.** Nützlich ist die Zeile im
+Übergabepfad: zwei Gespräche, das zweite klingelt noch, «Erst ankündigen» ist
+aktiv und findet kein verbundenes Ziel.
+
+**Was bleibt, ist kein Fehler, sondern der Weg dorthin.** Das Vermitteln
+funktioniert; unschön ist die Bedienung, und Dominic hat sie am selben Abend
+benannt: für die blinde Abgabe ist alles richtig, für die begleitete soll es
+**genauso** gehen — im Gespräch weiterleiten, das Ziel aussuchen, und dann die
+Wahl zwischen *direkt abgeben* und *zuerst anrufen*; nach dem Ankündigen ein
+Knopf, der übergibt.
+
+**Der Blick in die Oberfläche zeigt, wie nah das ist:** Eingabefeld,
+Vorschlagsliste mit Präsenzpunkt und beide Knöpfe stehen längst da. Es fehlt
+**ein** Schritt — «Erst ankündigen» ruft das eben ausgewählte Ziel nicht an,
+sondern fordert auf, die Ansicht zu verlassen und es von Hand noch einmal zu
+suchen. Die Auswahl, die der Benutzer gerade getroffen hat, wird dabei
+weggeworfen. `TransferAsync` selbst ist richtig gebaut und bleibt unberührt;
+was fehlt, liegt darüber. Plan, offene Entscheidungen und Prüfzeilen
+(T321–T323): **`docs/plans/VERMITTELN-PLAN.md`**. **Gebaut wird nach dem
+Gerätetag** — die Gesprächsansicht steht gerade selbst in der Abnahme
+(T313–T317).
+
+**T320** bleibt angelegt und fängt den Fall, falls doch ein Zählfehler
+dahintersteckt.
+
+## Zwei eigene Fehlgriffe an diesem Tag, beide derselben Art
+
+**«nipp protokolliert nicht» war eine Fehldiagnose.** Nach dem Neustart stand
+die Logdatei still, der Prozess hielt sie nicht offen, und das sah eine
+Viertelstunde lang nach einem ernsten Betriebsbefund aus. Tatsächlich schrieb
+nipp die ganze Zeit in die **Nebendatei** `nipp-20260923_001.log`: Serilog
+weicht aus, wenn die Hauptdatei belegt ist — belegt war sie **durch die
+eigenen Leseaufrufe der Untersuchung**. Die Nebendatei lag die ganze Zeit im
+Verzeichnis und war beim ersten Blick 0,2 KB gross; sie wurde abgehakt.
+
+**Und T81 und T85 waren zu schnell als «belegt» gemeldet.** T81 verlangt den
+Abbruch eines **klingelnden ausgehenden** Anrufs — alle vier Auflegen am
+Headset lagen bei `Connected`. T85 verlangt Abziehen im Gespräch, das ist nie
+passiert. Beide bleiben offen.
+
+**Beides ist dieselbe Sorte Fehler wie A1-15 am 22.09.2026:** sorgfältig
+gemessen, aber die falsche Sache angesehen. **Die Sorgfalt im Messen ersetzt
+nicht das Lesen dessen, was man misst** — und dreimal in zwei Tagen ist keine
+Häufung mehr, sondern ein Muster.
+
+**Nebenbei gefunden, nicht verfolgt:** ein zweites Konto in der SDK-Datenbank,
+das in `settings.json` nicht steht und bei jedem Start Fehler erzeugt
+(`No listening point matching`, 17×, dazu 57× ein fehlgeschlagenes Abo auf das
+Conference-Event-Package). Vermutlich ein Rest aus einer Provisionierungsrunde
+— gemessen ist nur, dass es da ist.
+
+**Stand der Matrix: 144 offen von 310.** Die Kopftabelle stand bis heute auf
+dem Stand vor der A1-Abnahme (45 S-Zeilen, 178 offen) und ist nachgezogen.
+
+
 **Stand 23.09.2026, früh.** **Die Runde A1 am Schreibtisch ist durch.** Die
 sechs Befunde aus der Entscheidungsvorlage **ADR-072** sind entschieden und
 fünf davon repariert — jeder mit eigenem Commit und **am laufenden Programm

@@ -29,6 +29,42 @@ internal static partial class ShellLog
         Message = "Gruppe gewechselt ({Count} Nebenstellen)")]
     public static partial void TeamGroupChanged(ILogger logger, int count);
 
+    /// <summary>
+    /// Eine Wahl, die Paragraph 8.2 abgelehnt hat.
+    ///
+    /// <para><b>Die Zahl ist der ganze Punkt.</b> Am 23.09.2026 sah der
+    /// Benutzer diese Ablehnung, waehrend <em>ein</em> Gespraech lief — und im
+    /// Protokoll war der Vorgang nicht zu finden: elf Minuten ohne einen
+    /// einzigen Eintrag, weil der <c>catch</c> nur <c>LastError</c> setzte.
+    /// Damit liess sich hinterher nicht sagen, ob nipp falsch zaehlte oder ob
+    /// etwas anderes passiert war. Steht die Zahl da, ist beides in einer
+    /// Zeile zu unterscheiden.</para>
+    ///
+    /// <para><b>Warum nicht ueber <c>QuietFailures</c>:</b> das meldet einmal
+    /// je Stelle und Sitzung, und genau der zweite Fall waere dann wieder
+    /// unsichtbar. Gewaehlt wird von Hand und nicht im Pump-Takt — hier
+    /// entsteht kein Rauschen.</para>
+    ///
+    /// <para><b>Keine Nummer</b> (Paragraph 21.2, ADR-022). Wohin gewaehlt
+    /// wurde, gehoert nicht ins Protokoll; wie viele Gespraeche offen waren,
+    /// ist eine Aussage ueber den Zustand des Programms.</para>
+    /// </summary>
+    [LoggerMessage(EventId = 3404, Level = LogLevel.Information,
+        Message = "Wahl abgelehnt: schon {Count} Gespraech(e) offen (Paragraph 8.2)")]
+    public static partial void DialRejectedTooManyCalls(ILogger logger, int count);
+
+    /// <summary>
+    /// Eine Wahl, die aus einem anderen Grund nicht zustande kam.
+    ///
+    /// <b>Nur der Typ, kein Text</b> — dieselbe Ueberlegung wie bei
+    /// <see cref="UiUpdateFailed"/>: die Meldung einer Ausnahme traegt oft
+    /// genau das, was nicht ins Protokoll gehoert. Der Benutzer bekommt den
+    /// erklaerten Satz auf den Bildschirm, das Protokoll bekommt den Typ.
+    /// </summary>
+    [LoggerMessage(EventId = 3405, Level = LogLevel.Warning,
+        Message = "Wahl nicht zustande gekommen ({ExceptionType})")]
+    public static partial void DialFailed(ILogger logger, string exceptionType);
+
     // ADR-053: eine Ausnahme beim Nachziehen der Oberflaeche. Nur der Typ,
     // kein Text — die Meldung einer Ausnahme traegt oft genau das, was nicht
     // ins Protokoll gehoert (Paragraph 21.2).

@@ -458,6 +458,13 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
         catch (InvalidOperationException ex)
         {
             // Die Meldung erklärt, dass zuerst das Ziel angerufen werden muss.
+            //
+            // Und sie steht seit dem 23.09.2026 auch im Protokoll: an diesem
+            // Tag scheiterte eine begleitete Übergabe am Gerät, und weil hier
+            // nur LastError gesetzt wurde, war hinterher nicht zu sagen, an
+            // welcher Stelle sie gescheitert war. Die Zahl der Gespräche
+            // unterscheidet die beiden möglichen Gründe.
+            ActiveCallLog.AttendedTransferRejected(_logger, Calls.Count);
             LastError = ex.Message;
         }
     }
@@ -783,4 +790,19 @@ internal static partial class ActiveCallLog
     [LoggerMessage(EventId = 2111, Level = LogLevel.Information,
         Message = "Auflegen in der Gespraechsansicht gedrueckt ({Call})")]
     public static partial void HangUpPressed(ILogger logger, string call);
+
+    /// <summary>
+    /// Eine begleitete Übergabe, die nicht zustande kam.
+    ///
+    /// <para>Die Ausnahme davor gilt: Stumm und Halten schweigen weiter. Eine
+    /// abgelehnte Übergabe ist etwas anderes — sie sieht für den Benutzer aus
+    /// wie „nipp kann das nicht", und ohne diese Zeile ist hinterher nicht zu
+    /// klären, ob das Ziel fehlte oder ob etwas anderes im Weg stand.</para>
+    ///
+    /// <para><b>Nur die Zahl</b> (Paragraph 21.2): wohin übergeben werden
+    /// sollte, gehört nicht ins Protokoll.</para>
+    /// </summary>
+    [LoggerMessage(EventId = 2112, Level = LogLevel.Information,
+        Message = "Begleitete Uebergabe abgelehnt: {Count} Gespraech(e) in der Ansicht")]
+    public static partial void AttendedTransferRejected(ILogger logger, int count);
 }
