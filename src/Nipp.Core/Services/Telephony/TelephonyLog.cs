@@ -153,6 +153,17 @@ internal static partial class TelephonyLog
             + "fortsetzen: {Reason}. Es bleibt gehalten — im Zweifel neu aufbauen.")]
     public static partial void CallResumeFailed(ILogger logger, string handle, string reason);
 
+    /// <summary>
+    /// Das letzte verbliebene Gespraech wurde von selbst zurueckgeholt (T322).
+    ///
+    /// <para>Es steht im Protokoll, weil der Benutzer es <b>nicht</b> selbst
+    /// getan hat: wer hinterher fragt, warum ein gehaltenes Gespraech ploetzlich
+    /// wieder lief, findet hier die Antwort.</para>
+    /// </summary>
+    [LoggerMessage(EventId = 2045, Level = LogLevel.Information,
+        Message = "Gespraech {Handle} war allein auf Halten und wurde zurueckgeholt (Paragraph 8.2)")]
+    public static partial void LastCallResumed(ILogger logger, string handle);
+
     [LoggerMessage(EventId = 2060, Level = LogLevel.Information,
         Message = "Echo-Kalibrierung gestartet, dauert etwa 15 Sekunden")]
     public static partial void EchoCalibrationStarted(ILogger logger);

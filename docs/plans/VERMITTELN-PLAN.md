@@ -1,12 +1,21 @@
 ﻿# Vermitteln — ein Weg für beide Arten
 
-> **Stand 23.09.2026, 21:55: gebaut.** Der Umbau ist umgesetzt und in
-> **ADR-073** festgehalten — «Zuerst anrufen» ruft das ausgewählte Ziel an,
-> «Jetzt übergeben» erscheint, sobald das zweite Gespräch steht, und die
-> `InfoBar` mit dem Umweg ist entfallen. **Am Gerät abgenommen ist nichts
-> davon:** T321 bis T323 stehen offen. Von den vier offenen Entscheidungen
-> unten sind zwei getroffen (ADR ja; der Rückweg bleibt bei `PlaceCallAsync`),
-> zwei offen: **externe Ziele** und **was die Vorschlagsliste anbietet**.
+> **Stand 23.09.2026, 22:25: gebaut und am Gerät abgenommen.** «Zuerst
+> anrufen» ruft das ausgewählte Ziel an, «Jetzt übergeben» erscheint, sobald
+> das zweite Gespräch steht, und die `InfoBar` mit dem Umweg ist entfallen.
+> **T321, T322 und T323 sind bestanden** — einschliesslich der Gegenprobe,
+> dass die blinde Abgabe nichts gekostet hat.
+>
+> **Die Abnahme hat zwei Dinge gefunden, die der Plan nicht vorhergesehen
+> hatte**, beide in ADR-073 nachgetragen: die Auswahl folgte dem falschen
+> Gespräch («Auflegen» traf den Anrufer statt der Rückfrage), und ein allein
+> auf Halten zurückbleibendes Gespräch kam nicht von selbst zurück. Beides
+> ist repariert; aus zwei Schritten ist einer geworden. **Am Schreibtisch wäre
+> keines davon aufgefallen.**
+>
+> **Offen bleiben zwei Entscheidungen** aus der Liste unten: **externe Ziele**
+> und **was die Vorschlagsliste anbietet**. Dazu eine Gegenprobe: ein
+> *selbst* gehaltenes Gespräch muss gehalten bleiben, wenn das aktive endet.
 
 **Angelegt am 23.09.2026**, am Abend des ersten Tages an der Anlage. Auftrag
 von Dominic, nachdem das begleitete Vermitteln im echten Betrieb zwar

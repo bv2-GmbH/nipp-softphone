@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using Nipp.Core.Services.Contacts;
 using Nipp.Core.Services.Integrations.Context;
 using Nipp.Core.Services.Settings;
@@ -28,12 +28,13 @@ public sealed class ActiveCallViewModelTests
         CallHandle handle,
         CallStatus status = CallStatus.Connected,
         string number = "0791234567",
-        bool muted = false) =>
+        bool muted = false,
+        CallDirection direction = CallDirection.Outgoing) =>
         new(
             Handle: handle,
             RemoteNumber: number,
             RemoteDisplayName: null,
-            Direction: CallDirection.Outgoing,
+            Direction: direction,
             Status: status,
             StatusMessage: null,
             StartedAt: DateTimeOffset.UtcNow,
@@ -130,14 +131,48 @@ public sealed class ActiveCallViewModelTests
 
         sip.CallStateChanged += Raise.Event<EventHandler<CallStateEventArgs>>(
             sip,
-            new CallStateEventArgs(Call(second, CallStatus.Incoming), CallStatus.Incoming));
+            new CallStateEventArgs(
+                Call(second, CallStatus.Incoming, direction: CallDirection.Incoming),
+                CallStatus.Incoming));
 
         Assert.Equal(2, model.Calls.Count);
         Assert.True(model.CanSwap);
         Assert.True(model.CanTransferAttended);
 
         // Die Wahl bleibt beim laufenden Gespräch.
+        //
+        // <b>Die Richtung steht hier seit dem 23.09.2026 ausdrücklich da.</b>
+        // Der Helfer setzte sie pauschal auf ausgehend, und das fiel nicht
+        // auf, solange sie niemanden interessierte — dieser Test meinte aber
+        // immer schon den eingehenden Anruf, der die Ansicht nicht wegreissen
+        // soll. Für den ausgehenden gilt das Gegenteil, siehe den Test
+        // darunter.
         Assert.Equal(first, model.SelectedCall?.Handle);
+    }
+
+    /// <summary>
+    /// Wer selbst wählt, landet auch dort (T322).
+    ///
+    /// <para>Beim begleiteten Vermitteln blieb die Auswahl am 23.09.2026 auf
+    /// dem gehaltenen ersten Gespräch, während der Rückfrageanruf klingelte —
+    /// «Auflegen» beendete damit den Anrufer statt der Rückfrage.</para>
+    /// </summary>
+    [Fact]
+    public void Ein_selbst_aufgebauter_Anruf_wird_gewaehlt()
+    {
+        var first = CallHandle.New();
+        var second = CallHandle.New();
+        var sip = Service(Call(first, CallStatus.OnHold));
+        var model = Create(sip);
+
+        sip.CallStateChanged += Raise.Event<EventHandler<CallStateEventArgs>>(
+            sip,
+            new CallStateEventArgs(
+                Call(second, CallStatus.Dialing, direction: CallDirection.Outgoing),
+                CallStatus.Dialing));
+
+        Assert.Equal(2, model.Calls.Count);
+        Assert.Equal(second, model.SelectedCall?.Handle);
     }
 
     [Fact]

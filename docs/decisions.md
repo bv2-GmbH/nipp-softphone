@@ -52,6 +52,48 @@ der Normalisierer wird aus den aktuellen Einstellungen gebaut statt
 mitgeführt: die Ländervorwahl ist einstellbar, und ein mitgeführtes Feld
 müsste bei jeder Änderung nachgezogen werden — genau die Falle aus A1-22.
 
+### 1b. Nachtrag vom selben Abend: was die Abnahme am Gerät noch gefunden hat
+
+**Der Umbau war gebaut, getestet und gepusht — und dann zeigte der erste
+echte Versuch zwei Dinge, die keine Zeile Code vorher gezeigt hätte.**
+
+**Die Auswahl folgte dem falschen Gespräch.** Nimmt das Ziel nicht ab, drückt
+man «Auflegen» — und beendete damit **den Anrufer** statt der Rückfrage. Im
+Protokoll um 22:14:28 belegt: das erste Gespräch ging «beendet durch den
+Benutzer», obwohl der zweite Anruf gemeint war. Der Ausweg war, erst
+umzuschalten und dann aufzulegen.
+
+Die Regel dahinter war bewusst so gebaut und stand seit jeher da: *«Ein neues
+Gespräch wird gewählt, wenn keines läuft. Sonst bleibt die Wahl beim
+laufenden — ein zweiter eingehender Anruf soll die Ansicht nicht mitten im
+Gespräch wegreissen.»* **Für einen eingehenden Anruf ist das richtig.** Für
+einen, den der Benutzer selbst aufgebaut hat, ist es das Gegenteil dessen, was
+er will.
+
+**Entscheidung:** die Auswahl folgt einem **ausgehenden** Anruf, ein
+eingehender reisst die Ansicht weiterhin nicht weg. **Das ist derselbe
+Denkfehler wie in ADR-043** — eine Regel, die nicht zwischen «passiert mir»
+und «habe ich getan» unterscheidet. Festgehalten in
+`Ein_selbst_aufgebauter_Anruf_wird_gewaehlt`; der bestehende Test zum
+eingehenden Anruf prüfte bis dahin mit `Direction: Outgoing`, weil der
+Testhelfer sie pauschal setzte und niemanden interessierte.
+
+**Und ein allein gehaltenes Gespräch wird zurückgeholt.** Endet ein Gespräch
+und bleibt genau eines übrig, das auf Halten liegt, holt nipp es zurück
+(`ResumeLastRemainingCall`) — sonst sitzt der Benutzer vor einem stummen
+Gespräch, das er selbst nie gehalten hat.
+
+**Nur bei genau einem.** Bleiben zwei stehen, hat der Benutzer eines davon
+selbst gehalten und makelt gleich; da gehört nichts entschieden.
+**Vorgemerkt statt im Callback ausgeführt** — dieselbe Reentranz wie bei
+`_pendingDecline`: `Resume` ist zustandsändernd, und aus dem
+Zustands-Callback heraus meldet das SDK die nächsten Zustände mitten im
+laufenden Aufruf. Es steht im Protokoll, weil der Benutzer es nicht selbst
+getan hat.
+
+**Beides zusammen macht aus zwei Schritten einen** — und beides wäre am
+Schreibtisch nicht aufgefallen.
+
 ### 2. Die Gesprächsansicht misst ihre Breite, wenn sie die ganze Fläche hat
 
 **Kontext.** Bis zum 23.09.2026 wurde die Breite an **einer** Stelle gemessen:

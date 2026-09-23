@@ -825,6 +825,39 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     /// gleich die eigentliche Ursache des gescheiterten Anrufs zu sehen, und
     /// die ist die nützlichere Meldung.</para>
     /// </summary>
+    /// <summary>
+    /// Holt das letzte verbliebene Gespräch zurück, wenn es allein auf Halten
+    /// liegt (§8.2, T322).
+    ///
+    /// <para><b>Nur bei genau einem.</b> Bleiben zwei stehen, hat der Benutzer
+    /// eines davon selbst gehalten und makelt gleich — da gehört nichts
+    /// entschieden. Und bleibt keines, gibt es nichts zu tun.</para>
+    ///
+    /// <para><b>Ein Fehlschlag ist kein Drama</b> und wird protokolliert statt
+    /// geworfen: das Gespräch läuft weiter, es ist nur gehalten, und der
+    /// Benutzer kann es selbst zurückholen. Eine Ausnahme aus dem Pump-Tick
+    /// wäre schlimmer als ein gehaltenes Gespräch (ADR-053).</para>
+    /// </summary>
+    private void ResumeLastRemainingCall()
+    {
+        var uebrig = _calls.Values.Where(c => c.Info.IsActive).ToList();
+
+        if (uebrig.Count != 1 || uebrig[0].Info.Status != CallStatus.OnHold)
+        {
+            return;
+        }
+
+        try
+        {
+            uebrig[0].SdkCall.Resume();
+            TelephonyLog.LastCallResumed(_logger, uebrig[0].Handle.ToString());
+        }
+        catch (Exception ex)
+        {
+            TelephonyLog.CallResumeFailed(_logger, uebrig[0].Handle.ToString(), ex.Message);
+        }
+    }
+
     private void ResumeAfterFailedSecondCall(List<TrackedCall> paused)
     {
         foreach (var call in paused)
@@ -1416,6 +1449,14 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
             }
         }
 
+        // §8.2: das letzte verbliebene Gespräch zurückholen, ebenfalls
+        // vorgemerkt statt im Callback.
+        if (_resumeLastPending)
+        {
+            _resumeLastPending = false;
+            ResumeLastRemainingCall();
+        }
+
         // §9.4: ein Gerätewechsel wurde gemeldet. Die Reaktion gehört hierher
         // und nicht in den Callback — siehe ReactToDeviceChange.
         if (_deviceChangePending)
@@ -1931,6 +1972,18 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         if (status is CallStatus.Ended or CallStatus.Failed)
         {
             _calls.TryRemove(tracked.Handle, out _);
+
+            // Bleibt genau ein Gespräch übrig und liegt es auf Halten, gehört
+            // es zurückgeholt — sonst sitzt der Benutzer vor einem stummen
+            // Gespräch, das er selbst nie gehalten hat.
+            //
+            // <b>Der Fall, für den das gebaut ist</b> (23.09.2026, T322): beim
+            // begleiteten Vermitteln nimmt das Ziel nicht ab, der
+            // Rückfrageanruf wird beendet — und das erste Gespräch lag noch
+            // auf Halten, weil PlaceCallAsync es dorthin gelegt hatte. Bis
+            // hierhin musste man erst umschalten und dann beenden, um wieder
+            // beim Anrufer zu landen.
+            _resumeLastPending = true;
         }
     }
 
@@ -2009,6 +2062,17 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     /// daraufhin sofort die nächsten Zustände — mitten im laufenden Aufruf.
     /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentQueue<Call> _pendingDecline = new();
+
+    /// <summary>
+    /// Ein Gespräch ist beendet worden — falls genau eines übrig bleibt und
+    /// auf Halten liegt, gehört es zurückgeholt (§8.2).
+    ///
+    /// <para><b>Warum eine Vormerkung und kein <c>Resume()</c> im Callback.</b>
+    /// Dieselbe Reentranz wie bei <c>_pendingDecline</c>: <c>Resume</c> ist
+    /// zustandsändernd, und aus dem Zustands-Callback heraus meldet das SDK
+    /// die nächsten Zustände mitten im laufenden Aufruf.</para>
+    /// </summary>
+    private bool _resumeLastPending;
 
     /// <summary>
     /// Ob ein Gerätewechsel gemeldet wurde und noch zu beantworten ist.

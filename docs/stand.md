@@ -38,6 +38,57 @@ einmaliger Stall, der in einer Schleife gemeldet wird**: die Zahl sagt, wie
 lang die Schleife lief, nicht wie schlimm es war. Das erklärt, warum sie über
 sechs Messungen zwischen 2 und 68 schwankt. A7 bleibt offen.
 
+## Spät am Abend: das Vermitteln umgebaut — und die Abnahme hat es erst fertig gemacht
+
+**Der Auftrag kam aus dem Betrieb**, in einem Satz: für die blinde Abgabe sei
+alles richtig, für die begleitete solle es **genauso** gehen — im Gespräch
+weiterleiten, das Ziel aussuchen, dann die Wahl zwischen *direkt abgeben* und
+*zuerst anrufen*, und danach ein Knopf, der übergibt.
+
+**Der Blick in die Oberfläche zeigte, wie nah das war:** Eingabefeld,
+Vorschlagsliste mit Präsenzpunkt und beide Knöpfe standen längst da. Es fehlte
+**ein** Schritt — «Erst ankündigen» war grau und schickte den Benutzer per
+`InfoBar` aus der Ansicht, um das Ziel **noch einmal** zu suchen, das er
+gerade ausgewählt hatte. Gebaut, getestet, gepusht: **ADR-073**.
+
+**Und dann hat die Abnahme am Gerät zwei Dinge gefunden, die keine Zeile Code
+vorher gezeigt hätte.**
+
+**Die Auswahl folgte dem falschen Gespräch.** Nimmt das Ziel nicht ab, drückt
+man «Auflegen» — und beendete damit **den Anrufer** statt der Rückfrage; im
+Protokoll um 22:14:28 belegt. Der Ausweg war, erst umzuschalten und dann
+aufzulegen. Die Regel dahinter stand seit jeher da und war bewusst so gebaut:
+«ein zweiter eingehender Anruf soll die Ansicht nicht mitten im Gespräch
+wegreissen». **Für einen eingehenden Anruf ist das richtig; für einen, den der
+Benutzer selbst aufgebaut hat, ist es das Gegenteil dessen, was er will.**
+Derselbe Denkfehler wie in ADR-043 — eine Regel, die nicht zwischen «passiert
+mir» und «habe ich getan» unterscheidet.
+
+**Und ein allein gehaltenes Gespräch kam nicht von selbst zurück.** Jetzt
+schon (`ResumeLastRemainingCall`), vorgemerkt statt im Callback ausgeführt —
+dieselbe Reentranz wie bei `_pendingDecline`. **Nur bei genau einem übrigen
+Gespräch:** bleiben zwei stehen, hat der Benutzer eines selbst gehalten.
+
+**Beides zusammen macht aus zwei Schritten einen.** T321, T322 und T323 sind
+bestanden, einschliesslich der Gegenprobe, dass die blinde Abgabe nichts
+gekostet hat. **Ein Test hat die Reparatur übrigens sofort gefangen:** der
+bestehende Test zum eingehenden Anruf prüfte mit `Direction: Outgoing`, weil
+der Testhelfer sie pauschal setzte — solange die Richtung niemanden
+interessierte, fiel das nicht auf.
+
+**T314 ist im selben Zug repariert und abgenommen.** Die Gesprächsansicht
+meldet ihre Breite jetzt selbst, solange sie die ganze Fläche einnimmt; die
+Schwelle bleibt in `ApplyWidth` (ADR-047). Gemessen über den UIA-Baum, mit
+laufendem Gespräch: 1150 → 880 → 1150 → 880 → 1150, **beide Richtungen**,
+vier Wechsel, ohne dass das Gespräch etwas gemerkt hätte.
+
+**Die Lehre des Abends steht damit doppelt da:** an T143, wo ein vollständiges
+Protokoll die falsche Frage beantwortete und erst ein Ohr den Befund fand —
+und hier, wo ein sauber gebauter, getesteter und gepushter Umbau erst am
+Gerät fertig wurde. **Gebaut ist nicht abgenommen.**
+
+**Stand am Ende des Tages: 137 offen von 313.**
+
 ## Der Abend: vier Zeilen geprüft, und A7 hat nach sieben Tagen eine Spur
 
 **Am Abend wurde zum ersten Mal an diesem Projekt gezielt mit echten

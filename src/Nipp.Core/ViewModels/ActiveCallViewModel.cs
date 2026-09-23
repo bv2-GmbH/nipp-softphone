@@ -646,10 +646,26 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
         {
             Calls.Add(new CallRow(e.Call, _party.Describe(e.Call)));
 
-            // Ein neues Gespräch wird gewählt, wenn keines läuft. Sonst bleibt
-            // die Wahl beim laufenden — ein zweiter eingehender Anruf soll die
-            // Ansicht nicht mitten im Gespräch wegreissen.
-            if (_selectedHandle is null)
+            // <b>Wer selbst gewählt hat, will auch dort sein.</b>
+            //
+            // Ein <b>eingehender</b> Anruf soll die Ansicht nicht mitten im
+            // Gespräch wegreissen — er passiert einem, und die Wahl bleibt
+            // beim laufenden. Ein <b>ausgehender</b> ist das Gegenteil: ihn
+            // hat der Benutzer gerade ausgelöst.
+            //
+            // <b>Am Gerät gemessen am 23.09.2026 (T322).</b> Beim begleiteten
+            // Vermitteln blieb die Auswahl auf dem gehaltenen ersten Gespräch,
+            // während der Rückfrageanruf klingelte — und «Auflegen» beendete
+            // damit den Anrufer statt der Rückfrage. Im Protokoll steht es um
+            // 22:14:28: das erste Gespräch ging «beendet durch den Benutzer»,
+            // obwohl der zweite Anruf gemeint war. Der Ausweg war, erst
+            // umzuschalten und dann aufzulegen — zwei Schritte für etwas, das
+            // keiner sein sollte.
+            //
+            // Das ist derselbe Denkfehler wie in ADR-043: eine Regel, die
+            // nicht zwischen «passiert mir» und «habe ich getan»
+            // unterscheidet.
+            if (_selectedHandle is null || e.Call.Direction == CallDirection.Outgoing)
             {
                 SetSelected(e.Call.Handle);
             }
