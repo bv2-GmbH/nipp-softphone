@@ -134,11 +134,32 @@ begleitet übergeben.
 
 ## Wo das Projekt steht
 
-**Stand 13.09.2026.** Funktional ist nipp weit: Telefonie, Präsenz,
+**Stand 23.09.2026.** Funktional ist nipp weit: Telefonie, Präsenz,
 Headset-Tasten, Integrationsplattform, Karten-Designer, Anrufliste, Installer
-und Update-Kanal sind gebaut. Der Build läuft ohne Warnungen, **1 222
-Komponententests** und **34 Architekturtests** bestehen, und die CI baut bei
+und Update-Kanal sind gebaut. Der Build läuft ohne Warnungen, **1 274
+Komponententests** und **37 Architekturtests** bestehen, und die CI baut bei
 jedem Push auf **echter x64-Hardware**.
+
+**Am 23.09.2026 stand nipp zum ersten Mal einen ganzen Arbeitstag lang unter
+Beobachtung** — knapp zwölf Stunden Dauerbetrieb, 17 echte Gespräche, ohne
+Absturz und ohne eine einzige fehlgeschlagene Anmeldung. Aus demselben
+Protokoll liessen sich fünf Zeilen der Testmatrix abnehmen, ohne dass dafür
+ein Anruf nötig gewesen wäre; am Abend kamen zwölf weitere dazu.
+
+**Zwei Befunde dieses Tages sind die interessanteren.** Der Audiofehler beim
+Verbindungsaufbau (offen seit dem 16.09.2026) hat eine Spur: über vier
+Messungen geht **jedem** Fehler-Burst ein Jitterpuffer-Reset voraus, dreimal
+davon im Abstand von ein bis vier Millisekunden — der Auslöser ist damit nicht
+die Audioausgabe, sondern der Reset davor. Gefunden wurde das, weil jemand
+**zugehört** hat: das Protokoll war vollständig und hatte die falsche Frage
+beantwortet.
+
+**Und das begleitete Vermitteln ist umgebaut** (ADR-073). Es verlangte bisher,
+das zweite Gespräch selbst aufzubauen — zurück zur Wähltastatur, das Ziel
+**noch einmal** suchen, anrufen. Jetzt ruft «Zuerst anrufen» das ausgewählte
+Ziel an, und «Jetzt übergeben» erscheint, sobald es steht. **Fertig geworden
+ist der Umbau erst bei der Abnahme am Gerät:** gebaut, getestet und gepusht
+traf «Auflegen» noch den Anrufer statt der Rückfrage.
 
 **Die Standortbestimmung vom 12.09.2026 ist abgearbeitet** — Welle 0, Welle 1
 und Welle 2, jede Massnahme als eigener Commit. Zuletzt: ein Skript, das einen
@@ -183,12 +204,20 @@ Auskunft, sondern eine Neuregistrierung; ausserdem konnte aus einem Speichern
 eine Kette ohne Ende werden, **248 MB Protokoll in sechs Minuten**. Beide
 Stellen vergleichen jetzt, bevor sie melden.
 
-**Was fehlt, ist nicht Code, sondern Beweis.** Von 284 Zeilen der
-[Testmatrix](docs/test-matrix.md) haben **23 ein Ergebnis** — der Rest ist am
-Gerät nicht abgenommen. Das ist der grösste offene Posten des Projekts, und die
-Zahl wächst schneller, als sie schrumpft. Dazu kommt: die vier
-nichtfunktionalen Ziele aus §2 sind **ungemessen**, weil es keine
-x64-Maschine gibt (ADR-001) und die Entwicklungsmaschine ARM64 ist.
+**Was fehlt, ist nicht Code, sondern Beweis** — aber die Zahl dreht sich
+inzwischen. Von **313 Zeilen** der [Testmatrix](docs/test-matrix.md) haben
+**176 ein Ergebnis**, 137 sind offen; am 13.09.2026 waren es 23 von 284. Die
+Zahl ist nachrechenbar: ein Skript trägt die Zählregel, und «offen» heisst
+**ungeprüft**, nicht durchgefallen.
+
+**Der Rest verteilt sich ungleich, und das ist die gute Nachricht:** von den
+Abbruchkriterien für den Merge ist alles erledigt, was an der Telefonanlage zu
+prüfen war. Übrig bleiben ein **frischer Rechner** (Installation, Update,
+Deinstallation) und ein **Windows-10-Arbeitsplatz** — zusammen ein halber Tag,
+den es noch nicht gegeben hat. Dazu kommt: die vier nichtfunktionalen Ziele
+aus §2 sind **ungemessen**, weil es keine x64-Maschine gibt (ADR-001) und die
+Entwicklungsmaschine ARM64 ist. Fällt der frische Rechner auf echte
+x64-Hardware, ist beides derselbe Termin.
 
 **Vor einer Abgabe ausser Haus fehlt genau eines:** ein Signaturzertifikat
 (AP9.2). Ohne es hält SmartScreen den ersten Start auf — intern einmal
@@ -276,7 +305,7 @@ Im Betrieb angebunden sind ein **CRM** (Kontakte, Kunden, letzte Stundeneinträg
 | **Toast** | Eingehender Anruf mit **Annehmen (grün)** / **Ablehnen (rot)**, auch ohne offenes Fenster. Die Farben setzt Windows nur, wenn es sie kennt — sonst erscheint der Toast einfarbig und vollständig bedienbar. Als Anruf-Szenario angemeldet: bleibt stehen, bis jemand reagiert |
 | **Toast mit Anruferkontext** | Er erscheint **sofort** mit Name oder Nummer und wird ersetzt, sobald eine Quelle antwortet — gewartet wird nie (ADR-030). Windows nimmt genau drei Textzeilen plus die Nummer klein darunter. Die Zeilen sind über denselben Designer zusammenstellbar wie die Karten (ADR-034); ohne eigene Karte gilt die mitgelieferte Zusammensetzung. Beim Anrufende wird der Toast **entfernt** — was darin steht, bliebe sonst im Benachrichtigungscenter liegen |
 | **Klick-to-Call** | `tel:`, `sip:`, `sips:`, `callto:` — ein Link aus Outlook, dem Browser oder dem CRM wählt direkt |
-| **Tastenkürzel** | Systemweit, Standard `Strg+Umschalt+A`. Klingelt es, nimmt es an; läuft ein Gespräch, legt es auf; sonst holt es nipp nach vorn (ADR-013). Im Fenster: `Strg+1` bis `Strg+4` für die Bereiche, `Strg+F` ins Nummernfeld (ADR-046) |
+| **Tastenkürzel** | Systemweit, Standard `Strg+Umschalt+A`. Klingelt es, nimmt es an; läuft ein Gespräch, legt es auf; sonst holt es nipp nach vorn (ADR-013). Im Fenster: `Strg+F` ins Nummernfeld (ADR-046). **`Strg+1` bis `Strg+4` gab es bis zum 23.09.2026 nur im ToolTip** — die Tastenkombination erreicht die Seite gar nicht, weder als Accelerator noch über `KeyDown`; gemessen und dann gestrichen, statt ein Versprechen stehen zu lassen |
 | **Autostart** | Mit Windows, minimiert im Infobereich |
 | **Eine Instanz** | Ein zweiter Start aktiviert die laufende |
 | **Immer im Vordergrund** | Einschaltbar — das Fenster bleibt über allen anderen |
@@ -778,7 +807,7 @@ ein ViewModel und keine Dienstleistung:
 # Bauen
 .\build.ps1 build Nipp.sln -c Debug
 
-# Tests — 1245 Komponententests plus 34 Architekturtests
+# Tests — 1274 Komponententests plus 37 Architekturtests
 .\build.ps1 test Nipp.sln
 
 # Formatieren — nur die eigenen Dateien
