@@ -1,4 +1,4 @@
-# Die Audioqualität — was da rauscht, und woher
+﻿# Die Audioqualität — was da rauscht, und woher
 
 **Angelegt am 16.09.2026.** Auftrag von Dominic: «teilweise starkes Rauschen,
 Nebengeräusche — können wir da noch etwas optimieren?»
@@ -386,6 +386,78 @@ Betroffen ist der **Rufton**, nicht das Gespräch. Das macht es klein — aber
 `RingbackWatch` entscheidet aus genau diesen Werten (ADR-029, Nachtrag vom
 10.09.2026), und ein Puffer, der in dieser Phase zurückgesetzt wird, ist
 dort schon einmal teuer gewesen.
+
+#### Nachtrag vom 23.09.2026, abends: die Reihenfolge — **und es ist nicht klein**
+
+**Zwei Dinge haben sich an diesem Abend geändert, und beide zählen.**
+
+**Erstens: es ist hörbar, und zwar jedes Mal.** Bis hierher stand in diesem
+Plan, der Befund gehöre der Aufbauphase und das Gespräch danach sei sauber —
+richtig, aber es war nie jemand da, der **hingehört** hat. Am 23.09.2026 um
+21:11 hat Dominic zwei Anrufe nach aussen geführt und den Anfang beurteilt:
+**Fremdton. Und auf Nachfrage: jedes Mal, nicht sporadisch.** Damit ist der
+erste Eindruck **jedes ausgehenden Gesprächs** betroffen. Der Satz «das macht
+es klein» oben gilt nicht mehr; er stand da, weil die Zahl klein aussah und
+niemand die Wirkung geprüft hatte.
+
+**Zweitens, und das ist der eigentliche Fortschritt: der Puffer-Reset steht
+nicht *neben* den Fehlern, er kommt *davor*.** Dieser Abschnitt führt seit
+dem 16.09.2026 `Could not get buffer` und
+`Jitter buffer stays unconverged … reset it` als Dinge auf, die zusammen
+dastehen. **Die Reihenfolge hat nie jemand gemessen.** Sie ist eindeutig:
+
+| Anruf | Reset | erster `Could not get buffer` | Abstand | Zahl |
+|---|---|---|---|---|
+| 23.09. 09:10 | 43,777 | 43,778 | **1 ms** | 9 |
+| 23.09. 10:20 | 08,475 | 09,535 | 1 060 ms | 68 |
+| 23.09. 21:11 | 32,293 | 32,295 | **2 ms** | 8 |
+| 23.09. 21:11 | 54,700 | 54,704 | **4 ms** | 17 |
+
+**Vier von vier: erst der Reset, dann der Burst.** Dreimal davon im Abstand
+von ein bis vier Millisekunden. **Der Auslöser ist damit nicht WASAPI,
+sondern der Reset** — die Wiedergabe hat für einen Moment nichts zu liefern,
+und die Zahl der Fehler misst, wie lange sie leerlief. **Das erklärt die
+Schwankung**, an der dieser Abschnitt seit einer Woche hängt: 2, 13, 14, 15
+und 68 sind keine verschiedenen Fehler, sondern verschieden lange
+Leerläufe desselben.
+
+**Was dem Reset vorausgeht, ist ebenfalls gemessen:** im selben Fenster
+verwirft `ortp` **19 Pakete** als «zu alt» (`discarding too old packet`,
+seq 1314 ff. gegen `last_delivered` 1310), und danach meldet der Puffer
+Unsinnswerte — **5 651 631 ms** und **6 883 358 ms**. Der Puffer konvergiert
+also nicht, weil die Pakete des Early Media unregelmässig ankommen; nach
+einer Sekunde gibt er auf und setzt sich zurück.
+
+**Damit steht die Kette, und nur ihr erstes Glied fehlt:**
+
+```
+Early Media beginnt
+  → Pakete kommen unregelmässig, 19 werden als «zu alt» verworfen
+  → Puffer konvergiert eine Sekunde lang nicht → Reset
+  → Wiedergabe hat nichts zu liefern → Burst «Could not get buffer»
+  → hörbar als Fremdton am Anfang        ← jedes Mal
+```
+
+**Offen ist, warum die Pakete unregelmässig kommen.** Die Vermutung von oben —
+die Anlage schickt erst einen leisen, dann den eigentlichen Strom — passt
+dazu, ist aber weiterhin **nicht gemessen**.
+
+#### Der nächste Schritt für A7: **A3, die Gegenprobe mit einem zweiten Softphone**
+
+Er steht in diesem Plan schon und ist jetzt der richtige, weil er die Kette
+an ihrem offenen Ende trennt: **ein zweites Softphone am selben Test-Trunk,
+derselbe Anruf nach aussen, auf den Anfang hören.**
+
+- **Rauscht es dort auch** → die Anlage schickt den Early Media so, und nipp
+  gibt ihn nur wieder. Dann gehört die Arbeit an den Jitterpuffer der
+  Aufbauphase (er darf in dieser Sekunde nicht aufgeben) — oder an die Anlage.
+- **Rauscht es dort nicht** → es ist nipps Kette, und zwar zwischen `ortp`
+  und WASAPI.
+
+**Das ist eine halbe Stunde, kostet keine Zeile Code, und ohne sie ist jede
+Änderung am Puffer geraten.** A1 (der Mitschnitt gegen das Gehör) bleibt die
+schärfere Messung, setzt aber voraus, dass nipp den **Rufton** überhaupt
+mitschneidet — was niemand geprüft hat.
 
 ### A8 — Das lange Gespräch · **gemessen am 17.09.2026**
 

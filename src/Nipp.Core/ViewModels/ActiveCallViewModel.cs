@@ -226,15 +226,29 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
     /// <para>Weiterleiten und Aufnahme machten das schon einzeln; die Regel
     /// steht jetzt einmal, und alle sechs Befehle benutzen sie.</para>
     /// </summary>
-    private async Task GuardedAsync(Func<Task> action) =>
-        await GuardedTrueAsync(action).ConfigureAwait(true);
+    private async Task GuardedAsync(string befehl, CallHandle handle, Func<Task> action) =>
+        await GuardedTrueAsync(befehl, handle, action).ConfigureAwait(true);
 
     /// <summary>
     /// Wie <see cref="GuardedAsync"/>, sagt aber, ob es geklappt hat — für
     /// Handlungen, die aus mehreren Schritten bestehen (Makeln) oder deren
     /// Anzeige davon abhängt (Tastentöne).
+    ///
+    /// <para><b>Und es protokolliert, seit dem 23.09.2026.</b> Der Kommentar
+    /// über <see cref="GuardedAsync"/> verlangt seit jeher, dass jede
+    /// Benutzerhandlung an einem Anrufzustand ins Protokoll gehört — diese
+    /// Stelle selbst tat es nicht. Am Gerätetag fiel das auf: T261 verlangt
+    /// „eine Warnzeile mit der Anrufkennung", und vier Anläufe hinterliessen
+    /// nichts, weil hier nur <c>LastError</c> gesetzt wurde. Das Rennen ist
+    /// von Hand kaum zu treffen — es tritt im Alltag von selbst ein, und dann
+    /// muss es sichtbar sein, sonst ist es beim nächsten Mal wieder
+    /// unauffindbar.</para>
+    ///
+    /// <para><b>Der Name des Befehls ist die eigentliche Auskunft.</b> Alle
+    /// sechs Handlungen laufen hier durch; ohne ihn stünde im Protokoll, dass
+    /// <em>etwas</em> zu spät kam.</para>
     /// </summary>
-    private async Task<bool> GuardedTrueAsync(Func<Task> action)
+    private async Task<bool> GuardedTrueAsync(string befehl, CallHandle handle, Func<Task> action)
     {
         LastError = null;
 
@@ -247,6 +261,7 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
         {
             // Die Meldung kommt aus SipService und sagt bereits, was gilt und
             // was zu tun ist — sie wird hier nicht noch einmal verpackt.
+            ActiveCallLog.CommandRaced(_logger, befehl, handle.ToString(), ex.GetType().Name);
             LastError = ex.Message;
             return false;
         }
@@ -258,7 +273,7 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
         if (SelectedCall is { Status: CallStatus.Incoming } call)
         {
             ActiveCallLog.AcceptPressed(_logger, call.Handle.ToString());
-            await GuardedAsync(() => _sip.AcceptAsync(call.Handle)).ConfigureAwait(true);
+            await GuardedAsync("Annehmen", call.Handle, () => _sip.AcceptAsync(call.Handle)).ConfigureAwait(true);
         }
     }
 
@@ -268,7 +283,7 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
         if (SelectedCall is { } call)
         {
             ActiveCallLog.HangUpPressed(_logger, call.Handle.ToString());
-            await GuardedAsync(() => _sip.HangUpAsync(call.Handle)).ConfigureAwait(true);
+            await GuardedAsync("Auflegen", call.Handle, () => _sip.HangUpAsync(call.Handle)).ConfigureAwait(true);
         }
     }
 
@@ -277,7 +292,7 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
     {
         if (SelectedCall is { } call)
         {
-            await GuardedAsync(() => _sip.SetMutedAsync(call.Handle, !call.IsMuted))
+            await GuardedAsync("Stumm", call.Handle, () => _sip.SetMutedAsync(call.Handle, !call.IsMuted))
                 .ConfigureAwait(true);
         }
     }
@@ -288,6 +303,7 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
         if (SelectedCall is { } call)
         {
             await GuardedAsync(
+                "Halten", call.Handle,
                 () => _sip.SetHoldAsync(call.Handle, call.Status != CallStatus.OnHold))
                 .ConfigureAwait(true);
         }
@@ -319,13 +335,13 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
 
         if (current.Status != CallStatus.OnHold)
         {
-            erfolg = await GuardedTrueAsync(() => _sip.SetHoldAsync(current.Handle, true))
+            erfolg = await GuardedTrueAsync("Makeln (halten)", current.Handle, () => _sip.SetHoldAsync(current.Handle, true))
                 .ConfigureAwait(true);
         }
 
         if (erfolg && other.Status == CallStatus.OnHold)
         {
-            erfolg = await GuardedTrueAsync(() => _sip.SetHoldAsync(other.Handle, false))
+            erfolg = await GuardedTrueAsync("Makeln (aktivieren)", other.Handle, () => _sip.SetHoldAsync(other.Handle, false))
                 .ConfigureAwait(true);
         }
 
@@ -477,7 +493,7 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (await GuardedTrueAsync(() => _sip.SendDtmfAsync(call.Handle, digit[0]))
+        if (await GuardedTrueAsync("Tastenton", call.Handle, () => _sip.SendDtmfAsync(call.Handle, digit[0]))
             .ConfigureAwait(true))
         {
             // Die Eingabe nur mitschreiben, wenn der Ton auch hinausging —
@@ -805,4 +821,24 @@ internal static partial class ActiveCallLog
     [LoggerMessage(EventId = 2112, Level = LogLevel.Information,
         Message = "Begleitete Uebergabe abgelehnt: {Count} Gespraech(e) in der Ansicht")]
     public static partial void AttendedTransferRejected(ILogger logger, int count);
+
+    /// <summary>
+    /// Ein Befehl kam zu spaet: das Gespraech war schon weg oder das SDK hat
+    /// es gerade selbst umgestellt.
+    ///
+    /// <para><b>Warnung und nicht Information</b>, obwohl es kein
+    /// Programmfehler ist: der Benutzer hat etwas gedrueckt, das nicht
+    /// geschehen ist, und genau danach sucht jemand, der ein „das hat nicht
+    /// reagiert" nachvollziehen will. Das ist der Fall aus ADR-053 — bis zum
+    /// 13.09.2026 nahm er den Prozess mit, seither wird er gefangen, und seit
+    /// dem 23.09.2026 steht er auch da.</para>
+    ///
+    /// <para><b>Kennung, kein Ziel</b> (Paragraph 21.2): welches Gespraech
+    /// gemeint war, ist eine Aussage ueber den Zustand; wer daran beteiligt
+    /// war, gehoert nicht ins Protokoll.</para>
+    /// </summary>
+    [LoggerMessage(EventId = 2113, Level = LogLevel.Warning,
+        Message = "«{Befehl}» kam zu spaet fuer Gespraech {Call} — es war schon beendet "
+            + "oder wurde gerade umgestellt ({ExceptionType}). nipp laeuft weiter")]
+    public static partial void CommandRaced(ILogger logger, string befehl, string call, string exceptionType);
 }

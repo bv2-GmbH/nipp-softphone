@@ -38,6 +38,76 @@ einmaliger Stall, der in einer Schleife gemeldet wird**: die Zahl sagt, wie
 lang die Schleife lief, nicht wie schlimm es war. Das erklärt, warum sie über
 sechs Messungen zwischen 2 und 68 schwankt. A7 bleibt offen.
 
+## Der Abend: vier Zeilen geprüft, und A7 hat nach sieben Tagen eine Spur
+
+**Am Abend wurde zum ersten Mal an diesem Projekt gezielt mit echten
+Gesprächen geprüft** — in Bündeln, nicht Zeile für Zeile, weil der Aufwand am
+Gerät nicht der Anruf ist, sondern das Herstellen der Situation.
+
+**T09 (Makeln) ist bestanden**, auf dem heutigen Build nachgemessen: drei
+Wechsel hintereinander, jeder als sauberes Paar — das eine Gespräch auf
+Halten, das andere aktiv, 34 bis 65 ms auseinander, **nie zwei gleichzeitig
+aktiv**. **T261 bleibt offen**, obwohl nipp bei vier Anläufen nicht abgestürzt
+ist: der Fall trat gar nicht ein. Das Zeitfenster ist die Spanne zwischen «das
+SDK meldet Ended» und «die Oberfläche navigiert weg» — **von Hand kaum zu
+treffen**, und weitere Anläufe lohnen nicht. Abgenommen wird die Zeile künftig
+im Alltag.
+
+**Denn dabei fiel die dritte stille Stelle auf, und sie ist die grösste.**
+`ActiveCallViewModel.GuardedTrueAsync` trägt **alle sechs Befehle** der
+Gesprächsansicht — Annehmen, Auflegen, Stumm, Halten, Makeln, Tastentöne — und
+fing ihr Scheitern, ohne eine Zeile zu schreiben. Im Kommentar darüber steht
+seit jeher die Regel, die dort selbst nicht eingehalten wurde: «Jede
+Benutzerhandlung, die einen Anrufzustand ändert, gehört ins Protokoll — mit
+Kennung, ohne Nummer.» Jetzt steht der Name des Befehls und die Anrufkennung
+da; **T261 nimmt sich damit von selbst ab, sobald das Rennen im Alltag
+eintritt.** Ein Wächter hat den ersten Versuch übrigens zurückgewiesen:
+`"Makeln (zurueckholen)"` sah für `UserTextTests` wie ein Benutzertext aus.
+
+### Ein Ohr hat mehr gefunden als ein Tag Protokoll
+
+**Der wichtigste Fund des Tages kam aus einem Wort.** Auf die Frage nach dem
+ersten Moment eines ausgehenden Gesprächs: **«Fremdton»** — und auf Nachfrage:
+**jedes Mal**.
+
+**Damit fällt ein Eintrag desselben Tages.** T143 war am Vormittag aus dem
+Protokoll als **bestanden** eingetragen worden: «Audiostrom beginnt nach
+418 ms», `RingbackWatch` schweigt, das Werkzeug urteilt «so soll es sein».
+Die Zeile verlangt aber ausdrücklich, **auf den ersten Moment zu hören**, und
+das hatte niemand getan. **Sie ist jetzt «nicht bestanden».** Die
+Protokollhälfte stimmt weiterhin — nipp legt sich **nicht** über den
+Anlagenton; der Fremdton kommt woanders her.
+
+**Und dort läuft die Spur zusammen, die seit dem 16.09.2026 offen ist.** Im
+selben Fenster verwirft `ortp` **19 Pakete** als «zu alt», der Jitterpuffer
+konvergiert eine Sekunde lang nicht, wird zurückgesetzt und meldet danach
+**5 651 631 ms** beziehungsweise **6 883 358 ms**. Entscheidend ist die
+**Reihenfolge**, die bis dahin niemand gemessen hatte — `AUDIOQUALITAET-PLAN.md`
+führte Reset und Fehler seit einer Woche als Dinge auf, die *zusammen*
+dastehen:
+
+| Anruf | Reset | erster `Could not get buffer` | Abstand | Zahl |
+|---|---|---|---|---|
+| 09:10 | 43,777 | 43,778 | **1 ms** | 9 |
+| 10:20 | 08,475 | 09,535 | 1 060 ms | 68 |
+| 21:11 | 32,293 | 32,295 | **2 ms** | 8 |
+| 21:11 | 54,700 | 54,704 | **4 ms** | 17 |
+
+**Vier von vier: erst der Reset, dann der Burst.** Der Auslöser ist damit
+**nicht WASAPI, sondern der Reset davor** — die Wiedergabe hat einen Moment
+nichts zu liefern, und die Zahl misst, wie lange sie leerlief. Das erklärt die
+Schwankung zwischen 2 und 68, an der A7 eine Woche lang hing. **Korrelation
+über vier Fälle, keine bewiesene Ursache** — und der Satz «das macht es klein»
+im Plan ist gestrichen: betroffen ist der erste Eindruck **jedes** ausgehenden
+Gesprächs. Der nächste Schritt steht fest und kostet keine Zeile Code: **T307**,
+die Gegenprobe mit einem zweiten Softphone am selben Trunk, diesmal auf den
+**Anfang** gehört.
+
+**Die Lehre daran ist dieselbe wie dreimal zuvor an diesem Tag** — und diesmal
+die teuerste: **ein Protokoll kann vollständig sein und trotzdem die falsche
+Frage beantworten.** Ohne das Ohr hätte T143 als bestanden dagestanden, und
+A7 wäre weiter ohne Richtung gewesen.
+
 ## Die Zwei-Gespräche-Meldung, und warum sie eine Stunde gekostet hat
 
 Gemeldet war: das begleitete Weiterleiten habe nicht funktioniert, nipp habe
