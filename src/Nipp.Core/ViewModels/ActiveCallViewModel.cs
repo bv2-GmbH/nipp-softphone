@@ -184,6 +184,71 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
     public bool IsRecording => SelectedCall?.IsRecording ?? false;
 
     /// <summary>
+    /// Ob das eingetippte Ziel jetzt angerufen werden kann — der erste Schritt
+    /// der begleiteten Übergabe (§8.2).
+    ///
+    /// <para><b>Warum es das überhaupt gibt.</b> Bis zum 23.09.2026 verlangte
+    /// nipp für die begleitete Übergabe, dass der Benutzer das zweite Gespräch
+    /// <em>selbst</em> aufbaut: zurück zur Wähltastatur, das Ziel <b>noch
+    /// einmal</b> suchen, anrufen, zurück ins Gespräch. Die Auswahl, die er
+    /// im Weiterleiten-Feld gerade getroffen hatte, wurde dabei weggeworfen —
+    /// und der Knopf daneben war grau, mit einem Hinweis statt einer
+    /// Handlung. Am Gerät gemeldet als «das Handling gefällt mir nicht»;
+    /// Plan und Begründung in <c>docs/plans/VERMITTELN-PLAN.md</c>.</para>
+    ///
+    /// <para><b>Zwei Gespräche sind die Grenze</b> (§8.2). Steht schon ein
+    /// zweites, ist nicht mehr anzurufen, sondern zu übergeben — dann trägt
+    /// <see cref="CanTransferAttended"/> den nächsten Schritt.</para>
+    /// </summary>
+    public bool CanCallTarget =>
+        SelectedCall is not null
+        && !string.IsNullOrWhiteSpace(TransferTarget)
+        && Calls.Count < 2;
+
+    /// <summary>
+    /// Ruft das ausgewählte Ziel an und legt das laufende Gespräch auf Halten.
+    ///
+    /// <para><b>Das Halten macht der Dienst</b>, nicht diese Methode:
+    /// <c>PlaceCallAsync</c> pausiert die anderen Gespräche, bevor es das
+    /// Invite schickt, und holt sie zurück, wenn der Aufbau scheitert. Hier
+    /// das Gleiche noch einmal zu tun, wäre die zweite Wahrheit über
+    /// denselben Vorgang.</para>
+    ///
+    /// <para><b>Normalisiert wählen, nicht die Rohform</b> (§8.1, T69). Der
+    /// Normalisierer wird aus den aktuellen Einstellungen gebaut statt
+    /// zwischengespeichert — die Ländervorwahl ist einstellbar, und ein
+    /// mitgeführtes Feld müsste bei jeder Änderung nachgezogen werden.</para>
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanCallTarget))]
+    private async Task CallTargetAsync()
+    {
+        if (SelectedCall is null || string.IsNullOrWhiteSpace(TransferTarget))
+        {
+            return;
+        }
+
+        LastError = null;
+
+        var normalizer = new NumberNormalizer(_settings.Current.Advanced.CountryPrefix);
+        var ziel = normalizer.Normalize(TransferTarget.Trim());
+
+        try
+        {
+            await _sip.PlaceCallAsync(ziel).ConfigureAwait(true);
+        }
+        catch (TooManyCallsException ex)
+        {
+            ActiveCallLog.AttendedCallRejected(_logger, Calls.Count);
+            LastError = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            ActiveCallLog.AttendedCallFailed(_logger, ex.GetType().Name);
+            LastError = ex.Message;
+        }
+    }
+
+    /// <summary>
     /// Ob begleitet weitergeleitet werden kann: dafür braucht es ein zweites
     /// Gespräch, bei dem angekündigt wurde (§8.2).
     /// </summary>
@@ -662,6 +727,8 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsOnHold));
         OnPropertyChanged(nameof(IsRecording));
         OnPropertyChanged(nameof(CanTransferAttended));
+        OnPropertyChanged(nameof(CanCallTarget));
+        CallTargetCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(StateCaption));
         OnPropertyChanged(nameof(CanTransferBlind));
         TransferBlindCommand.NotifyCanExecuteChanged();
@@ -673,6 +740,8 @@ public sealed partial class ActiveCallViewModel : ObservableObject, IDisposable
     /// </summary>
     partial void OnTransferTargetChanged(string value)
     {
+        OnPropertyChanged(nameof(CanCallTarget));
+        CallTargetCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanTransferBlind));
         TransferBlindCommand.NotifyCanExecuteChanged();
         UpdateTransferSuggestions();
@@ -837,6 +906,16 @@ internal static partial class ActiveCallLog
     /// gemeint war, ist eine Aussage ueber den Zustand; wer daran beteiligt
     /// war, gehoert nicht ins Protokoll.</para>
     /// </summary>
+    /// <summary>Der Rueckfrageanruf ging nicht, weil schon zwei Gespraeche stehen.</summary>
+    [LoggerMessage(EventId = 2114, Level = LogLevel.Information,
+        Message = "Rueckfrageanruf abgelehnt: schon {Count} Gespraech(e) offen (Paragraph 8.2)")]
+    public static partial void AttendedCallRejected(ILogger logger, int count);
+
+    /// <summary>Der Rueckfrageanruf kam aus einem anderen Grund nicht zustande.</summary>
+    [LoggerMessage(EventId = 2115, Level = LogLevel.Warning,
+        Message = "Rueckfrageanruf nicht zustande gekommen ({ExceptionType})")]
+    public static partial void AttendedCallFailed(ILogger logger, string exceptionType);
+
     [LoggerMessage(EventId = 2113, Level = LogLevel.Warning,
         Message = "«{Befehl}» kam zu spaet fuer Gespraech {Call} — es war schon beendet "
             + "oder wurde gerade umgestellt ({ExceptionType}). nipp laeuft weiter")]

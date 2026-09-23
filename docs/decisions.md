@@ -8,6 +8,88 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-073 — Die begleitete Übergabe ruft das Ziel selbst an, und die Gesprächsansicht misst ihre Breite
+
+**Datum:** 23.09.2026 · **Status:** angenommen · **Bezug:** §8.2, ADR-047, `docs/plans/VERMITTELN-PLAN.md`, T314, T321–T323
+
+**Zwei Änderungen an derselben Ansicht, am selben Abend gebaut** — deshalb ein
+ADR. Beide kommen aus dem ersten Tag an der Anlage, und beide betreffen den
+Weg, nicht die Fähigkeit: §8.2 verlangte schon vorher beides und bekam schon
+vorher beides.
+
+### 1. Begleitet vermitteln, ohne die Ansicht zu verlassen
+
+**Kontext.** Der Weiterleiten-Bereich hatte alles, was es braucht —
+Eingabefeld, Vorschlagsliste mit Präsenzpunkt, zwei Knöpfe. Nur war
+«Erst ankündigen» grau, solange ein Gespräch lief, und daneben stand ein
+Hinweis: *«zuerst ein zweites Gespräch aufbauen: oben zurück zur Wähltastatur,
+das Ziel anrufen, ankündigen. Dann hier übergeben.»* **Die Auswahl, die der
+Benutzer gerade getroffen hatte, wurde dabei weggeworfen.** Am Gerät gemeldet
+als «das Handling gefällt mir nicht so recht» — und die Person, die es
+gemeldet hat, hatte den Umweg tatsächlich genommen: Gespräch halten, zur
+Wähltastatur, Nebenstelle erneut suchen, anrufen.
+
+**Entscheidung.** Der zweite Knopf heisst **«Zuerst anrufen»** und ruft das
+ausgewählte Ziel an. Steht das zweite Gespräch, erscheint darunter
+**«Jetzt übergeben»**.
+
+**Warum die Knöpfe so heissen.** Nach dem, was sie tun, nicht nach der
+Absicht dahinter (ADR-044). «Erst ankündigen» beschrieb einen Vorsatz;
+«Zuerst anrufen» beschreibt den nächsten Schritt.
+
+**Was ausdrücklich nicht geändert wurde.** `SipService.TransferAsync` setzt
+zwei bestehende Gespräche zusammen und tut das richtig — das ist, was SIP an
+dieser Stelle tut. Das Halten des ersten Gesprächs macht weiterhin
+`PlaceCallAsync` mit `PauseOthers`, samt Rückholen bei gescheitertem Aufbau.
+**Beides hier noch einmal zu tun wäre die zweite Wahrheit über denselben
+Vorgang.** Das ViewModel ruft nur an.
+
+**Konsequenz.** `CanTransferAttended` trägt nur noch das Übergeben; das
+Anrufen hängt an `CanCallTarget` (ein Ziel, ein Gespräch, und Platz für ein
+zweites nach §8.2). Die `InfoBar` mit dem Umweg ist entfallen — sie erklärte
+etwas, das es nicht mehr gibt. Gewählt wird **normalisiert** (§8.1, T69), und
+der Normalisierer wird aus den aktuellen Einstellungen gebaut statt
+mitgeführt: die Ländervorwahl ist einstellbar, und ein mitgeführtes Feld
+müsste bei jeder Änderung nachgezogen werden — genau die Falle aus A1-22.
+
+### 2. Die Gesprächsansicht misst ihre Breite, wenn sie die ganze Fläche hat
+
+**Kontext.** Bis zum 23.09.2026 wurde die Breite an **einer** Stelle gemessen:
+`ShellPage.OnPageSizeChanged`. Wird das Fenster während eines Gesprächs
+schmal, navigiert `ShellPage.ApplyCallView` auf die ganzseitige
+`ActiveCallPage` — **und nimmt die Shell damit aus dem visuellen Baum.** Ab da
+feuert ihr `SizeChanged` nicht mehr, `ApplyWidth` wird nie wieder gerufen,
+`IsWide` bleibt auf `false`. **Einmal schmal, nie wieder breit**, bis das
+Gespräch endet.
+
+**Am Gerät gemessen (T314):** 1150 → 880 → 1150 → 880 → 1150 logische Pixel
+mit laufendem Gespräch, über den UIA-Baum gezählt — ab dem ersten Wechsel
+blieb die Ansicht schmal, vier Wechsel lang. Der Kommentar in
+`MainWindow.OnCallStateChanged` beschrieb diese Falle sogar schon, aber nur
+für einen anderen Fall («die Shell hätte niemanden mehr, der ihre Breite
+misst»).
+
+**Entscheidung.** Solange `ActiveCallPage` **nicht eingebettet** steht, meldet
+sie ihre Breite an `ShellViewModel.ApplyWidth` und navigiert zurück in die
+Shell, sobald `IsWide` wieder gilt.
+
+**Warum das ADR-047 nicht verletzt.** Die Schwelle bleibt an genau einer
+Stelle. Die Seite **meldet** nur ihre Breite — dasselbe, was die Shell tut;
+entschieden wird weiterhin in `ApplyWidth`, samt Hysterese. Und die Hysterese
+ist es auch, die ein Hin und Her verhindert, wenn zwei Seiten abwechselnd
+navigieren: ohne sie würde an der Schwelle jede Messung die andere Seite
+aufrufen.
+
+**Warum die Seite selbst navigiert.** Aus demselben Grund, aus dem
+`ApplyCallView` hierher navigiert: **diesen Wechsel merkt sonst niemand.**
+`MainWindow` navigiert nur bei Beginn und Ende eines Gesprächs.
+
+**Konsequenz.** Eingebettet meldet weiterhin die Shell — zwei Melder
+gleichzeitig wären dieselbe Zahl zweimal. Geprüft wird das mit **T314**;
+für die Übergabe stehen **T321 bis T323**.
+
+---
+
 ## ADR-072 — Was aus den sechs offenen Befunden der Runde A1 wurde
 
 **Datum:** 22.09.2026, **entschieden am 23.09.2026** · **Status:** angenommen · **Bezug:** `docs/plans/BEWEIS-PLAN.md` (A1-17 bis A1-24), ADR-044, ADR-045, ADR-053, ADR-060, §21.2

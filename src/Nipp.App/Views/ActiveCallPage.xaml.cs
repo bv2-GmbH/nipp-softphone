@@ -62,6 +62,28 @@ public sealed partial class ActiveCallPage : Page
     /// </summary>
     private bool _eingebettet;
 
+    /// <summary>
+    /// Für die Breitenmeldung, solange diese Seite die ganze Fläche einnimmt.
+    ///
+    /// <para><b>Warum die Seite das überhaupt tun muss.</b> Die Breite wurde
+    /// bis zum 23.09.2026 an genau einer Stelle gemessen:
+    /// <c>ShellPage.OnPageSizeChanged</c>. Wird das Fenster während eines
+    /// Gesprächs schmal, navigiert <c>ShellPage.ApplyCallView</c> hierher —
+    /// und nimmt die Shell damit aus dem visuellen Baum. Ab da feuert ihr
+    /// <c>SizeChanged</c> nicht mehr, <c>ApplyWidth</c> wird nie wieder
+    /// gerufen, und <c>IsWide</c> bleibt auf <c>false</c> stehen. <b>Einmal
+    /// schmal, nie wieder breit</b>, bis das Gespräch endet — am Gerät
+    /// gemessen (T314): 1150 → 880 → 1150 → 880 → 1150 logische Pixel, und
+    /// ab dem ersten Wechsel blieb die Ansicht schmal.</para>
+    ///
+    /// <para><b>Die Schwelle bleibt trotzdem an einer Stelle</b> (ADR-047):
+    /// diese Seite <em>meldet</em> nur ihre Breite, genau wie die Shell es
+    /// tut. Entschieden wird in <c>ShellViewModel.ApplyWidth</c>, samt
+    /// Hysterese — und die ist es auch, die ein Hin und Her an der Schwelle
+    /// verhindert, wenn zwei Seiten abwechselnd navigieren.</para>
+    /// </summary>
+    private readonly ShellViewModel _shell;
+
     public ActiveCallPage()
     {
         var services = ((App)Application.Current).Services;
@@ -69,6 +91,7 @@ public sealed partial class ActiveCallPage : Page
         ViewModel = services.GetRequiredService<ActiveCallViewModel>();
         CallerCard = services.GetService<CallerCardViewModel>();
         _logger = services.GetRequiredService<ILogger<ActiveCallPage>>();
+        _shell = services.GetRequiredService<ShellViewModel>();
 
         InitializeComponent();
 
@@ -132,6 +155,18 @@ public sealed partial class ActiveCallPage : Page
 
         Refresh();
         _durationTimer.Start();
+
+        // T314: Solange diese Seite die ganze Fläche einnimmt, ist sie die
+        // einzige, die die Breite noch messen kann — die Shell steht dann
+        // nicht im Baum. Eingebettet meldet weiterhin die Shell; zwei Melder
+        // gleichzeitig wären dieselbe Zahl zweimal.
+        SizeChanged -= OnPageSizeChanged;
+
+        if (!_eingebettet)
+        {
+            SizeChanged += OnPageSizeChanged;
+            _shell.ApplyWidth(ActualWidth);
+        }
 
         // ADR-044: Der Fokus gehoert auf die Handlung, um die es hier geht.
         //
@@ -311,11 +346,39 @@ public sealed partial class ActiveCallPage : Page
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         _durationTimer.Stop();
+        SizeChanged -= OnPageSizeChanged;
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
 
         if (CallerCard is not null)
         {
             CallerCard.PropertyChanged -= OnViewModelPropertyChanged;
+        }
+    }
+
+    /// <summary>
+    /// Meldet die Breite und geht zurück in die Shell, sobald sie reicht (T314).
+    ///
+    /// <para><b>Zurück navigiert die Seite selbst</b>, und zwar aus demselben
+    /// Grund, aus dem <c>ShellPage.ApplyCallView</c> hierher navigiert: diesen
+    /// Wechsel merkt sonst niemand. <c>MainWindow</c> navigiert nur, wenn ein
+    /// Gespräch beginnt oder endet.</para>
+    ///
+    /// <para>In der Shell übernimmt dann <c>OnNavigatedTo</c> → <c>ApplyWidth</c>
+    /// → <c>ApplyCallView</c> und bettet das Gespräch links ein. Ein Hin und
+    /// Her an der Schwelle verhindert die Hysterese in <c>ApplyWidth</c>.</para>
+    /// </summary>
+    private void OnPageSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_eingebettet)
+        {
+            return;
+        }
+
+        _shell.ApplyWidth(e.NewSize.Width);
+
+        if (_shell.IsWide && _shell.HasActiveCall && Frame is { } frame)
+        {
+            frame.Navigate(typeof(ShellPage));
         }
     }
 
@@ -785,19 +848,12 @@ public sealed partial class ActiveCallPage : Page
             CloseActionPanes();
         }
 
-        AttendedButton.IsEnabled = ViewModel.CanTransferAttended;
+        // «Zuerst anrufen» braucht ein Ziel und Platz für ein zweites
+        // Gespräch; «Jetzt übergeben» braucht die zwei Gespräche. Der Hinweis
+        // darunter ist mit dem Umbau vom 23.09.2026 entfallen — er erklärte
+        // einen Umweg, den es nicht mehr gibt.
+        AttendedButton.IsEnabled = ViewModel.CanCallTarget;
         UpdateTransferSuggestions();
-
-        // Den Hinweis erst zeigen, wenn jemand wirklich dabei ist
-        // weiterzuleiten: der Bereich ist offen UND ein Ziel steht drin.
-        //
-        // Vorher stand er, sobald der Bereich sichtbar war — also praktisch
-        // immer, denn ein zweites Gespräch ist die Ausnahme. Vier Zeilen für
-        // eine Erklärung, die man einmal liest, und sie schoben die
-        // Anruferkarte aus dem Bild.
-        AttendedHint.IsOpen = !ViewModel.CanTransferAttended
-            && TransferCard.Visibility == Visibility.Visible
-            && !string.IsNullOrWhiteSpace(ViewModel.TransferTarget);
 
         if (call is null)
         {

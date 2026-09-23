@@ -728,23 +728,34 @@
                             x:Name="AttendedButton"
                             Grid.Column="1"
                             HorizontalAlignment="Stretch"
-                            Command="{x:Bind ViewModel.TransferAttendedCommand}"
-                            Content="Erst ankündigen"
-                            ToolTipService.ToolTip="Begleitete Weiterleitung: erst selbst beim Ziel anrufen und ankündigen, dann übergeben. Braucht ein zweites Gespräch."
-                            AutomationProperties.Name="Erst ankündigen, begleitete Weiterleitung" />
+                            Command="{x:Bind ViewModel.CallTargetCommand}"
+                            Content="Zuerst anrufen"
+                            ToolTipService.ToolTip="Begleitete Weiterleitung, erster Schritt: das ausgewählte Ziel anrufen und ankündigen. Das laufende Gespräch geht dabei auf Halten."
+                            AutomationProperties.Name="Zuerst anrufen, begleitete Weiterleitung" />
                     </Grid>
 
                     <!--
-                        Erklärt, warum "Begleitet übergeben" ausgegraut ist.
-                        Ein ausgegrauter Knopf ohne Begruendung ist das
-                        Gegenteil dessen, was Paragraph 15 verlangt.
+                        Der zweite Schritt der begleiteten Übergabe, und er
+                        steht erst da, wenn er möglich ist: sobald das zweite
+                        Gespräch verbunden ist.
+
+                        <b>Warum ein eigener Knopf und kein ausgegrauter.</b>
+                        Bis zum 23.09.2026 trug "Erst ankündigen" beide
+                        Schritte und war grau, solange nur ein Gespräch lief —
+                        daneben stand ein Hinweis, der den Benutzer aus der
+                        Ansicht schickte, um das Ziel noch einmal zu suchen,
+                        das er hier gerade ausgewählt hatte. Der Knopf oben
+                        ruft jetzt selbst an; hier wird übergeben.
                     -->
-                    <InfoBar
-                        x:Name="AttendedHint"
-                        IsClosable="False"
-                        IsOpen="False"
-                        Message="Für die begleitete Übergabe zuerst ein zweites Gespräch aufbauen: oben zurück zur Wähltastatur, das Ziel anrufen, ankündigen. Dann hier übergeben."
-                        Severity="Informational" />
+                    <Button
+                        x:Name="AttendedTransferButton"
+                        HorizontalAlignment="Stretch"
+                        Command="{x:Bind ViewModel.TransferAttendedCommand}"
+                        Content="Jetzt übergeben"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Visibility="{x:Bind ViewModel.CanTransferAttended, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                        ToolTipService.ToolTip="Die beiden Gespräche zusammenschalten und selbst auflegen."
+                        AutomationProperties.Name="Jetzt übergeben, begleitete Weiterleitung abschliessen" />
                 </StackPanel>
             </Border>
 

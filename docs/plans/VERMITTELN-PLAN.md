@@ -1,5 +1,13 @@
 ﻿# Vermitteln — ein Weg für beide Arten
 
+> **Stand 23.09.2026, 21:55: gebaut.** Der Umbau ist umgesetzt und in
+> **ADR-073** festgehalten — «Zuerst anrufen» ruft das ausgewählte Ziel an,
+> «Jetzt übergeben» erscheint, sobald das zweite Gespräch steht, und die
+> `InfoBar` mit dem Umweg ist entfallen. **Am Gerät abgenommen ist nichts
+> davon:** T321 bis T323 stehen offen. Von den vier offenen Entscheidungen
+> unten sind zwei getroffen (ADR ja; der Rückweg bleibt bei `PlaceCallAsync`),
+> zwei offen: **externe Ziele** und **was die Vorschlagsliste anbietet**.
+
 **Angelegt am 23.09.2026**, am Abend des ersten Tages an der Anlage. Auftrag
 von Dominic, nachdem das begleitete Vermitteln im echten Betrieb zwar
 funktioniert hat, aber über einen Umweg, den niemand von selbst findet.
