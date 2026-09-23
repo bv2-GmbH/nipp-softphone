@@ -1682,8 +1682,14 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Zeigt die zuletzt gewählten Nummern — gerufen, wenn das Nummernfeld den
-    /// Fokus bekommt (§22.2).
+    /// Zeigt die zuletzt gewählten Nummern — gerufen, wenn der Verlaufsknopf
+    /// im Nummernfeld gedrückt wird (§22.2).
+    ///
+    /// <para><b>Auf Klick und nicht auf Fokus</b>, und der Kommentar hier sagte
+    /// bis zum 23.09.2026 das Gegenteil: er beschrieb den Zustand vor §22.2,
+    /// als die Liste erschien, sobald jemand ins leere Feld klickte — also bei
+    /// genau dem Handgriff, mit dem man zu tippen anfängt. Es gibt genau einen
+    /// Aufrufer, und das ist <c>ShellPage.OnRecentClick</c>.</para>
     ///
     /// <para>Nur bei leerem Feld: steht schon etwas drin, gilt die gewöhnliche
     /// Vorschlagsliste, und die hier würde sie überschreiben.</para>
@@ -1701,8 +1707,20 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Räumt die Liste weg, wenn das Feld den Fokus verliert — aber nur die
-    /// Wahlwiederholung, nicht eine Trefferliste zu einer Eingabe.
+    /// Räumt die Liste weg — aber nur die Wahlwiederholung, nicht eine
+    /// Trefferliste zu einer Eingabe.
+    ///
+    /// <para><b>Die Prüfung auf das leere Feld ist die ganze Abgrenzung</b>,
+    /// und sie steht hier und nicht bei den Aufrufern: wer diese Methode ruft,
+    /// muss nicht wissen, dass es zwei Listen gibt, die sich denselben Platz
+    /// teilen.</para>
+    ///
+    /// <para><b>Bis zum 23.09.2026 stand hier «wenn das Feld den Fokus
+    /// verliert», und es gab niemanden, der das getan hätte</b>: einziger
+    /// Aufrufer war der Umschalter am Verlaufsknopf. Wer die Liste aufmachte
+    /// und in ein anderes Fenster klickte, fand sie unverändert offen vor. Die
+    /// drei Auslöser stehen jetzt in
+    /// <c>ShellPage.VerbindeWahlwiederholung</c>.</para>
     /// </summary>
     public void HideRecentlyDialed()
     {

@@ -38,6 +38,23 @@ public sealed partial class ShellPage : Page
     private bool _syncingSelection;
 
     /// <summary>
+    /// Der Behandler für den Zeigerdruck auf der Seite — <b>als Feld, weil er
+    /// wieder abgemeldet werden muss</b>.
+    ///
+    /// <para><c>RemoveHandler</c> vergleicht die Delegaten; eine bei jedem
+    /// Aufruf neu erzeugte Methodengruppe wäre ein anderes Objekt, und die
+    /// Abmeldung liefe ins Leere. Bei einer Seite, die aus dem
+    /// Zwischenspeicher wiederkommt, sammelten sich die Anmeldungen dann.</para>
+    /// </summary>
+    private readonly PointerEventHandler _zeigerGedrueckt;
+
+    /// <summary>
+    /// Das Fenster, an dem <c>Activated</c> hängt — gemerkt, damit die
+    /// Abmeldung dasselbe trifft.
+    /// </summary>
+    private Window? _fenster;
+
+    /// <summary>
     /// Der laufende Ziehvorgang samt Vorschau — <c>null</c>, wenn gerade
     /// nicht gezogen wird (ADR-066).
     ///
@@ -156,6 +173,8 @@ public sealed partial class ShellPage : Page
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
 
+        _zeigerGedrueckt = OnZeigerGedrueckt;
+
         // Der Tastaturweg zum Kontextmenue (ADR-044), hier und nicht im XAML:
         // der Behandler braucht keinen Instanzzustand, und der XAML-Generator
         // verdrahtet Ereignisse ausschliesslich als Instanzmitglieder — beides
@@ -195,6 +214,8 @@ public sealed partial class ShellPage : Page
 
         AttachTeamGroups();
 
+        VerbindeWahlwiederholung();
+
         Refresh();
 
         NumberBox.Focus(FocusState.Programmatic);
@@ -224,6 +245,8 @@ public sealed partial class ShellPage : Page
     {
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         SizeChanged -= OnPageSizeChanged;
+
+        LoeseWahlwiederholung();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e) => Refresh();
@@ -319,6 +342,171 @@ public sealed partial class ShellPage : Page
         // Der Fokus gehört ins Feld: wer eine Nummer aus der Liste nimmt, will
         // sie danach womöglich ergänzen, und wer keine findet, tippt weiter.
         NumberBox.Focus(FocusState.Programmatic);
+    }
+
+    /// <summary>
+    /// Meldet die drei Auslöser an, die die Wahlwiederholung schliessen
+    /// (23.09.2026, ALLTAG-PLAN-3.md C).
+    ///
+    /// <para><b>Vorher gab es keinen.</b> <c>HideRecentlyDialed</c> trug zwar
+    /// seit jeher den Kommentar «räumt die Liste weg, wenn das Feld den Fokus
+    /// verliert», hatte aber genau einen Aufrufer: den Umschalter am Knopf
+    /// selbst. Wer die Liste aufmachte und in ein anderes Fenster klickte, fand
+    /// sie unverändert offen vor — über den Kontakten liegend, die sie
+    /// wegschiebt.</para>
+    ///
+    /// <para><b>Drei sind nötig, weil keiner alle Fälle trifft:</b> ein Klick
+    /// in ein anderes Fenster bewegt den Fokus innerhalb von nipp nicht, und
+    /// ein Klick auf eine nicht fokussierbare Fläche bewegt ihn überhaupt
+    /// nicht.</para>
+    ///
+    /// <para><b>Erst lösen, dann verbinden</b>, wie überall in dieser Datei:
+    /// <c>Loaded</c> kann ohne dazwischenliegendes <c>Unloaded</c> erneut
+    /// feuern.</para>
+    /// </summary>
+    private void VerbindeWahlwiederholung()
+    {
+        // 2 · Der Fokus wandert irgendwohin. GotFocus und nicht LostFocus: nur
+        // das erste nennt das NEUE Ziel, und danach wird hier gefragt.
+        FocusManager.GotFocus -= OnFokusBekommen;
+        FocusManager.GotFocus += OnFokusBekommen;
+
+        // 3 · Ein Druck auf eine Flaeche, die den Fokus gar nicht bewegt.
+        //
+        // handledEventsToo, aus demselben Grund wie beim Ziehen (ADR-065): die
+        // Listen markieren den Zeigerdruck als behandelt, und ohne das saehe
+        // diese Stelle einen Klick in die Kontaktliste nie.
+        RemoveHandler(PointerPressedEvent, _zeigerGedrueckt);
+        AddHandler(PointerPressedEvent, _zeigerGedrueckt, handledEventsToo: true);
+
+        // 1 · Das Fenster verliert den Vordergrund.
+        if (((App)Application.Current).MainWindowRef is { } fenster)
+        {
+            _fenster = fenster;
+
+            fenster.Activated -= OnFensterAktiviert;
+            fenster.Activated += OnFensterAktiviert;
+        }
+    }
+
+    /// <summary>
+    /// Löst die drei Auslöser wieder.
+    ///
+    /// <para><c>FocusManager.GotFocus</c> ist ein statisches, anwendungsweites
+    /// Ereignis und <c>Window.Activated</c> hängt an einem Objekt, das die
+    /// Seite überlebt — beide liefen sonst weiter, auch wenn die Seite längst
+    /// nicht mehr zu sehen ist. Dieselbe Stelle wie in
+    /// <c>SettingsPage.OnUnloaded</c>.</para>
+    /// </summary>
+    private void LoeseWahlwiederholung()
+    {
+        FocusManager.GotFocus -= OnFokusBekommen;
+
+        RemoveHandler(PointerPressedEvent, _zeigerGedrueckt);
+
+        if (_fenster is { } fenster)
+        {
+            fenster.Activated -= OnFensterAktiviert;
+            _fenster = null;
+        }
+    }
+
+    /// <summary>
+    /// Auslöser 1: nipp ist nicht mehr das vordere Fenster.
+    ///
+    /// <para>Das ist der Fall aus der Meldung — und der einzige, den die beiden
+    /// anderen nicht sehen: wer in ein fremdes Fenster klickt, bewegt den Fokus
+    /// innerhalb von nipp nicht und drückt hier auch nichts.</para>
+    /// </summary>
+    private void OnFensterAktiviert(object sender, WindowActivatedEventArgs args)
+    {
+        if (args.WindowActivationState == WindowActivationState.Deactivated)
+        {
+            SchliesseWahlwiederholung();
+        }
+    }
+
+    /// <summary>
+    /// Auslöser 2: der Fokus liegt jetzt ausserhalb von Feld, Knopf und Liste.
+    /// </summary>
+    private void OnFokusBekommen(object? sender, FocusManagerGotFocusEventArgs e) =>
+        SchliesseWennDraussen(e.NewFocusedElement);
+
+    /// <summary>
+    /// Auslöser 3: irgendwo auf der Seite wurde gedrückt, und zwar nicht in
+    /// Feld, Knopf oder Liste.
+    /// </summary>
+    private void OnZeigerGedrueckt(object sender, PointerRoutedEventArgs e) =>
+        SchliesseWennDraussen(e.OriginalSource);
+
+    /// <summary>
+    /// Die gemeinsame Antwort der Auslöser 2 und 3: zumachen, wenn das
+    /// Element ausserhalb liegt.
+    ///
+    /// <para><b>Die Frage nach der offenen Liste steht zuerst</b>, und das ist
+    /// der Grund für die Reihenfolge: beide Auslöser feuern bei jeder
+    /// Fokusbewegung und jedem Klick im Fenster, die Liste ist fast nie offen,
+    /// und der Baumlauf darunter kostet bei jedem Treffer ein Dutzend
+    /// Ebenen.</para>
+    /// </summary>
+    private void SchliesseWennDraussen(object? element)
+    {
+        if (ViewModel.HasSuggestions && !LiegtInDerWahlwiederholung(element))
+        {
+            ViewModel.HideRecentlyDialed();
+        }
+    }
+
+    /// <summary>
+    /// Ob ein Element zur Wahlwiederholung gehört — <b>und der Verlaufsknopf
+    /// gehört dazu, das ist kein Detail</b>.
+    ///
+    /// <para>Windows setzt den Fokus beim Mausklick auf einen Knopf, <b>bevor</b>
+    /// <c>Click</c> feuert (ADR-044, Nachtrag vom 21.09.2026). Stünde der
+    /// <c>RecentButton</c> nicht in dieser Liste, schlösse Auslöser 2 die
+    /// Wahlwiederholung, <c>OnRecentClick</c> sähe danach
+    /// <c>HasSuggestions == false</c> und machte sie sofort wieder auf — der
+    /// Knopf ginge nie wieder zu. Es ist dieselbe Falle, die die Wähltastatur
+    /// nach jedem Mausklick eine Ziffer gekostet hat.</para>
+    ///
+    /// <para>Gegangen wird der <b>visuelle</b> Baum: ein Klick in die Liste
+    /// trifft irgendein <c>TextBlock</c> tief in der Zeilenvorlage, und
+    /// erreichbar ist von dort nur so das <c>SuggestionPanel</c>.</para>
+    /// </summary>
+    private bool LiegtInDerWahlwiederholung(object? element)
+    {
+        var knoten = element as DependencyObject;
+
+        while (knoten is not null)
+        {
+            if (ReferenceEquals(knoten, NumberBox)
+                || ReferenceEquals(knoten, RecentButton)
+                || ReferenceEquals(knoten, SuggestionPanel))
+            {
+                return true;
+            }
+
+            knoten = VisualTreeHelper.GetParent(knoten);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Schliesst die Wahlwiederholung — <b>und nur sie</b>.
+    ///
+    /// <para>Was «zumachen» heisst, steht im Kern:
+    /// <c>ShellViewModel.HideRecentlyDialed</c> räumt nur bei <b>leerem</b>
+    /// Feld auf. Die Vorschläge, die beim Tippen aufgehen (AP4.3), bleiben
+    /// damit unberührt — sie gehören zu dem, was im Feld steht, und entstehen
+    /// mit dem nächsten Tastendruck ohnehin neu.</para>
+    /// </summary>
+    private void SchliesseWahlwiederholung()
+    {
+        if (ViewModel.HasSuggestions)
+        {
+            ViewModel.HideRecentlyDialed();
+        }
     }
 
     private void OnNumberBoxKeyDown(object sender, KeyRoutedEventArgs e)
