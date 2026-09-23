@@ -38,6 +38,36 @@ einmaliger Stall, der in einer Schleife gemeldet wird**: die Zahl sagt, wie
 lang die Schleife lief, nicht wie schlimm es war. Das erklärt, warum sie über
 sechs Messungen zwischen 2 und 68 schwankt. A7 bleibt offen.
 
+## Noch später: drei Meldungen aus der Benutzung
+
+**Drei Sachen, die im Alltag störten**, gemeldet nach dem Gerätetag und am
+selben Abend gebaut — `docs/plans/ALLTAG-PLAN-3.md`, Prüfzeilen **T324 bis
+T329, alle sechs bestanden**.
+
+| | Meldung | Was es war |
+|---|---|---|
+| **A** | Ein Suchtreffer mit zwei Nummern zeigte die zweite nicht | **Eine fehlende Zeile XAML.** `SelectionChanged` hing an der Team- und an der Outlook-Liste, **nicht** an der Trefferliste — der aufklappbare Bereich war in der Vorlage längst da, `UpdateContactDetails` zählte die Liste schon mit auf, ausgelöst hat ihn nie jemand |
+| **B** | Beim Bearbeiten einer Nebenstelle musste man ganz nach unten scrollen | Das Formular stand unter einer **ungedeckelten** Liste, und der Stift bewegte weder Bildlauf noch Fokus. Jetzt sind beide Listen gedeckelt (wie die Integrationsquellen seit jeher), der Stift holt das Formular ins Bild und den Fokus hinein, und über dem Team-Formular steht wie bei den Konten, ob es hinzufügt oder bearbeitet |
+| **C** | Die zuletzt gewählten Nummern blieben offen, wenn man in ein anderes Fenster klickte | **Es gab keinen Auslöser, der sie schliesst** — ausser einem zweiten Druck auf denselben Knopf. Jetzt drei: Fenster verliert den Vordergrund, Fokus verlässt Feld/Knopf/Liste, Druck auf eine Fläche, die den Fokus gar nicht bewegt |
+
+**Zwei Kommentare haben dabei etwas behauptet, das es nicht gab** — beide an
+der Wahlwiederholung: «gerufen, wenn das Nummernfeld den Fokus bekommt» und
+«räumt die Liste weg, wenn das Feld den Fokus verliert». Der erste beschrieb
+den Zustand vor §22.2, der zweite genau die Mechanik, die erst dieser Abend
+gebaut hat. Dieselbe Regel wie bei A: **ein Kommentar, der eine Mechanik
+behauptet, ist keine Messung.**
+
+**Gemessen wurde mit einer echten Maus**, nicht nur über UI Automation, und
+das war der Punkt: ein `InvokePattern` bewegt den Fokus gar nicht. Die Falle
+aus ADR-044 — Windows setzt den Fokus beim Mausklick, **bevor** `Click` feuert
+— wäre über UIA nie gestellt worden, und der Verlaufsknopf wäre nie wieder
+zugegangen. Deshalb steht der `RecentButton` ausdrücklich in der Ausnahmeliste.
+
+**Die offene Frage des Plans ist beantwortet:** die Anbietervorlage des CRM
+bildet **beide** Nummern ab (T325). Die Ursache lag vollständig in der
+Oberfläche. Dass die meisten Kontakte dieser Quelle nur eine Nummer haben,
+machte den Befund schwerer auffindbar, war aber nicht seine Ursache.
+
 ## Spät am Abend: das Vermitteln umgebaut — und die Abnahme hat es erst fertig gemacht
 
 **Der Auftrag kam aus dem Betrieb**, in einem Satz: für die blinde Abgabe sei
