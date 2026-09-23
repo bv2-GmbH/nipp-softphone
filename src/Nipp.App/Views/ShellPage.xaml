@@ -1489,6 +1489,18 @@
                                 Visibility="Collapsed" />
                         </Grid>
 
+                        <!--
+                            <b>SelectionChanged fehlte hier bis zum
+                            23.09.2026</b> (ALLTAG-PLAN-3.md, A). Die Vorlage
+                            oben trug den aufklappbaren Bereich laengst,
+                            UpdateContactDetails zaehlte diese Liste schon mit
+                            auf, ReattachContactDetails ebenfalls — nur
+                            ausgeloest hat ihn nie jemand. Ein Klick auf einen
+                            Treffer waehlte die Zeile aus und tat sonst
+                            nichts, und die zweite Nummer eines Kontakts war
+                            nur ueber den Doppelklick zu erreichen, der sofort
+                            waehlt.
+                        -->
                         <ListView
                             x:Name="SearchResultList"
                             Grid.Row="1"
@@ -1496,6 +1508,7 @@
                             ItemTemplate="{StaticResource NippSearchResultTemplate}"
                             ItemsSource="{x:Bind ViewModel.SearchResults}"
                             KeyDown="OnContactListKeyDown"
+                            SelectionChanged="OnContactSelectionChanged"
                             SelectionMode="Single" />
 
                         <TextBlock

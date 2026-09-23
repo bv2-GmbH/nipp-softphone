@@ -1585,6 +1585,16 @@ public sealed partial class ShellPage : Page
     /// <c>AddedItems.Count == 0</c> filtert den Fall heraus, dass eine Liste
     /// ihre Auswahl beim Austausch der Quelle von selbst verliert: dieselbe
     /// Falle wie bei der Kontoauswahl.
+    ///
+    /// <para><b>Drei Listen, aber nur zwei stehen je nebeneinander</b>
+    /// (23.09.2026). Die Trefferliste hängt seit demselben Tag ebenfalls hier
+    /// — vorher klappte bei einem Suchtreffer gar nichts auf, obwohl die
+    /// Vorlage den Bereich trug. Sie braucht die Quersynchronisation aber
+    /// nicht: <c>SearchBody</c> und <c>ContactsBody</c> schliessen sich aus
+    /// (<see cref="RefreshSearch"/>), es gibt zu ihr keine zweite sichtbare
+    /// Liste. Ohne diese Unterscheidung löschte ein Klick auf einen Treffer
+    /// die Auswahl in der Team-Liste — unsichtbar, aber eine Aussage, die
+    /// nicht stimmt.</para>
     /// </summary>
     private void OnContactSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -1593,15 +1603,18 @@ public sealed partial class ShellPage : Page
             return;
         }
 
-        _syncingSelection = true;
+        if (!ReferenceEquals(sender, SearchResultList))
+        {
+            _syncingSelection = true;
 
-        try
-        {
-            (ReferenceEquals(sender, TeamList) ? OutlookList : TeamList).SelectedIndex = -1;
-        }
-        finally
-        {
-            _syncingSelection = false;
+            try
+            {
+                (ReferenceEquals(sender, TeamList) ? OutlookList : TeamList).SelectedIndex = -1;
+            }
+            finally
+            {
+                _syncingSelection = false;
+            }
         }
 
         // Der Detailbereich geht NUR aus diesem Zweig auf, also nur bei einer
