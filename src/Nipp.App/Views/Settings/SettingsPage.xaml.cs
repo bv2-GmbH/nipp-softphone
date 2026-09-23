@@ -221,12 +221,48 @@ public sealed partial class SettingsPage : Page
         }
     }
 
+    /// <summary>
+    /// Übernimmt eine Nebenstelle ins Formular — <b>und holt das Formular
+    /// dorthin, wo der Klick war</b> (23.09.2026, ALLTAG-PLAN-3.md B).
+    ///
+    /// <para>Vorher führte der Stift nur das Kommando aus und kehrte zurück:
+    /// kein Bildlauf, kein Fokus. Bei vierzig Nebenstellen lagen zwischen dem
+    /// Stift und dem Feld, das er füllt, gut tausend Pixel — wer drückte, sah
+    /// nichts passieren und musste selbst suchen. Die gedeckelte Liste im XAML
+    /// ist die andere Hälfte davon; sie macht den Weg kurz, dieser Aufruf geht
+    /// ihn.</para>
+    ///
+    /// <para><b>Ohne <c>TryEnqueue</c>:</b> die Gruppe ist offen — man hat
+    /// gerade eine Zeile darin gedrückt —, der Baum steht also schon. Ein
+    /// Durchlauf später zu setzen wäre die Wette aus den Befunden A1-6 und
+    /// A1-10, und hier gibt es nichts, worauf zu warten wäre.</para>
+    ///
+    /// <para><b>Der Fokuswechsel löst <c>ApplyEdits</c> mit aus</b>
+    /// (<see cref="OnLostFocus"/>, ADR-045). Das ist gewollt: er schreibt den
+    /// Stand zurück, der ohnehin gilt, und er läuft ohnehin bei jedem
+    /// Feldwechsel.</para>
+    /// </summary>
     private void OnEditTeamMemberClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: TeamExtension member })
         {
             ViewModel.EditTeamMemberCommand.Execute(member);
+            ZeigeFormular(TeamNameBox);
         }
+    }
+
+    /// <summary>
+    /// Holt ein Formular ins Bild und den Fokus in sein erstes Feld.
+    ///
+    /// <para>Eine Stelle für beide Formulare: Konten und Nebenstellen haben
+    /// dasselbe Problem und bekommen dieselbe Antwort. Der Bildlauf
+    /// <b>zuerst</b>, damit der Fokus nicht auf ein Feld springt, das noch
+    /// ausserhalb des sichtbaren Bereichs liegt.</para>
+    /// </summary>
+    private static void ZeigeFormular(Control feld)
+    {
+        feld.StartBringIntoView();
+        _ = feld.Focus(FocusState.Programmatic);
     }
 
     /// <summary>
@@ -303,12 +339,17 @@ public sealed partial class SettingsPage : Page
     /// <summary>
     /// Übernimmt ein Konto ins Formular. Ohne Rückfrage — es wird nichts
     /// verändert, nur angezeigt; wer sich verklickt, drückt „Abbrechen".
+    ///
+    /// <para>Und wie beim Team holt der Stift seit dem 23.09.2026 das
+    /// Formular ins Bild: derselbe Befund, dieselbe Antwort
+    /// (<see cref="ZeigeFormular"/>).</para>
     /// </summary>
     private void OnEditAccountClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: AccountStatus account })
         {
             ViewModel.EditAccountCommand.Execute(account);
+            ZeigeFormular(UsernameBox);
         }
     }
 
@@ -343,6 +384,13 @@ public sealed partial class SettingsPage : Page
         AccountFormTitle.Text = ViewModel.IsEditingAccount
             ? "Konto bearbeiten"
             : "Konto hinzufügen";
+
+        // Dasselbe beim Team, seit dem 23.09.2026. Dort stand die Überschrift
+        // gar nicht, und der Zustand hing allein am Knopf am Ende des
+        // Formulars.
+        TeamFormTitle.Text = ViewModel.IsEditingTeamMember
+            ? "Nebenstelle bearbeiten"
+            : "Nebenstelle hinzufügen";
 
         CalibrationText.Text = ViewModel.EchoCalibrationMs is { } ms
             ? $"zuletzt gemessen: {ms} ms"

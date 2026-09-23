@@ -146,63 +146,73 @@
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{StaticResource CaptionTextBlockStyle}" />
 
-                        <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="model:AccountStatus">
-                                    <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
+                        <!--
+                            <b>Gedeckelt, damit das Formular darunter erreichbar
+                            bleibt</b> (23.09.2026, ALLTAG-PLAN-3.md B). Ein
+                            ItemsControl scrollt nicht von selbst, deshalb der
+                            ScrollViewer. Dasselbe machen die Integrationsquellen
+                            weiter unten seit jeher (MaxHeight 180) — es ist
+                            derselbe Fall.
+                        -->
+                        <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="model:AccountStatus">
+                                        <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
 
-                                        <Ellipse
-                                            Width="10" Height="10"
-                                            VerticalAlignment="Center"
-                                            Fill="{Binding Status, Converter={StaticResource RegistrationBrushConverter}}" />
+                                            <Ellipse
+                                                Width="10" Height="10"
+                                                VerticalAlignment="Center"
+                                                Fill="{Binding Status, Converter={StaticResource RegistrationBrushConverter}}" />
 
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="{x:Bind ShortLabel}" />
-                                            <!--
-                                                §8.4: der Zustand steht als Text da, nicht nur als
-                                                Farbe. Auf zwei Zeilen begrenzt — eine
-                                                Fehlermeldung nach §15 nennt Ursache und Abhilfe
-                                                und wird damit lang; vollständig steht sie im
-                                                Tooltip.
-                                            -->
-                                            <TextBlock
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                MaxLines="2"
-                                                Style="{StaticResource CaptionTextBlockStyle}"
-                                                Text="{Binding Converter={StaticResource AccountStateTextConverter}}"
-                                                TextTrimming="CharacterEllipsis"
-                                                TextWrapping="Wrap"
-                                                ToolTipService.ToolTip="{Binding Converter={StaticResource AccountStateTextConverter}}" />
-                                        </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{x:Bind ShortLabel}" />
+                                                <!--
+                                                    §8.4: der Zustand steht als Text da, nicht nur als
+                                                    Farbe. Auf zwei Zeilen begrenzt — eine
+                                                    Fehlermeldung nach §15 nennt Ursache und Abhilfe
+                                                    und wird damit lang; vollständig steht sie im
+                                                    Tooltip.
+                                                -->
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    MaxLines="2"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{Binding Converter={StaticResource AccountStateTextConverter}}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="Wrap"
+                                                    ToolTipService.ToolTip="{Binding Converter={StaticResource AccountStateTextConverter}}" />
+                                            </StackPanel>
 
-                                        <StackPanel
-                                            Grid.Column="2"
-                                            Orientation="Horizontal"
-                                            Spacing="{StaticResource NippGapSmall}">
-                                            <Button
-                                                Click="OnEditAccountClick"
-                                                Tag="{x:Bind}"
-                                                ToolTipService.ToolTip="Konto bearbeiten"
-                                                AutomationProperties.Name="Konto bearbeiten">
-                                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE70F;" />
-                                            </Button>
-                                            <Button
-                                                Click="OnRemoveAccountClick"
-                                                Tag="{x:Bind}"
-                                                ToolTipService.ToolTip="Konto entfernen"
-                                                AutomationProperties.Name="Konto entfernen">
-                                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE74D;" />
-                                            </Button>
-                                        </StackPanel>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                            <StackPanel
+                                                Grid.Column="2"
+                                                Orientation="Horizontal"
+                                                Spacing="{StaticResource NippGapSmall}">
+                                                <Button
+                                                    Click="OnEditAccountClick"
+                                                    Tag="{x:Bind}"
+                                                    ToolTipService.ToolTip="Konto bearbeiten"
+                                                    AutomationProperties.Name="Konto bearbeiten">
+                                                    <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE70F;" />
+                                                </Button>
+                                                <Button
+                                                    Click="OnRemoveAccountClick"
+                                                    Tag="{x:Bind}"
+                                                    ToolTipService.ToolTip="Konto entfernen"
+                                                    AutomationProperties.Name="Konto entfernen">
+                                                    <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE74D;" />
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
 
                         <TextBlock
                             x:Name="AccountFormTitle"
@@ -600,78 +610,102 @@
                             Style="{StaticResource BodyStrongTextBlockStyle}"
                             Text="Team-Nebenstellen" />
 
-                        <ItemsControl ItemsSource="{x:Bind ViewModel.Team}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="settings:TeamExtension">
-                                    <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
+                        <!--
+                            <b>Gedeckelt wie die Kontenliste</b> (23.09.2026).
+                            Hier ist es der Fall, der die Aenderung ausgeloest
+                            hat: eine Nebenstelle belegt bis zu fuenf
+                            Textzeilen, und bei vierzig Eintraegen lagen
+                            zwischen dem Stift und dem Feld, das er fuellt, gut
+                            tausend Pixel.
+                        -->
+                        <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{x:Bind ViewModel.Team}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="settings:TeamExtension">
+                                        <Grid Padding="0,4,0,4" ColumnSpacing="{StaticResource NippGapLarge}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
 
-                                        <StackPanel>
-                                            <TextBlock Text="{x:Bind DisplayName}" />
-                                            <TextBlock
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                Style="{StaticResource CaptionTextBlockStyle}"
-                                                Text="{x:Bind Extension}" />
-                                            <!--
-                                                Die SIP-Adresse stand nirgends:
-                                                beim Bearbeiten war damit nicht
-                                                erkennbar, ob eine Lampe zu
-                                                erwarten ist (§14.8).
-                                            -->
-                                            <TextBlock
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                Style="{StaticResource CaptionTextBlockStyle}"
-                                                Text="{x:Bind SipAddress}"
-                                                TextTrimming="CharacterEllipsis"
-                                                Visibility="{x:Bind SipAddress, Converter={StaticResource NullToVisibilityConverter}}" />
+                                            <StackPanel>
+                                                <TextBlock Text="{x:Bind DisplayName}" />
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind Extension}" />
+                                                <!--
+                                                    Die SIP-Adresse stand nirgends:
+                                                    beim Bearbeiten war damit nicht
+                                                    erkennbar, ob eine Lampe zu
+                                                    erwarten ist (§14.8).
+                                                -->
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind SipAddress}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    Visibility="{x:Bind SipAddress, Converter={StaticResource NullToVisibilityConverter}}" />
 
-                                            <!--
-                                                Handynummer und Gruppe, jede nur
-                                                wenn sie gesetzt ist: eine Zeile
-                                                mit einem Gedankenstrich sagt
-                                                weniger als keine.
-                                            -->
-                                            <TextBlock
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                Style="{StaticResource CaptionTextBlockStyle}"
-                                                Text="{x:Bind Mobile}"
-                                                TextTrimming="CharacterEllipsis"
-                                                Visibility="{x:Bind Mobile, Converter={StaticResource NullToVisibilityConverter}}" />
-                                            <TextBlock
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                Style="{StaticResource CaptionTextBlockStyle}"
-                                                Text="{x:Bind Group}"
-                                                TextTrimming="CharacterEllipsis"
-                                                Visibility="{x:Bind Group, Converter={StaticResource NullToVisibilityConverter}}" />
-                                        </StackPanel>
+                                                <!--
+                                                    Handynummer und Gruppe, jede nur
+                                                    wenn sie gesetzt ist: eine Zeile
+                                                    mit einem Gedankenstrich sagt
+                                                    weniger als keine.
+                                                -->
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind Mobile}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    Visibility="{x:Bind Mobile, Converter={StaticResource NullToVisibilityConverter}}" />
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind Group}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    Visibility="{x:Bind Group, Converter={StaticResource NullToVisibilityConverter}}" />
+                                            </StackPanel>
 
-                                        <StackPanel
-                                            Grid.Column="1"
-                                            Orientation="Horizontal"
-                                            Spacing="{StaticResource NippGapSmall}">
-                                            <Button
-                                                Click="OnEditTeamMemberClick"
-                                                Tag="{x:Bind}"
-                                                ToolTipService.ToolTip="Nebenstelle bearbeiten"
-                                                AutomationProperties.Name="Nebenstelle bearbeiten">
-                                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE70F;" />
-                                            </Button>
-                                            <Button
-                                                Click="OnRemoveTeamMemberClick"
-                                                Tag="{x:Bind}"
-                                                ToolTipService.ToolTip="Nebenstelle entfernen"
-                                                AutomationProperties.Name="Nebenstelle entfernen">
-                                                <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE74D;" />
-                                            </Button>
-                                        </StackPanel>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                Spacing="{StaticResource NippGapSmall}">
+                                                <Button
+                                                    Click="OnEditTeamMemberClick"
+                                                    Tag="{x:Bind}"
+                                                    ToolTipService.ToolTip="Nebenstelle bearbeiten"
+                                                    AutomationProperties.Name="Nebenstelle bearbeiten">
+                                                    <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE70F;" />
+                                                </Button>
+                                                <Button
+                                                    Click="OnRemoveTeamMemberClick"
+                                                    Tag="{x:Bind}"
+                                                    ToolTipService.ToolTip="Nebenstelle entfernen"
+                                                    AutomationProperties.Name="Nebenstelle entfernen">
+                                                    <FontIcon FontSize="{StaticResource NippIconFontSizeSmall}" Glyph="&#xE74D;" />
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
 
+                        <!--
+                            <b>Die Ueberschrift sagt, was das Formular gerade
+                            ist</b> (23.09.2026) — wie bei den Konten
+                            (AccountFormTitle). Der Knopf darunter traegt den
+                            Zustand zwar auch («Hinzufuegen» gegen
+                            «Uebernehmen»), aber er steht am ENDE des
+                            Formulars: hinter allem, was man liest, bevor man
+                            stutzig wird.
+                        -->
+                        <TextBlock
+                            x:Name="TeamFormTitle"
+                            Margin="0,8,0,0"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                            Text="Nebenstelle hinzufügen" />
                         <TextBox x:Name="TeamNameBox" Header="Name" Text="{x:Bind ViewModel.NewTeamName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBox Header="Nebenstelle" Text="{x:Bind ViewModel.NewTeamNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBox
