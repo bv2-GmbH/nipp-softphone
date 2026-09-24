@@ -415,6 +415,27 @@ public sealed record AdvancedSettings
     /// <summary>§9.6: Anrufe automatisch annehmen, Standard aus.</summary>
     public bool AutoAnswer { get; init; }
 
+    /// <summary>
+    /// Ob nipp Berichte an das Headset schickt — der Notausgang aus H5
+    /// (ADR-068). Standard <b>ein</b>: ohne Berichte gibt es keine Lampen,
+    /// kein Klingeln im Ohr und keine Stummtaste, die mitleuchtet.
+    ///
+    /// <para><b>Wofür es ihn trotzdem gibt.</b> Jeder Ausgangsbericht ist ein
+    /// Eingriff in das Gespräch eines anderen Programms: nipp teilt das
+    /// HID-Call-Control-Interface, und Teams liest die Antwort des Geräts als
+    /// Tastendruck. Was nipp dagegen tut, ist an zwei Geräten gemessen — am
+    /// Jabra PRO 9470 und am Link 400. <b>Ein drittes Gerät kann sich anders
+    /// verhalten</b>, und dann braucht es einen Weg, der ohne neue Fassung
+    /// auskommt und den ein Administrator über ein Profil setzen kann.</para>
+    ///
+    /// <para><b>Aus heisst wirklich aus</b>, auch für den Abschlussbericht.
+    /// Das ist die unbequemere Wahl: wer mitten im Klingeln abschaltet, muss
+    /// die Lampe am Gerät selbst löschen. Die bequemere — «einmal noch
+    /// aufräumen» — hiesse, dass ein Notausgang ein letztes Mal genau das
+    /// tut, wovor er schützen soll.</para>
+    /// </summary>
+    public bool SendHeadsetSignals { get; init; } = true;
+
     /// <summary>§9.6: Protokollierung.</summary>
     public LogVerbosity Logging { get; init; } = LogVerbosity.Info;
 

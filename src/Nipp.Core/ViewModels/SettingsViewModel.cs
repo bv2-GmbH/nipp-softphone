@@ -351,6 +351,14 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _autoAnswer;
 
+    /// <summary>
+    /// Der Notausgang aus H5 (ADR-068): ob nipp Berichte ans Headset schickt.
+    /// Standard ein — aus ist die Ausnahme für ein Gerät, das sich anders
+    /// verhält als die beiden gemessenen.
+    /// </summary>
+    [ObservableProperty]
+    private bool _sendHeadsetSignals = true;
+
     [ObservableProperty]
     private LogVerbosity _logging;
 
@@ -589,6 +597,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         StartWithWindows = s.Advanced.StartWithWindows;
         StartMinimized = s.Advanced.StartMinimized;
         AutoAnswer = s.Advanced.AutoAnswer;
+        SendHeadsetSignals = s.Advanced.SendHeadsetSignals;
         Logging = s.Advanced.Logging;
 
         UseOutlook = s.Contacts.UseOutlook;
@@ -1585,6 +1594,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
                 StartWithWindows = StartWithWindows,
                 StartMinimized = StartMinimized,
                 AutoAnswer = AutoAnswer,
+                SendHeadsetSignals = SendHeadsetSignals,
                 Logging = Logging,
                 ProvisioningUri = string.IsNullOrWhiteSpace(ProvisioningUri)
                     ? null

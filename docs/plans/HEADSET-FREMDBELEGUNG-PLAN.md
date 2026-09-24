@@ -1,9 +1,10 @@
-# Fremdbelegung des Headsets — nipp beendet fremde Gespräche
+﻿# Fremdbelegung des Headsets — nipp beendet fremde Gespräche
 
 > **Stand 14.09.2026: umgesetzt (ADR-068).** H1 bis H4 und H6 sind erledigt,
-> 1245 Tests grün, am Gerät geprüft (T298, T299, T301). **Offen: H5**, der
-> Notausgang als Einstellung — und **T300**, die eine Annahme, die keine
-> Messung ist: gefragt werden die Standardgeräte, nicht das Headset.
+> 1245 Tests grün, am Gerät geprüft (T298, T299, T301). **H5 ist am
+> 24.09.2026 gebaut** — die Einstellung «Meldungen ans Headset senden», am
+> Gerät abzunehmen mit **T330**. **Offen bleibt T300**, die eine Annahme, die
+> keine Messung ist: gefragt werden die Standardgeräte, nicht das Headset.
 
 Stand 14.09.2026. Gemeldet aus der Benutzung: «ich war in einem Teams-Meeting,
 ein Anruf kam in nipp rein, und als ich ihn **abgelehnt** habe, war das Meeting
@@ -148,9 +149,23 @@ Quelle (sie erkennt den Teams-**Anruf**, den die Audio-Sitzung auch erkennt,
 aber sie kostet nichts). Und `eigeneAnrufe` zählt nur **verbundene** Anrufe,
 nicht klingelnde.
 
-**H5 — der Notausgang** (C) — **offen**: eine Einstellung «Signale ans Headset senden»,
-vorbelegt mit ein. Für den Fall, dass ein Gerät sich anders verhält als die
-beiden, die wir kennen.
+**H5 — der Notausgang** (C) — **gebaut am 24.09.2026**: die Einstellung heisst
+«Meldungen ans Headset senden», steht bei «Start und Bedienung» und ist mit
+**ein** vorbelegt. Sie liegt als `advanced.send-headset-signals` auch im
+Provisionierungskatalog — ein Gerät, das sich anders verhält, soll keine neue
+Fassung brauchen, sondern eine Zeile im Profil.
+
+**Entschieden wird es an der einen Stelle, die das ohnehin entscheidet:**
+`HeadsetSignalGate.Erlaubt` bekommt die Einstellung als Parameter und
+antwortet ganz vorn mit «abgeschaltet». **Aus heisst dabei aus — auch für den
+Abschlussbericht.** Das ist die unbequeme Wahl: wer mitten im Klingeln
+abschaltet, löscht die Lampe am Gerät selbst. Die bequeme hiesse, dass ein
+Notausgang ein letztes Mal genau das tut, wovor er schützen soll.
+
+**Was daran ohne Gerät geprüft ist:** dass abgeschaltet nichts hinausgeht, in
+jeder Kombination aus Zustand, `jeGemeldet`, Fremdbelegung und eigenem
+Gespräch — und die Gegenprobe, dass eingeschaltet **jede** bisherige Regel
+unverändert gilt. Am Gerät steht die Zeile **T330** aus.
 
 **H6 — am Gerät prüfen ✔ erledigt am 14.09.2026** (T298, T299, T301; T300 steht aus).: Meeting läuft, Anruf kommt, **ablehnen** — Meeting
 läuft weiter. Dasselbe mit **annehmen** (dann darf Teams das Gerät verlieren,

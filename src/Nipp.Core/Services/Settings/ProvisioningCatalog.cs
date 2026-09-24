@@ -217,6 +217,16 @@ public static class ProvisioningCatalog
                 ? s with { Advanced = s.Advanced with { AutoAnswer = a } }
                 : null),
 
+        // Der Notausgang aus H5 (ADR-068). Er steht hier, weil ein Gerät, das
+        // sich anders verhält als die beiden gemessenen, sonst eine neue
+        // Fassung bräuchte — über ein Profil ist er an einem Arbeitsplatz in
+        // Minuten gesetzt.
+        new("advanced.send-headset-signals",
+            static s => Text(s.Advanced.SendHeadsetSignals),
+            static (s, v) => Bool(v) is { } h
+                ? s with { Advanced = s.Advanced with { SendHeadsetSignals = h } }
+                : null),
+
         new("advanced.global-hotkey",
             static s => s.Advanced.GlobalHotkey,
             static (s, v) => s with { Advanced = s.Advanced with { GlobalHotkey = v } }),

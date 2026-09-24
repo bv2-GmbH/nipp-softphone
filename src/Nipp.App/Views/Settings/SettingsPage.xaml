@@ -835,6 +835,20 @@
                             Header="Anrufe automatisch annehmen">
                             <ToggleSwitch IsOn="{x:Bind ViewModel.AutoAnswer, Mode=TwoWay}" OffContent="Aus" OnContent="Ein" />
                         </controls:SettingCard>
+
+                        <!--
+                            Der Notausgang aus H5 (ADR-068). nipp teilt das
+                            Bedienprotokoll des Headsets mit anderen
+                            Programmen; was es dort anrichtet, ist an zwei
+                            Jabra-Geraeten gemessen. Ein drittes kann sich
+                            anders verhalten, und dann braucht es einen Weg,
+                            der ohne neue Fassung auskommt.
+                        -->
+                        <controls:SettingCard
+                            Description="Aus: nipp lässt die Tasten am Headset weiter gelten, schickt dem Gerät aber nichts mehr. Die Lampen und das Klingeln im Ohr bleiben dann aus. Nur nötig, wenn ein Headset auf nipps Meldungen seltsam reagiert."
+                            Header="Meldungen ans Headset senden">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.SendHeadsetSignals, Mode=TwoWay}" OffContent="Aus" OnContent="Ein" />
+                        </controls:SettingCard>
                     </StackPanel>
                 </Expander>
 

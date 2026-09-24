@@ -69,12 +69,28 @@ public static class HeadsetSignalGate
     /// ausgehend, <b>aber nicht bloss klingelnd</b>. Ein klingelnder Anruf ist
     /// noch keine Entscheidung des Benutzers; ein angenommener ist eine.
     /// </param>
+    /// <param name="signaleErlaubt">
+    /// Der Notausgang aus H5 (<c>Advanced.SendHeadsetSignals</c>, Standard
+    /// ein). <b>Aus heisst: gar nichts</b>, auch kein Abschlussbericht — wer
+    /// mitten im Klingeln abschaltet, löscht die Lampe am Gerät selbst. Ein
+    /// Notausgang, der noch ein letztes Mal sendet, tut genau das, wovor er
+    /// schützen soll.
+    /// </param>
     public static SignalUrteil Erlaubt(
         HeadsetState gewuenscht,
         bool jeGemeldet,
         bool fremdbelegt,
-        bool eigenesGespraech)
+        bool eigenesGespraech,
+        bool signaleErlaubt = true)
     {
+        // <b>Ganz vorn und ohne Ausnahme.</b> Die Einstellung ist die Antwort
+        // auf ein Gerät, das sich anders verhält als die beiden gemessenen —
+        // und eine Antwort mit Ausnahmen wäre keine.
+        if (!signaleErlaubt)
+        {
+            return new SignalUrteil(false, "abgeschaltet");
+        }
+
         var leer = !gewuenscht.ImGespraech && !gewuenscht.Klingelt && !gewuenscht.Stumm;
 
         // <b>„Alles aus" ist nur dann eine Mitteilung, wenn nipp vorher etwas

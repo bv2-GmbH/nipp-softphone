@@ -170,9 +170,86 @@ public class HeadsetSignalGateTests
             HeadsetSignalGate.Erlaubt(Klingelt, jeGemeldet: true, fremdbelegt: true, eigenesGespraech: false).Grund,
             HeadsetSignalGate.Erlaubt(Leer, jeGemeldet: true, fremdbelegt: false, eigenesGespraech: false).Grund,
             HeadsetSignalGate.Erlaubt(Klingelt, jeGemeldet: true, fremdbelegt: false, eigenesGespraech: false).Grund,
+            HeadsetSignalGate.Erlaubt(Klingelt, jeGemeldet: false, fremdbelegt: false, eigenesGespraech: false, signaleErlaubt: false).Grund,
         };
 
         Assert.Equal(gruende.Length, gruende.Distinct().Count());
         Assert.DoesNotContain(gruende, string.IsNullOrWhiteSpace);
+    }
+
+    // --- H5, der Notausgang (ADR-068) -------------------------------------
+
+    /// <summary>
+    /// <b>Aus heisst aus.</b> Die Einstellung ist die Antwort auf ein Gerät,
+    /// das sich anders verhält als die beiden gemessenen — eine Antwort mit
+    /// Ausnahmen wäre keine.
+    /// </summary>
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, true, true)]
+    public void Abgeschaltet_geht_gar_nichts_hinaus(bool jeGemeldet, bool fremdbelegt, bool eigenesGespraech)
+    {
+        foreach (var zustand in new[] { Leer, Klingelt, ImGespraech })
+        {
+            var urteil = HeadsetSignalGate.Erlaubt(
+                zustand,
+                jeGemeldet,
+                fremdbelegt,
+                eigenesGespraech,
+                signaleErlaubt: false);
+
+            Assert.False(urteil.Schreiben);
+            Assert.Equal("abgeschaltet", urteil.Grund);
+        }
+    }
+
+    /// <summary>
+    /// <b>Auch der Abschlussbericht bleibt liegen</b>, und das ist die
+    /// unbequeme Hälfte: wer mitten im Klingeln abschaltet, löscht die Lampe
+    /// am Gerät selbst. Die bequemere Lesart — «einmal noch aufräumen» —
+    /// hiesse, dass ein Notausgang ein letztes Mal genau das tut, wovor er
+    /// schützen soll.
+    /// </summary>
+    [Fact]
+    public void Abgeschaltet_bleibt_auch_der_Abschluss_liegen()
+    {
+        var urteil = HeadsetSignalGate.Erlaubt(
+            Leer,
+            jeGemeldet: true,
+            fremdbelegt: false,
+            eigenesGespraech: false,
+            signaleErlaubt: false);
+
+        Assert.False(urteil.Schreiben);
+        Assert.Equal("abgeschaltet", urteil.Grund);
+    }
+
+    /// <summary>
+    /// <b>Die Gegenprobe, und sie ist hier die wichtigere:</b> eingeschaltet
+    /// ändert sich nichts. Der Standard ist ein — ein Notausgang, der im
+    /// Normalbetrieb etwas verschiebt, ist ein Fehler und keine Einstellung.
+    /// </summary>
+    [Fact]
+    public void Eingeschaltet_gilt_jede_bisherige_Regel_unveraendert()
+    {
+        foreach (var zustand in new[] { Leer, Klingelt, ImGespraech })
+        {
+            foreach (var jeGemeldet in new[] { false, true })
+            {
+                foreach (var fremd in new[] { false, true })
+                {
+                    foreach (var eigenes in new[] { false, true })
+                    {
+                        var ohneAngabe = HeadsetSignalGate.Erlaubt(zustand, jeGemeldet, fremd, eigenes);
+                        var mitEin = HeadsetSignalGate.Erlaubt(zustand, jeGemeldet, fremd, eigenes, signaleErlaubt: true);
+
+                        Assert.Equal(ohneAngabe.Schreiben, mitEin.Schreiben);
+                        Assert.Equal(ohneAngabe.Grund, mitEin.Grund);
+                    }
+                }
+            }
+        }
     }
 }

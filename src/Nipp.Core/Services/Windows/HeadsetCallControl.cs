@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Nipp.Core.Services.Settings;
 using Nipp.Core.Services.Telephony;
 using Nipp.Core.Services.Telephony.Model;
 using Nipp.Core.Services.Windows.Audio;
@@ -42,6 +43,13 @@ public sealed class HeadsetCallControl : IDisposable
     private readonly ILogger<HeadsetCallControl> _logger;
 
     /// <summary>
+    /// Für den Notausgang aus H5 — gelesen wird er bei jedem Bericht, nicht
+    /// einmal beim Start: eine Einstellung, die erst nach einem Neustart
+    /// wirkt, hilft am Telefon niemandem (ADR-045).
+    /// </summary>
+    private readonly SettingsService _settings;
+
+    /// <summary>
     /// Der Thread, auf dem dieser Dienst gebaut wurde — bei nipp der UI-Thread.
     ///
     /// <para>Die Tastendrücke kommen aus dem Lese-Thread des HID-Geräts. Von
@@ -73,9 +81,13 @@ public sealed class HeadsetCallControl : IDisposable
     /// </summary>
     private readonly AudioSessionWatch _audio;
 
-    public HeadsetCallControl(ISipService sip, ILogger<HeadsetCallControl> logger)
+    public HeadsetCallControl(
+        ISipService sip,
+        SettingsService settings,
+        ILogger<HeadsetCallControl> logger)
     {
         _sip = sip;
+        _settings = settings;
         _logger = logger;
         _audio = new AudioSessionWatch(
             new CoreAudioSessions(logger),
@@ -452,7 +464,8 @@ public sealed class HeadsetCallControl : IDisposable
                 state,
                 _jeGemeldet,
                 fremd,
-                eigenesGespraech);
+                eigenesGespraech,
+                _settings.Current.Advanced.SendHeadsetSignals);
 
             if (!urteil.Schreiben)
             {
