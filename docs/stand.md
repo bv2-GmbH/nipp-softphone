@@ -38,6 +38,92 @@ einmaliger Stall, der in einer Schleife gemeldet wird**: die Zahl sagt, wie
 lang die Schleife lief, nicht wie schlimm es war. Das erklärt, warum sie über
 sechs Messungen zwischen 2 und 68 schwankt. A7 bleibt offen.
 
+## 24.09.2026, abends und nachts: was ohne Dominic zu holen war
+
+**Auftrag:** «Was könntest du erledigen, ohne dass ich etwas machen muss?» —
+dann «los», dann «zieh alles durch bis morgen früh». Der Plan dazu steht in
+`docs/plans/ALLEINGANG-PLAN.md`.
+
+**Das Erste, was der Plan gekostet hat, war eine ehrliche Zahl:** von 137
+offenen Prüfzeilen sind **120 ohne Dominic nicht zu haben** — die Anlage, die
+Headsets, ein frischer Rechner (Sandbox und Hyper-V sind hier nicht
+installiert, die Konsole läuft ohne Adminrechte, und die Maschine ist ARM64),
+Windows 10, Outlook mit COM, x64-Hardware.
+
+### Sieben Zeilen haben ein Ergebnis bekommen
+
+| | |
+|---|---|
+| **T174** | **bestanden.** Frischer Klon von GitHub, SDK nach eigener Anleitung, Prüfsumme stimmt, 0 Warnungen, 1311 Tests grün — die ganze Kette in **4 Minuten** statt der veranschlagten halben Stunde |
+| **T72, T246, T288** | **bestanden.** Alle drei hingen an einer fehlenden Datenlage; die Attrappe neben dem Repo kann jetzt eine Antwort über 8 KB, zwei Personen mit derselben Zentrale und einen Namen, der im Team **und** in der Quelle steht |
+| **T311** | **bestanden nach einer Reparatur am selben Abend** — siehe unten |
+| **T101** | **bestanden.** Das Ziehen im Karten-Designer ist gebaut (K4); die Zeile stand seit Monaten mit «noch nicht gebaut» da |
+| **Ziehvorschau V8** | Der **Zug auf einen Gruppenkopf trägt.** Offen bleibt dort nur «hell bei 150 %», eine Augenprüfung |
+
+### Zwei Befunde, einer repariert
+
+**Die Lampe hing einen Takt zu spät an einer geänderten SIP-Adresse.** Direkt
+nach der Änderung meldete nipp «11 Nebenstellen abonniert (0 neu)», erst die
+nächste beliebige Änderung brachte «12 (1 neu)». **Ursache im Code belegt:**
+`BlfService` und `ShellViewModel` hingen beide an `SettingsService.Changed`,
+der Dienst lief zuerst und las einen `ContactStore`, den erst das ViewModel
+aktualisiert — **was ein Dienst zu sehen bekam, entschied die
+Erzeugungsreihenfolge im Container.** Behoben über `ContactStore.TeamReloaded`:
+der Speicher meldet jetzt, **dass die Daten stehen**, statt dass jemand
+gespeichert hat. Am laufenden Programm zweimal nachgemessen.
+
+**Drei Gründe, warum ein Mausklick still ins Leere geht** — alle am Werkzeug:
+fehlendes DPI-Bewusstsein (bei 150 % rund 70 Pixel daneben), das Fenster der
+messenden Konsole im Vordergrund, und `SetCursorPos`, aus dem gar kein Zug
+entsteht. **Der zweite erklärt rückwirkend, woran T311 am 22.09. liegenblieb**
+— es war kein fremdes Programm, es war das eigene Terminal. `Test-Ui.ps1` kann
+jetzt die echte Maus.
+
+### H5 ist gebaut
+
+Die Einstellung **«Meldungen ans Headset senden»**, vorbelegt mit ein, auch als
+Profilpfad `advanced.send-headset-signals`. **Aus heisst aus — auch für den
+Abschlussbericht**: wer mitten im Klingeln abschaltet, löscht die Lampe am
+Gerät selbst. Prüfzeile **T330** steht in der Matrix.
+
+### W2.1 ist angefangen: B0 bis B8 in einer Nacht
+
+**Die Regel steht als ADR-074.** Die vorgeschlagene `ISdkCore`-Fassade wäre der
+falsche Weg gewesen — 46 Core-Member ohne virtuelle Member, rund achtzig
+Durchreichungen, die selbst ungetestet blieben. Stattdessen: **was das SDK
+liest**, wird einmal übersetzt; **was daraus folgt**, entscheidet eine reine
+Klasse; **was das SDK tut**, bleibt im Dienst und wird am Gerät geprüft.
+
+| Etappe | Was daraus wurde |
+|---|---|
+| **B1** | `CallSnapshot` + `CallFlow`; `OnBridgeCallStateChanged` von **165 auf 27 Codezeilen**, keine Entscheidung mehr darin. 24 Tests für die sechs teuer bezahlten Regeln |
+| **B2** | `AccountRegistry` — drei Wörterbücher wurden eine Klasse, dazu die Gegenprobe aus ADR-060 (nur echte Änderungen melden). 20 Tests |
+| **B3** | `AudioDeviceChoice` — was ein Gerätewechsel bedeutet. 9 Tests |
+| **B4** | `PresenceWatch` — welcher Abonnementzustand gemeldet wird. 10 Tests. **Das Erneuern bewusst nicht gebaut** |
+| **B5** | `CallAddressing` — wählbare Adresse und Aufnahmename. 17 Tests |
+| **B6** | Zwei der drei Zusagen hatten schon Tests; gefehlt hat `RequiresRestart`. 6 Tests |
+| **B7** | `HidReportDeutung` und `LampenSammler`. 15 Tests |
+| **B8** | `CallbackFanOutTests` — **und ein Befund**, siehe unten. 6 Tests |
+
+**Aus 1274 Tests sind 1433 geworden.** nipp läuft nach jedem Schritt, meldet
+sich an und protokolliert fehlerfrei.
+
+**Der Befund aus B8:** der Wächter rettet den Prozess, **aber nicht das
+Ereignis**. Ein Multicast-Delegat bricht beim ersten Fehler ab — wer **nach**
+dem werfenden Abonnenten angemeldet ist, bekommt nichts. An `CallStateChanged`
+hängen acht Abonnenten, darunter die Seitennavigation und der Schreibzugriff
+auf die Anrufliste; **welche Reihenfolge gilt, steht an keiner Stelle
+geschrieben**. Drei Wege stehen in ADR-074, entschieden ist nichts.
+
+### Der Vorbehalt, und er ist der wichtigste Satz dieses Abschnitts
+
+**Auf dem Arbeitsplatz läuft jetzt ein umgebauter Telefonie-Kern, durch den
+noch kein einziges Gespräch gegangen ist.** Die Tests zeigen, dass die
+Entscheidungen stimmen — nicht, dass das SDK danach tut, was es soll.
+**T04 bis T09 sind erneut fällig** und tragen den Nachtrag in der Matrix. Der
+erste Anruf ist der erste echte Test; der Stand von vorher ist Commit
+`826a568`.
+
 ## 24.09.2026, morgens: 0.9.13 ist draussen
 
 **Das erste Release seit dem 16.09.** Dazwischen lagen **63 Commits** — die

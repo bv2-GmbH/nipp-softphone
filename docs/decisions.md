@@ -39,7 +39,25 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 **Der rohe `Call` bleibt neben der Momentaufnahme stehen**, solange `SipService` ihn zum Ausführen braucht (`Matches`, `Accept`, `Decline`, `Terminate`). Gelesen wird aus ihm nichts mehr.
 
-**Konsequenz.** Die Etappen B2 bis B7 des Beweisplans folgen derselben Regel; eine Fassade wird nicht gebaut. **Und der Umbau ist noch nicht am Gerät gemessen** — T04 bis T09 stehen aus. Was die Tests zeigen, ist, dass die Entscheidungen stimmen; dass das SDK danach tut, was es soll, zeigt erst ein Gespräch.
+**Konsequenz.** Die Etappen B2 bis B8 des Beweisplans folgen derselben Regel; eine Fassade wird nicht gebaut. **Und der Umbau ist noch nicht am Gerät gemessen** — T04 bis T09 stehen aus. Was die Tests zeigen, ist, dass die Entscheidungen stimmen; dass das SDK danach tut, was es soll, zeigt erst ein Gespräch.
+
+**In derselben Nacht sind B2 bis B8 gefolgt:** `AccountRegistry` (die Konten und ihre Zustände), `AudioDeviceChoice` (was ein Gerätewechsel bedeutet), `PresenceWatch` (welcher Abonnementzustand gemeldet wird), `CallAddressing` (wählbare Adresse und Aufnahmename), `HidReportDeutung` und `LampenSammler` (was ein Report sagt und welche Lampen angehen). Zusammen **83 neue Tests**.
+
+### Der Befund aus B8, und er ist eine offene Entscheidung
+
+**Gemessen am 24.09.2026** (`CallbackFanOutTests`): der Wächter rettet den Prozess — **aber nicht das Ereignis**. Ein .NET-Multicast-Delegat bricht beim ersten Fehler ab; wer **nach** dem werfenden Abonnenten angemeldet ist, bekommt nichts.
+
+**Was das praktisch heisst.** An `CallStateChanged` hängen acht Abonnenten, darunter die Seitennavigation **und** der Schreibzugriff auf die Anrufliste. Wirft die Navigation, erfährt die Anrufliste von diesem Anruf nichts — und **welche Reihenfolge gilt, steht an keiner Stelle geschrieben**. Es ist die Reihenfolge der Anmeldungen im Konstruktor.
+
+**Das ist keine Fehlersuche, sondern eine Abwägung:**
+
+| | Weg | Preis |
+|---|---|---|
+| **a)** | So lassen | Ein kaputter Empfänger kostet die anderen ihr Ereignis — still, und abhängig von einer Reihenfolge, die niemand aufgeschrieben hat |
+| **b)** | Je Abonnent fangen (der Wächter verteilt selbst) | Ein Fehler kostet nur seinen eigenen Empfänger — aber er fällt weniger auf, weil danach alles weiterläuft |
+| **c)** | So lassen und die Reihenfolge **festschreiben**, mit einem Test darauf | Billig, und macht aus einer stillen Abhängigkeit eine benannte — löst aber nicht, dass ein Fehler die anderen kostet |
+
+**Nicht entschieden.** Der Fall ist seit dem ersten Wächter unverändert; neu ist nur, dass er jetzt gemessen dasteht statt vermutet.
 
 ---
 

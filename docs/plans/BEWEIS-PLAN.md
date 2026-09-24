@@ -2043,7 +2043,12 @@ zweiter klingelt, und derselbe Zustand zweimal hintereinander.
 **Fertig, wenn:** `OnBridgeCallStateChanged` unter 40 Zeilen liegt und keine
 Entscheidung mehr trifft; `CallFlowTests` deckt jede der sechs Regeln.
 
-## B2 — Die Anmeldung
+## B2 — Die Anmeldung · **gebaut am 24.09.2026**
+
+> `AccountRegistry` haelt Konten, Zustaende und Meldungen an einer Stelle;
+> `NormalizeIdentity` ist mitgewandert. **Dazu eine Gegenprobe, die vorher
+> fehlte** (ADR-060): ein `AccountsChanged` geht nur bei einer echten
+> Aenderung hinaus. **20 Tests.**
 
 `OnBridgeRegistrationChanged` (`:1603`), `ReadDefaultAccountStatus` (`:1718`),
 `NormalizeIdentity` (`:1696`) und die drei Wörterbücher `_accountSettings`,
@@ -2058,7 +2063,13 @@ ein Zustand für ein Kürzel, das nicht mehr eingetragen ist, und die Frage, wan
 `AccountsChanged` überhaupt gemeldet werden muss — **die Gegenprobe aus
 ADR-060**: eine Meldung ohne Änderung ist ein Auftrag ohne Anlass.
 
-## B3 — Der Gerätewechsel
+## B3 — Der Gerätewechsel · **gebaut am 24.09.2026**
+
+> `AudioDeviceChoice` beantwortet, welches gewaehlte Geraet fehlt und was dem
+> Benutzer dazu gesagt wird. **9 Tests**, darunter zwei Geraete mit demselben
+> Namen und ein Geraet fuer drei Rollen. Das Anwenden der Wahl bleibt im
+> Dienst — es geschieht immer, und eine Bedingung davor waere eine zweite
+> Wahrheit.
 
 `ReactToDeviceChange` (`:2136`) und `RetargetRunningCalls` (`:2211`) — 130
 Zeilen Entscheidung über Audiogeräte, ausgelöst aus einem SDK-Callback.
@@ -2070,7 +2081,13 @@ ob laufende Gespräche umgehängt werden müssen.
 **Tests:** Headset kommt, Headset geht, Headset kommt zurück; das vom Benutzer
 namentlich gewählte Gerät verschwindet; zwei Geräte mit demselben Namen.
 
-## B4 — Die Präsenz
+## B4 — Die Präsenz · **gebaut am 24.09.2026, mit einer Abweichung**
+
+> `PresenceWatch` meldet nur Wechsel und nennt ihre Bedeutung. **10 Tests.**
+> **Das Erneuern ist NICHT gebaut**: der heutige Code erneuert nichts, er
+> protokolliert — und ein Vorrat an Funktionen, die niemand bestellt hat,
+> waere hier besonders teuer, weil das Besetztlampenfeld die meiste Last auf
+> der Anlage erzeugt.
 
 `CheckPresenceSubscriptions` (`:1470`) — läuft alle fünf Sekunden aus `Pump()`.
 
@@ -2081,7 +2098,12 @@ erneuern ist. **Ohne Zeitgeber:** die Uhr kommt als Parameter herein, wie bei
 **Tests:** eine Anmeldung, die nie bestätigt wird; eine, die abläuft; eine
 Nebenstelle, die zwischendurch aus der Liste fällt.
 
-## B5 — Adresse, Konto, Aufnahmepfad
+## B5 — Adresse, Konto, Aufnahmepfad · **gebaut am 24.09.2026**
+
+> `CallAddressing` traegt die waehlbare Adresse und den Aufnahmenamen,
+> `IdentityOf` arbeitet jetzt auf der Momentaufnahme statt am `Call`, und
+> `MapCallStatus`/`ReadEndReason` sind mit B1 in die Bridge gewandert.
+> **17 Tests.**
 
 `ToDialableAddress` (`:852`), `DomainOf` (`:871`), `IdentityOf` (`:2677`),
 `BuildRecordingPath` (`:962`), `MapCallStatus` (`:2598`), `ReadEndReason`
@@ -2096,7 +2118,19 @@ gefunden wurde.**
 Leerzeichen; ein Aufnahmepfad für eine Nummer mit Zeichen, die Windows im
 Dateinamen nicht annimmt.
 
-## B6 — `SettingsApplier`
+## B6 — `SettingsApplier` · **zum groessten Teil schon abgedeckt**
+
+> **Nachgesehen am 24.09.2026, bevor gebaut wurde:** zwei der drei
+> verlangten Zusagen hatten laengst Tests — `SettingsNoOpSaveTests`
+> (ADR-060), `TransportPortsTests` (der SIP-Port kommt an; der Befund
+> «gebaut, nicht angeschlossen» ist erledigt) und
+> `ProvisioningUserOverrideTests` (ADR-054). **Gefehlt hat
+> `RequiresRestart`** — ausgerechnet die Zusage, die schon einmal falsch war
+> (Befund B13). **6 Tests**, mit der Gegenprobe, dass sofort Wirkendes dort
+> nicht steht.
+>
+> **Der Rest des Appliers ist Schreiben**, nicht Entscheiden: jede Methode
+> setzt Core-Eigenschaften. Was sich herausloesen liess, ist heraus.
 
 499 Zeilen, die Einstellungen auf den Core schreiben. **Der Teil, der
 entscheidet, _was_ geschrieben wird, gehört heraus** — der Teil, der schreibt,
@@ -2107,7 +2141,12 @@ bleibt.
 angeschlossen" zum fünften Mal); dass eine Sperre die Benutzermarkierung löscht
 (ADR-054).
 
-## B7 — Die HID-Schicht
+## B7 — Die HID-Schicht · **gebaut am 24.09.2026**
+
+> `HidReportDeutung` (was ein Report sagt, welche Lampen angehen) und
+> `LampenSammler` (die eine Zahl, die der Schreib-Thread ohne Sperre liest).
+> **15 Tests.** Die Geraeteoeffnung, die Threads und die Stroeme sind
+> unangetastet.
 
 Zwei Stellen in `HidTelephonyDevice.cs` sind reine Entscheidung und heute
 unerreichbar:
@@ -2124,7 +2163,14 @@ unerreichbar:
 **Zu bauen:** `HidReportDeutung` und `LampenSammler`, beide rein. Die
 Geräteöffnung, die Threads und die Ströme bleiben unangetastet.
 
-## B8 — Die drei Anläufe zur Ansichtsnavigation
+## B8 — Die drei Anläufe zur Ansichtsnavigation · **gemessen am 24.09.2026, mit einem Befund**
+
+> **6 Tests** (`CallbackFanOutTests`). Der Prozess ueberlebt, die Ausnahme
+> steht im Protokoll, das naechste Ereignis laeuft wieder — **aber wer nach
+> dem werfenden Abonnenten angemeldet ist, bekommt nichts.** Ein
+> Multicast-Delegat bricht beim ersten Fehler ab; der Waechter rettet den
+> Prozess, nicht das Ereignis. Drei Wege und die Abwaegung stehen in
+> **ADR-074**; entschieden ist nichts.
 
 Aus der Geschichte dieses Projekts: eine Ausnahme aus `ContentFrame.Navigate`,
 geworfen im Zustands-Callback. Das ist **kein** Test von `SipService`, sondern
