@@ -66,9 +66,12 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     /// Zuletzt gemeldeter Abonnementzustand je Nebenstelle. Damit wird im
     /// Pump nur protokolliert, was sich geaendert hat — sonst stuende
     /// alle fuenf Sekunden dieselbe Zeile da.
+    ///
+    /// <para>Seit W2.1 Etappe B4 eine eigene Klasse ohne SDK-Typ: der
+    /// Zustandsname kommt als Zeichenkette herein, und was er bedeutet,
+    /// steht dort.</para>
     /// </summary>
-    private readonly Dictionary<string, SubscriptionState> _presenceStates =
-        new(StringComparer.OrdinalIgnoreCase);
+    private readonly PresenceWatch _presenceWatch = new();
 
     /// <summary>
     /// Die beobachteten Friends, mit der Adresse als Schluessel.
@@ -1282,7 +1285,10 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
 
                 list.RemoveFriend(friend);
                 _presenceFriends.Remove(address);
-                _presenceStates.Remove(address);
+
+                // Sonst gilt ihr alter Zustand weiter, und wenn sie
+                // zurueckkommt, bleibt der erste Wechsel stumm.
+                _presenceWatch.Forget(address);
             }
 
             // 2. Was neu ist, kommt dazu.
@@ -1499,6 +1505,15 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     /// und es kam keine einzige Zeile. Der Zustand steht stattdessen an jedem
     /// <c>Friend</c>; ein Ereignis dafuer gibt es im Wrapper nicht.
     /// </summary>
+    /// <summary>
+    /// Die Zustaende der Praesenz-Abonnements nachsehen — alle fuenf Sekunden
+    /// aus <see cref="Pump"/>.
+    ///
+    /// <para><b>Was gemeldet wird, entscheidet <see cref="PresenceWatch"/></b>
+    /// (W2.1 Etappe B4): nur Wechsel, mit der Bedeutung daneben. Hier bleibt
+    /// das Lesen am SDK — und das ist der Teil, der einen Friend erwischen
+    /// kann, den das SDK nicht mehr kennt.</para>
+    /// </summary>
     private void CheckPresenceSubscriptions()
     {
         if (_presenceList is null || _presenceFriends.Count == 0)
@@ -1510,11 +1525,11 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         {
             foreach (var (address, friend) in _presenceFriends)
             {
-                SubscriptionState state;
+                string state;
 
                 try
                 {
-                    state = friend.SubscriptionState;
+                    state = friend.SubscriptionState.ToString();
                 }
                 catch (Exception ex)
                 {
@@ -1525,36 +1540,20 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
                     continue;
                 }
 
-                if (_presenceStates.TryGetValue(address, out var previous) && previous == state)
+                if (_presenceWatch.Observe(address, state) is not { } meldung)
                 {
                     continue;
                 }
 
-                _presenceStates[address] = state;
-
-                // §15: nicht nur der Zustand, sondern was er bedeutet.
-                var hint = state switch
+                if (meldung.IsError)
                 {
-                    SubscriptionState.Active =>
-                        "Die Anlage hat das Abonnement angenommen. Kommt jetzt keine "
-                        + "Praesenz, veroeffentlicht die Nebenstelle keine.",
-                    SubscriptionState.Error =>
-                        "Die Anlage hat abgelehnt. Die SIP-Antwort (z. B. 489 Bad Event) steht "
-                        + "im Protokoll, wenn die Protokollierung auf Debug steht.",
-                    SubscriptionState.Terminated =>
-                        "Die Anlage hat das Abonnement beendet.",
-                    SubscriptionState.OutgoingProgress or SubscriptionState.Pending =>
-                        "SUBSCRIBE gesendet, Antwort steht aus.",
-                    _ => string.Empty,
-                };
-
-                if (state == SubscriptionState.Error)
-                {
-                    TelephonyLog.PresenceSubscriptionFailed(_logger, LogMasking.SipLine(address), hint);
+                    TelephonyLog.PresenceSubscriptionFailed(
+                        _logger, LogMasking.SipLine(meldung.Address), meldung.Hint);
                 }
                 else
                 {
-                    TelephonyLog.PresenceSubscriptionState(_logger, LogMasking.SipLine(address), state.ToString(), hint);
+                    TelephonyLog.PresenceSubscriptionState(
+                        _logger, LogMasking.SipLine(meldung.Address), meldung.State, meldung.Hint);
                 }
             }
         }
@@ -2183,24 +2182,14 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
             return null;
         }
 
-        // Was ist weg, das gebraucht wurde?
-        var lost = new List<string>();
-
-        foreach (var wanted in new[] { audio.InputDeviceId, audio.OutputDeviceId, audio.RingerDeviceId })
-        {
-            if (wanted is not { Length: > 0 })
-            {
-                continue;
-            }
-
-            var stillThere = devices.Any(d => d.Id == wanted);
-            var wasThere = _knownDevices.Any(d => d.Id == wanted);
-
-            if (wasThere && !stillThere)
-            {
-                lost.Add(_knownDevices.First(d => d.Id == wanted).Name);
-            }
-        }
+        // <b>Was der Wechsel bedeutet, entscheidet AudioDeviceChoice</b>
+        // (W2.1 Etappe B3) — ohne SDK und damit ohne Geraet pruefbar. Hier
+        // wird nur noch ausgefuehrt.
+        var urteil = AudioDeviceChoice.Evaluate(
+            _knownDevices,
+            devices,
+            [audio.InputDeviceId, audio.OutputDeviceId, audio.RingerDeviceId],
+            !_calls.IsEmpty);
 
         // Die Wahl in jedem Fall neu anwenden: ein wieder eingestecktes Gerät
         // soll zurückkommen, ein verschwundenes wird von ApplyDevice
@@ -2220,25 +2209,15 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         {
             TelephonyLog.AudioDeviceSwitchFailed(_logger, ex.Message);
 
-            return "Ein Audiogerät hat gewechselt, und nipp konnte nicht darauf umstellen. "
-                + "Wenn nichts zu hören ist: das Gerät in den Einstellungen neu wählen.";
+            return AudioDeviceChoice.SwitchFailedNotice;
         }
 
-        if (lost.Count == 0)
+        if (urteil.LostNames.Count > 0)
         {
-            return null;
+            TelephonyLog.AudioDeviceLost(_logger, string.Join(", ", urteil.LostNames));
         }
 
-        TelephonyLog.AudioDeviceLost(_logger, string.Join(", ", lost));
-
-        var subject = lost.Count == 1
-            ? $"„{lost[0]}“ ist"
-            : $"{lost.Count} Audiogeräte sind";
-
-        return _calls.IsEmpty
-            ? $"{subject} nicht mehr da. nipp verwendet wieder das Standardgerät von Windows."
-            : $"{subject} während des Gesprächs verschwunden. nipp hat auf das Standardgerät "
-                + "umgestellt — das Gespräch läuft weiter.";
+        return urteil.Notice;
     }
 
     /// <summary>
