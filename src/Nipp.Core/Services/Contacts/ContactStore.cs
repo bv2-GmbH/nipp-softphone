@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Nipp.Core.Services.Settings;
 
 namespace Nipp.Core.Services.Contacts;
@@ -85,6 +85,31 @@ public sealed class ContactStore : IDisposable
 
     /// <summary>Wird ausgelöst, wenn sich die Liste geändert hat — auf dem Ladethread, nicht im UI.</summary>
     public event EventHandler<IReadOnlyList<Contact>>? Changed;
+
+    /// <summary>
+    /// Der Team-Block ist neu aus den Einstellungen gebaut worden.
+    ///
+    /// <para><b>Wofür es das gibt</b> (24.09.2026, gemessen). Wer eine
+    /// SIP-Adresse einer Nebenstelle änderte, hatte danach eine Lampe, die
+    /// nichts meldete: im Protokoll stand «11 Nebenstellen abonniert (0 neu)»
+    /// statt zwölf, und erst die <b>nächste</b> Änderung holte das Abo nach.
+    /// <see cref="BlfService"/> und <see cref="ShellViewModel"/> hingen beide
+    /// an <c>SettingsService.Changed</c> — der Dienst lief zuerst und zählte
+    /// einen Speicher, den erst das ViewModel über <see cref="ReloadTeam"/>
+    /// aktualisierte. <b>Was ein Dienst zu sehen bekam, entschied damit die
+    /// Erzeugungsreihenfolge im Container</b>, und die steht nirgends.</para>
+    ///
+    /// <para>Dieses Ereignis dreht das um: es meldet nicht, <i>dass jemand
+    /// gespeichert hat</i>, sondern <b>dass die Daten stehen</b>. Wer darauf
+    /// hört, liest nie einen halben Stand.</para>
+    ///
+    /// <para><b>Es ersetzt <see cref="Changed"/> nicht</b>: das meldet einen
+    /// ganzen Ladelauf samt Outlook und externen Quellen und kommt vom
+    /// Ladethread. Dieses hier kostet nichts und feuert dort, wo
+    /// <see cref="ReloadTeam"/> gerufen wird — in der Anwendung auf dem
+    /// UI-Thread, und das ist genau der, den das SDK für die Abos will (§6).</para>
+    /// </summary>
+    public event EventHandler? TeamReloaded;
 
     /// <summary>
     /// Meldet Beginn und Ende eines Ladelaufs, damit die Oberfläche einen
@@ -266,6 +291,11 @@ public sealed class ContactStore : IDisposable
         var contacts = _settings.Current.Contacts;
 
         ReplaceTeam(TeamContactSource.Build(contacts.Team, contacts.Groups));
+
+        // Erst die Daten, dann die Meldung — in dieser Reihenfolge, sonst
+        // wäre nichts gewonnen. Über Melde, weil ein Empfänger (das
+        // Besetztlampenfeld) ins SDK ruft und das den UI-Thread will.
+        Melde(() => TeamReloaded?.Invoke(this, EventArgs.Empty));
     }
 
     /// <summary>

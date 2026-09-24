@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Nipp.Core.Services.Settings;
 using Nipp.Core.Services.Telephony;
@@ -44,20 +44,29 @@ public sealed class BlfService : IDisposable
         _logger = logger;
 
         _sip.PresenceChanged += OnPresenceChanged;
-        _settings.Changed += OnSettingsChanged;
 
-        // Bewusst KEIN Abo auf ContactStore.Changed. Zwei Gründe:
+        // <b>Gehört wird, dass die Daten stehen — nicht, dass jemand
+        // gespeichert hat</b> (24.09.2026). Bis dahin hing hier ein Abo auf
+        // <c>SettingsService.Changed</c>, und das war einen Takt zu früh: an
+        // demselben Ereignis hängt auch das ShellViewModel, und erst dessen
+        // <c>ReloadTeam()</c> bringt den Speicher auf den neuen Stand. Wer
+        // zuerst lief, entschied die Erzeugungsreihenfolge im Container.
+        // Gemessen: nach einer geänderten SIP-Adresse stand «11 Nebenstellen
+        // abonniert (0 neu)» statt zwölf, und erst die nächste Änderung holte
+        // das Abo nach. Die Lampe blieb bis dahin still — sie zeigte
+        // «unbekannt» und log damit nicht, sie sagte nur nichts.
         //
-        // 1. Der Speicher lädt im Hintergrund und löst sein Ereignis dort aus.
-        //    SynchronizeAsync ruft über den Telefoniedienst ins SDK, und das
-        //    will den UI-Thread (§6) — aus dem Hintergrund gerufen quittiert es
-        //    das nicht mit einem Fehler, sondern mit sporadisch ausbleibenden
-        //    Ereignissen.
-        // 2. Wer die Kontakte lädt, synchronisiert danach ohnehin selbst. Beides
-        //    ergab zwei gleiche Zeilen im Protokoll für denselben Vorgang.
-        //
-        // Aufrufer sind App.StartContacts (über den Dispatcher) und
-        // ShellViewModel.ReloadContactsAsync (schon auf dem UI-Thread).
+        // <c>TeamReloaded</c> feuert nach dem Umbau der Liste und auf dem
+        // Thread, auf dem <c>ReloadTeam</c> gerufen wurde — in der Anwendung
+        // der UI-Thread, und den will das SDK für die Abos (§6).
+        _contacts.TeamReloaded += OnTeamReloaded;
+
+        // Bewusst weiterhin KEIN Abo auf ContactStore.Changed: das meldet
+        // einen ganzen Ladelauf und kommt vom Ladethread. Wer die Kontakte
+        // lädt, synchronisiert danach ohnehin selbst — App.StartContacts über
+        // den Dispatcher, ShellViewModel.ReloadContactsAsync schon auf dem
+        // UI-Thread. Beides zusammen ergäbe zwei gleiche Zeilen im Protokoll
+        // für denselben Vorgang.
     }
 
     /// <summary>Ein beobachteter Zustand hat sich geändert.</summary>
@@ -128,7 +137,7 @@ public sealed class BlfService : IDisposable
         PresenceChanged?.Invoke(this, e);
     }
 
-    private void OnSettingsChanged(object? sender, NippSettings settings) =>
+    private void OnTeamReloaded(object? sender, EventArgs e) =>
         _ = SynchronizeSafelyAsync();
 
     /// <summary>
@@ -173,6 +182,6 @@ public sealed class BlfService : IDisposable
         _disposed = true;
 
         _sip.PresenceChanged -= OnPresenceChanged;
-        _settings.Changed -= OnSettingsChanged;
+        _contacts.TeamReloaded -= OnTeamReloaded;
     }
 }
