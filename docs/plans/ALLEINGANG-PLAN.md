@@ -232,10 +232,10 @@ Gerät — daran ändert kein Plan etwas.
 | **T72** | **bestanden.** Zwei erfundene Personen einer Firma mit derselben Zentrale stehen als **zwei** Zeilen da |
 | **T246** | **bestanden.** Ein Name, der im Team und in der Quelle steht, ergibt **genau eine** Liste — ein Treffer mit Herkunftsabzeichen «Team» |
 | **T288** | **bestanden, an beiden Stellen.** 14 618 Zeichen Antwort gegen eine Vorschaugrenze von 8192: Werte kommen an, «Testabruf» statt «Beispieldaten», «übernommen» statt «geantwortet», keine Rufnummer im Protokoll |
-| **T311** | **teilweise.** Nummer, Name und SIP-Adresse erscheinen sofort ohne Neustart. Die **Lampe** nicht — siehe Befund unten |
+| **T311** | **bestanden** (nach der Reparatur desselben Abends). Nummer, Name und SIP-Adresse erscheinen sofort ohne Neustart, die Lampe jetzt auch |
 | **Ziehvorschau V8** | Der **Zug auf einen Gruppenkopf trägt**; die Zeile landet an zweiter Stelle, weil der Zeiger am unteren Rand des Kopfes steht. Offen bleibt «hell bei 150 %», eine Augenprüfung |
 
-## Befund 1 — die Lampe hängt einen Takt zu spät an der neuen SIP-Adresse
+## Befund 1 — die Lampe hing einen Takt zu spät an der neuen SIP-Adresse · **repariert und nachgemessen**
 
 **Gemessen**, zweimal hintereinander am laufenden Programm:
 
@@ -279,11 +279,21 @@ Fehlersuche**, und sie gehört dir:
 | **c)** | Der `ContactStore` meldet nach `ReloadTeam()` eine Änderung, auf die der Dienst hört | Die Reihenfolge wird zur Eigenschaft der Daten statt zur Eigenschaft der Registrierung — dafür wird ein Ereignis lauter, das heute bewusst still ist |
 | **d)** | nichts tun | Wer eine SIP-Adresse korrigiert, hat bis zur nächsten Änderung eine stille Lampe. Sie zeigt «unbekannt» und lügt nicht |
 
-**Meine Empfehlung ist (c)**, weil sie die Ursache trifft: heute entscheidet
+**Meine Empfehlung war (c)**, weil sie die Ursache trifft: vorher entschied
 die Erzeugungsreihenfolge im Container, was ein Dienst zu sehen bekommt, und
-das ist an keiner Stelle aufgeschrieben. Die Gegenprobe aus ADR-060 gilt für
-jede der drei: es darf **kein** zweiter Synchronisierungslauf je Vorgang
-entstehen.
+das ist an keiner Stelle aufgeschrieben.
+
+> **Am 24.09.2026 so gebaut.** `ContactStore.TeamReloaded` meldet nach
+> `ReloadTeam()`, dass der Team-Block steht; der `BlfService` hängt daran
+> statt an `SettingsService.Changed`. Fünf Tests über die ganze Kette, und die
+> **Gegenprobe gegen den alten Stand** fällt bei zweien durch — mit genau dem
+> gemessenen Symptom (erwartet `sip:301`, tatsächlich `sip:201`). Die
+> Gegenprobe aus ADR-060 steht als eigener Test daneben: **ein Speichern
+> erzeugt genau einen Synchronisierungslauf.**
+>
+> **Am laufenden Programm nachgemessen, zweimal:** eine neu angelegte
+> Nebenstelle mit SIP-Adresse und eine geänderte Adresse ergeben beide sofort
+> «12 Nebenstellen abonniert (1 neu)». Vorher stand dort «11 (0 neu)».
 
 ## Befund 2 — drei Gründe, warum ein Mausklick ins Leere geht
 
