@@ -131,13 +131,14 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     private const int MaxAccountCount = 10;
 
     /// <summary>
-    /// Die eingerichteten Konten in der Reihenfolge ihrer Einrichtung.
-    /// Der Schlüssel ist die SIP-Identität.
+    /// Die eingerichteten Konten samt Zustand und Meldung (W2.1 Etappe B2).
+    ///
+    /// <para>Hier lagen bis zum 24.09.2026 <b>drei</b> Woerterbuecher
+    /// nebeneinander, und jede Stelle, die eines anfasste, musste an die
+    /// beiden anderen denken. Jetzt ist es eine Klasse ohne SDK — und damit
+    /// eine, die sich ohne Anlage pruefen laesst.</para>
     /// </summary>
-    private readonly Dictionary<string, SipAccountSettings> _accountSettings = new(StringComparer.OrdinalIgnoreCase);
-
-    private readonly Dictionary<string, RegistrationStatus> _accountStates = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, string?> _accountMessages = new(StringComparer.OrdinalIgnoreCase);
+    private readonly AccountRegistry _accounts = new();
 
     /// <summary>
     /// §8.2: das Qualitätspanel wird im Sekundenrhythmus erneuert, nicht bei
@@ -275,16 +276,16 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     /// <summary>§20.2, §9.1: Konto für ausgehende Anrufe.</summary>
     public string? DefaultAccountIdentity
     {
-        get => _defaultAccountIdentity;
+        get => _accounts.DefaultIdentity;
         set
         {
-            if (value is not null && !_accountSettings.ContainsKey(value))
+            if (value is not null && !_accounts.Contains(value))
             {
                 throw new InvalidOperationException(
                     $"Das Konto {value} ist nicht eingerichtet. Erst anmelden, dann als Standard setzen.");
             }
 
-            _defaultAccountIdentity = value;
+            _accounts.DefaultIdentity = value;
 
             if (value is not null && _core is not null)
             {
@@ -299,17 +300,7 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         }
     }
 
-    private string? _defaultAccountIdentity;
-
-    public IReadOnlyList<AccountStatus> Accounts =>
-        _accountSettings.Values
-            .Select(a => new AccountStatus(
-                Identity: a.Identity,
-                DisplayName: string.IsNullOrWhiteSpace(a.DisplayName) ? a.Username : a.DisplayName,
-                Status: _accountStates.TryGetValue(a.Identity, out var state) ? state : RegistrationStatus.None,
-                Message: _accountMessages.TryGetValue(a.Identity, out var message) ? message : null,
-                IsDefault: string.Equals(a.Identity, _defaultAccountIdentity, StringComparison.OrdinalIgnoreCase)))
-            .ToList();
+    public IReadOnlyList<AccountStatus> Accounts => _accounts.Snapshot();
 
     /// <summary>
     /// §9.4 und ADR-006: die Einstellung sagt „ein", der Canceller schaltet
@@ -512,8 +503,8 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
 
         // §20.2: höchstens zehn Konten. Ein bereits eingerichtetes zu
         // ersetzen zählt nicht als neues.
-        if (!_accountSettings.ContainsKey(account.Identity)
-            && _accountSettings.Count >= MaxAccountCount)
+        if (!_accounts.Contains(account.Identity)
+            && _accounts.Count >= MaxAccountCount)
         {
             throw new InvalidOperationException(
                 $"Es sind bereits {MaxAccountCount} Konten eingerichtet — mehr verwaltet nipp nicht. "
@@ -521,9 +512,7 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         }
 
         _account = account;
-        _accountSettings[account.Identity] = account;
-        _accountStates[account.Identity] = RegistrationStatus.InProgress;
-        _accountMessages[account.Identity] = null;
+        _accounts.Set(account);
 
         // Das SDK speichert Konten in linphonerc und stellt sie beim Start
         // selbst wieder her — sichtbar daran, dass ein REGISTER schon läuft,
@@ -572,7 +561,9 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
 
         // §9.1: das erste registrierte Konto ist Standard für ausgehende Anrufe.
         core.DefaultAccount ??= sdkAccount;
-        _defaultAccountIdentity ??= account.Identity;
+
+        // Set() hat das Standardkonto schon gesetzt, wenn es noch keines gab
+        // — hier bleibt nur die Seite des SDK.
 
         RaiseAccountsChanged();
 
@@ -618,7 +609,7 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
                 // einer früheren Fassung kann noch unter ihm stehen.
                 var candidates = new List<string>();
 
-                if (_accountSettings.TryGetValue(identity, out var known)
+                if (_accounts.TryGet(identity, out var known)
                     && known.EffectiveAuthUserId is { Length: > 0 } authId)
                 {
                     candidates.Add(authId);
@@ -651,18 +642,18 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         var core = RequireCore();
 
         RemoveExistingAccount(core, identity);
-        _accountSettings.Remove(identity);
-        _accountStates.Remove(identity);
-        _accountMessages.Remove(identity);
 
-        // Das Standardkonto darf nicht ins Leere zeigen.
-        if (string.Equals(_defaultAccountIdentity, identity, StringComparison.OrdinalIgnoreCase))
+        var warStandard = string.Equals(_accounts.DefaultIdentity, identity, StringComparison.OrdinalIgnoreCase);
+
+        // Die Registry ruecken das Standardkonto selbst nach — ein Standard,
+        // den es nicht mehr gibt, ist eine leere Kontoauswahl.
+        _accounts.Remove(identity);
+
+        if (warStandard)
         {
-            _defaultAccountIdentity = _accountSettings.Keys.FirstOrDefault();
-
-            if (_defaultAccountIdentity is not null)
+            if (_accounts.DefaultIdentity is { } nachfolger)
             {
-                var replacement = FindSdkAccount(core, _defaultAccountIdentity);
+                var replacement = FindSdkAccount(core, nachfolger);
                 if (replacement is not null)
                 {
                     core.DefaultAccount = replacement;
@@ -749,7 +740,7 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
 
         // §20.2: über ein bestimmtes Konto telefonieren. Ohne Angabe bleibt es
         // beim Standardkonto.
-        var identity = accountIdentity ?? _defaultAccountIdentity;
+        var identity = accountIdentity ?? _accounts.DefaultIdentity;
         var chosen = identity is not null ? FindSdkAccount(core, identity) : null;
 
         // §8.2: beim zweiten Anruf geht das laufende Gespräch auf Halten.
@@ -903,9 +894,9 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     /// </summary>
     private string? DomainOf(string? accountIdentity)
     {
-        var identity = accountIdentity ?? _defaultAccountIdentity;
+        var identity = accountIdentity ?? _accounts.DefaultIdentity;
 
-        if (identity is not null && _accountSettings.TryGetValue(identity, out var settings))
+        if (identity is not null && _accounts.TryGet(identity, out var settings))
         {
             return settings.Domain;
         }
@@ -1641,28 +1632,38 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         }
     }
 
+    /// <summary>
+    /// Ein Konto meldet einen neuen Anmeldezustand (Paragraf 20.2).
+    ///
+    /// <para><b>Verbucht wird in <see cref="AccountRegistry"/></b> (W2.1
+    /// Etappe B2); hier steht nur noch, was daraus folgt: melden,
+    /// protokollieren, den wirksamen Gesamtzustand fuehren.</para>
+    /// </summary>
     private void OnBridgeRegistrationChanged(object? sender, RegistrationChangedEventArgs e)
     {
-        // §20.2: der Zustand wird je Konto geführt, damit die Kontoauswahl
-        // eine eigene Status-LED je Zeile zeigen kann.
-        var identity = NormalizeIdentity(e.AccountIdentity);
-        SipAccountSettings? settings = null;
+        var ergebnis = _accounts.Record(
+            e.AccountIdentity,
+            e.Status,
+            e.Message,
 
-        if (identity is not null && _accountSettings.TryGetValue(identity, out var found))
+            // Paragraf 15: die Meldung nennt Ursache und Abhilfe, nicht den
+            // rohen SDK-Text — und die Domaene des BETROFFENEN Kontos. Bei
+            // zwei Konten auf verschiedenen Anlagen nannte die Fehlermeldung
+            // vorher eine Anlage, die mit dem Fehler nichts zu tun hatte.
+            static (text, settings) => SipErrorCatalog.DescribeRegistrationFailure(
+                text,
+                settings.Domain,
+                !string.IsNullOrEmpty(settings.Password)));
+
+        // <b>Nur eine echte Aenderung geht hinaus</b> (ADR-060). Eine
+        // Erneuerung alle zehn Minuten aendert nichts, und an diesem Ereignis
+        // haengen vier Empfaenger.
+        if (ergebnis.AccountsChanged)
         {
-            settings = found;
-            _accountStates[identity] = e.Status;
-            _accountMessages[identity] = e.Status == RegistrationStatus.Failed
-                ? SipErrorCatalog.DescribeRegistrationFailure(
-                    e.Message,
-                    found.Domain,
-                    !string.IsNullOrEmpty(found.Password))
-                : e.Message;
-
             RaiseAccountsChanged();
         }
 
-        // Nicht den Zustand aus dem Ereignis übernehmen, sondern den des
+        // Nicht den Zustand aus dem Ereignis uebernehmen, sondern den des
         // Standardkontos abfragen.
         //
         // Grund: das SDK stellt beim Start gespeicherte Konten aus linphonerc
@@ -1672,85 +1673,34 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         // nipp registriert ist. Das Standardkonto ist die Wahrheit.
         RegistrationStatus = ReadDefaultAccountStatus() ?? e.Status;
 
-        if (e.Status == RegistrationStatus.Failed)
+        if (ergebnis.IsStale)
         {
-            // <b>Ein Konto, das nipp nicht kennt, ist kein Alarm.</b>
+            // <b>Ein Konto, das nipp nicht kennt, ist kein Alarm.</b> Es ist
+            // das aus linphonerc wiederhergestellte, das gleich darauf
+            // ersetzt wird. Am Geraet sah man eine Lampe, die kurz rot wurde,
+            // und eine Fehlermeldung zu einem Konto, das in der Oberflaeche
+            // gar nicht steht.
             //
-            // Das SDK stellt beim Start gespeicherte Konten aus linphonerc
-            // wieder her. Die werden gleich darauf durch die eingerichteten
-            // ersetzt, scheitern dabei aber noch einmal mit „io error" — für
-            // ein Konto also, das es eine Sekunde später nicht mehr gibt.
-            //
-            // Am Gerät sah man das so: im Protokoll stand „Registrierung bei
-            // fehlgeschlagen" (ohne Domäne, weil zu diesem Konto keine
-            // gespeichert ist), und einen Augenblick später „Registered". Die
-            // Lampe wurde dazwischen rot. Dieselbe Klasse Fehler wie
-            // „Refreshing gilt als Fehler" (docs/plans/REVIEW.md F2) — nur eine Ebene
-            // weiter: nicht ein Zustand wird falsch gedeutet, sondern ein
-            // Zustand zum falschen Konto.
-            //
-            // Erkennbar daran, dass nipp zu dieser Identität keine
-            // Einstellungen hat: was nipp nicht eingerichtet hat, kann der
-            // Benutzer auch nicht prüfen — „Zugangsdaten prüfen" schickt ihn
-            // dann an ein Konto, das es in der Oberfläche gar nicht gibt.
-            //
-            // <b>Kein return.</b> Der wirksame Gesamtzustand geht am Ende der
-            // Methode ohnehin hinaus; hier entfällt nur die eigene
-            // Fehlermeldung. Ein erster Anlauf hatte zusätzlich verlangt, dass
-            // der Gesamtzustand schon gut ist — das griff nicht, weil das
-            // Altkonto in dem Moment noch das Standardkonto ist und selbst
-            // „Failed" meldet.
-            if (settings is null)
-            {
-                TelephonyLog.StaleAccountIgnored(_logger, e.AccountIdentity);
-            }
-            else
-            {
-                // §15: die Meldung nennt Ursache und Abhilfe, nicht den rohen
-                // SDK-Text.
-                //
-                // <b>Die Domäne des betroffenen Kontos</b>, nicht die von
-                // _account: das ist das zuletzt eingerichtete. Bei zwei Konten
-                // auf verschiedenen Anlagen (§20.2) nannte die Fehlermeldung
-                // damit eine Anlage, die mit dem Fehler nichts zu tun hatte.
-                var explained = SipErrorCatalog.DescribeRegistrationFailure(
-                    e.Message,
-                    settings.Domain,
-                    !string.IsNullOrEmpty(settings.Password));
+            // <b>Kein return:</b> der wirksame Gesamtzustand geht unten
+            // ohnehin hinaus, hier entfaellt nur die eigene Fehlermeldung.
+            TelephonyLog.StaleAccountIgnored(_logger, e.AccountIdentity);
+        }
+        else if (e.Status == RegistrationStatus.Failed)
+        {
+            var erklaert = ergebnis.Message ?? e.Message ?? string.Empty;
 
-                TelephonyLog.RegistrationFailed(_logger, explained);
-                RegistrationChanged?.Invoke(this, e with { Message = explained });
-                return;
-            }
-
+            TelephonyLog.RegistrationFailed(_logger, erklaert);
+            RegistrationChanged?.Invoke(this, e with { Message = erklaert });
+            return;
         }
 
         // Den wirksamen Zustand protokollieren, nicht den rohen aus dem
         // Ereignis: sonst steht "Unregistered" im Log, wenn sich ein
-        // ersetztes Altkonto abmeldet, während nipp längst registriert ist.
-        // Ein Log, das dem widerspricht, was die App anzeigt, führt den
+        // ersetztes Altkonto abmeldet, waehrend nipp laengst registriert ist.
+        // Ein Log, das dem widerspricht, was die App anzeigt, fuehrt den
         // Support in die Irre.
         TelephonyLog.RegistrationChanged(_logger, RegistrationStatus.ToString(), e.AccountIdentity);
         RegistrationChanged?.Invoke(this, e with { Status = RegistrationStatus });
-    }
-
-    /// <summary>
-    /// Zieht aus einer Anzeige-Identität wie
-    /// <c>"nipp Testgeraet" &lt;sip:151@pbx.ch&gt;</c> die reine SIP-Adresse.
-    /// Das SDK liefert die Identität mit Anzeigename, unsere Schlüssel sind
-    /// ohne.
-    /// </summary>
-    private string? NormalizeIdentity(string raw)
-    {
-        var start = raw.IndexOf('<', StringComparison.Ordinal);
-        var end = raw.IndexOf('>', StringComparison.Ordinal);
-
-        var candidate = start >= 0 && end > start
-            ? raw[(start + 1)..end]
-            : raw;
-
-        return _accountSettings.Keys.FirstOrDefault(k =>
-            string.Equals(k, candidate, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -2775,14 +2725,14 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     private string? IdentityOf(CallSnapshot snapshot)
     {
         if (snapshot.SdkAccountIdentity is { Length: > 0 } fromSdk
-            && _accountSettings.ContainsKey(fromSdk))
+            && _accounts.Contains(fromSdk))
         {
             return fromSdk;
         }
 
         if (snapshot.ToAddress is { Length: > 0 } to)
         {
-            var matched = _accountSettings.Keys.FirstOrDefault(k => SipUri.Same(k, to));
+            var matched = _accounts.Identities.FirstOrDefault(k => SipUri.Same(k, to));
 
             if (matched is not null)
             {
@@ -2790,7 +2740,7 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
             }
         }
 
-        return _defaultAccountIdentity;
+        return _accounts.DefaultIdentity;
     }
 
     /// <summary>
