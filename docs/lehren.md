@@ -636,6 +636,30 @@ niemandem.
 
 ### Bauen, Tests und Werkzeug
 
+- **Wer die Oberfläche mit der Maus misst, braucht drei Dinge, und jedes
+  einzelne lässt den Klick ins Leere gehen** (24.09.2026, beim Nachholen von
+  T311 und der Ziehvorschau gemessen). Alle drei sehen gleich aus: das
+  Programm reagiert scheinbar nicht.
+  **Erstens DPI.** Windows steht hier auf 150 %. Ein Prozess ohne
+  DPI-Bewusstsein bekommt von `SetCursorPos` nicht die Koordinaten, die er
+  hineingibt — gesetzt auf (1766, 1496), gelandet bei (1840, 1475). Bei
+  grossen Knöpfen bleibt der Versatz im Ziel, bei einem Reiter am Rand nicht.
+  `SetProcessDPIAware()` einmal je Prozess, und die Rechtecke aus UI
+  Automation stimmen wieder.
+  **Zweitens der Vordergrund.** Das Fenster der Konsole, aus der gemessen
+  wird, steht bei jedem Befehl selbst im Vordergrund; der Klick landet dann
+  dort. Genau das steckte hinter dem Satz «ein Mausklick auf die errechnete
+  Stelle landete in einem fremden Fenster», an dem T311 am 22.09.2026
+  liegenblieb — es war kein fremdes Programm, es war das eigene Terminal.
+  **Drittens echte Eingabeereignisse.** `SetCursorPos` setzt den Zeiger, aber
+  ein Zug entsteht daraus nicht: WinUI zählt die acht Pixel aus ADR-065 an
+  Zeigerereignissen, die den Eingabestapel durchlaufen. Erst `SendInput` mit
+  absoluten Koordinaten zieht wirklich.
+  Alle drei stehen jetzt in `tools/Test-Ui.ps1` (`Set-NippVordergrund`,
+  `Invoke-NippKlick`, `Invoke-NippZug`) — **und die vierte Stolperstelle ist
+  gar keine des Werkzeugs:** Team-Zeilen lassen sich nur im
+  **Umsortier-Modus** ziehen, und ohne ihn bleibt jeder Zug folgenlos, ohne
+  Fehler und ohne Protokollzeile.
 - **Ein Test, der Fehlalarme liefert, wird abgeschaltet und schützt dann
   nichts.** Der erste Anlauf von `UserTextTests` las ganze Zeilen und meldete
   zwei Dutzend Kommentare; der zweite suchte `ae|oe|ue` als Buchstabenfolge und

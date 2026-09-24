@@ -400,6 +400,19 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   dargestellt wird, und zieht das Fenster auf eine **logische** Breite
   (`Set-NippWindowSize`). **Die Rechtecke sind physisch, die Matrix ist
   logisch** — `Get-NippSkalierung` nennt den Faktor (hier 150 %).
+  **Seit dem 24.09.2026 kann es die echte Maus** — `Invoke-NippKlick`,
+  `Invoke-NippZug`, `Invoke-NippRad`, und `Show-NippElement` holt ein
+  weggescrolltes Element ins Bild. Gebraucht wird sie, wo ein Muster nicht
+  reicht: **ein `InvokePattern` bewegt den Fokus nicht**, und **ziehen lässt
+  sich über UI Automation gar nicht**. Drei Dinge müssen dafür stimmen, und
+  jedes einzelne lässt den Klick still ins Leere gehen: der Prozess muss
+  **DPI-bewusst** sein (bei 150 % sonst rund 70 Pixel daneben), **nipp muss
+  im Vordergrund stehen** (sonst fängt das Fenster der messenden Konsole den
+  Klick ab), und die Eingabe muss über **`SendInput`** kommen (`SetCursorPos`
+  erzeugt keinen Zug). Alle drei sind im Werkzeug erledigt und in
+  `docs/lehren.md` begründet. **Und Team-Zeilen ziehen nur im
+  Umsortier-Modus** — ohne ihn bleibt jeder Zug folgenlos, ohne Fehler und
+  ohne Protokollzeile.
   **Nach einer Eingabe eine Sekunde warten, bevor die Datei gelesen wird.**
   Ein über die Oberfläche geänderter Wert steht nicht im selben Atemzug in
   `settings.json`. Vom 17. bis zum 21.09.2026 kam er bei neun Feldern

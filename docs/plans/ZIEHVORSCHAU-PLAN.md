@@ -1,9 +1,13 @@
-# Ziehvorschau — die anderen weichen aus, während gezogen wird
+﻿# Ziehvorschau — die anderen weichen aus, während gezogen wird
 
 > **Stand 14.09.2026: umgesetzt (ADR-066).** V1 bis V7 sind gebaut, 1237
 > Komponententests grün. **Offen ist V8** — die Prüfung am Gerät, T292 bis
 > T296. Die Bauart hat sich gegenüber dem ersten Entwurf an einer Stelle
 > geändert: das Ablegeziel ist die **Liste**, nicht die Zeile (F6).
+>
+> **Nachtrag 24.09.2026:** der **Zug auf einen Gruppenkopf** ist gemessen und
+> trägt (Abschnitt ganz unten). **Offen bleibt davon nur noch «hell bei
+> 150 %»** — das ist eine Augenprüfung und kein Skriptfall.
 
 Stand 13.09.2026. Auftrag von Dominic: beim Ziehen einer Nebenstelle — als
 Zeile wie als Kachel — soll sichtbar sein, **wo** sie landet, indem die anderen
@@ -342,11 +346,33 @@ Zugs stellte sie zurück.
 Zwei Züge endeten mit `None`: einer davon war der Abbruch mit Escape (gewollt,
 die Zeile kam an ihren Platz zurück). Beim zweiten steht **nicht** fest, was er
 war — ein `drop:kopf` steht in keinem der sieben Züge, und ob überhaupt auf
-einem Gruppenkopf abgelegt wurde, ist ungeklärt. **Offen, in V8 nachzuholen.**
+einem Gruppenkopf abgelegt wurde, war ungeklärt.
+
+> **Nachgeholt am 24.09.2026, im Kachelraster und mit einer echten Maus:**
+> **der Zug auf einen Gruppenkopf trägt.** Eine Kachel aus «Team» auf den
+> Kopf «HRN (3)» gezogen — danach steht sie in HRN, die Zähler wechseln von
+> Team (5)/HRN (3) auf Team (4)/HRN (4). **Sie landet dabei nicht an erster
+> Stelle, sondern an zweiter**, und das ist kein Fehler, sondern die Folge
+> davon, wo der Zeiger beim Loslassen stand: am unteren Rand des Kopfes, und
+> damit hinter der ersten Zeile. Wer eine Zeile ausdrücklich an den Anfang
+> einer Gruppe ziehen will, zielt auf die **obere Hälfte der ersten Zeile**,
+> nicht auf den Kopf.
+>
+> **Gemessen wurde auch die Gegenprobe**, ein Zug innerhalb der Gruppe: die
+> letzte Kachel auf die obere Hälfte der ersten gezogen, danach steht sie an
+> erster Stelle.
+>
+> **Zwei Stolperstellen dabei, beide nicht im Programm:** Team-Zeilen lassen
+> sich nur im **Umsortier-Modus** ziehen (ohne ihn bleibt der Zug folgenlos,
+> ohne Fehler und ohne Protokollzeile), und ein Zug per `SetCursorPos`
+> entsteht gar nicht erst — die acht Pixel aus ADR-065 zählen nur an
+> Zeigerereignissen, die den Eingabestapel durchlaufen. Beides steht jetzt in
+> `tools/Test-Ui.ps1` und in `docs/lehren.md`.
 
 **Ebenfalls offen:** ob die Kacheln dabei waren. Beide Ansichten benutzen
 dieselben Behandler, und das Protokoll unterscheidet sie nicht — eine Sonde,
-die das messen soll, muss die Ansicht mitschreiben.
+die das messen soll, muss die Ansicht mitschreiben. **Für den Zug vom
+24.09.2026 ist es beantwortet: er lief im Kachelraster.**
 
 **14.09.2026, 07:53 — Gegenprobe ohne Sonde.** Anlass war die Meldung, ein
 Wechsel in eine andere Gruppe sei nicht möglich. Sechs Züge mit der regulären
