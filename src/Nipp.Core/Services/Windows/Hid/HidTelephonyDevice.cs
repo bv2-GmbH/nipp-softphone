@@ -94,11 +94,10 @@ internal sealed class HidTelephonyDevice : IDisposable
     /// Wie lange der Schreib-Thread nach einem Weckruf noch auf weitere
     /// Aenderungen wartet, bevor er schreibt.
     /// </summary>
-    private const int Sammelfenster = 60;
+    private const int Sammelfenster = LampenSammler.SammelfensterMs;
 
-    private const int BitInCall = 1;
-    private const int BitRinging = 2;
-    private const int BitMuted = 4;
+    // Die drei Bits und was sie bedeuten stehen in LampenSammler (W2.1
+    // Etappe B7) — dort sind sie pruefbar, hier waren sie es nie.
 
     private volatile bool _closing;
 
@@ -576,9 +575,7 @@ internal sealed class HidTelephonyDevice : IDisposable
             return;
         }
 
-        var bits = (imGespraech ? BitInCall : 0)
-            | (klingelt ? BitRinging : 0)
-            | (stumm ? BitMuted : 0);
+        var bits = LampenSammler.Bits(imGespraech, klingelt, stumm);
 
         if (Interlocked.Exchange(ref _wanted, bits) == bits)
         {
@@ -637,11 +634,7 @@ internal sealed class HidTelephonyDevice : IDisposable
                 break;
             }
 
-            var bits = _wanted;
-
-            var imGespraech = (bits & BitInCall) != 0;
-            var klingelt = (bits & BitRinging) != 0;
-            var stumm = (bits & BitMuted) != 0;
+            var (imGespraech, klingelt, stumm) = LampenSammler.Aus(_wanted);
 
             var begonnen = DateTimeOffset.UtcNow;
 
@@ -710,26 +703,11 @@ internal sealed class HidTelephonyDevice : IDisposable
             report[0] = _outputReportId;
         }
 
-        var lampen = new List<ushort>(3);
+        // Welche Lampen das sind, rechnet HidReportDeutung (W2.1 Etappe B7).
+        var liste = HidReportDeutung.Lampen(imGespraech, klingelt, stumm);
 
-        if (imGespraech)
+        if (liste.Length > 0)
         {
-            lampen.Add(UsageLedOffHook);
-        }
-
-        if (klingelt)
-        {
-            lampen.Add(UsageLedRing);
-        }
-
-        if (stumm)
-        {
-            lampen.Add(UsageLedMute);
-        }
-
-        if (lampen.Count > 0)
-        {
-            var liste = lampen.ToArray();
             var anzahl = liste.Length;
 
             // Nicht abbrechen, wenn ein Geraet eine der Lampen nicht kennt:
@@ -870,22 +848,9 @@ internal sealed class HidTelephonyDevice : IDisposable
             return;
         }
 
-        var offHook = false;
-        var mute = false;
-
-        for (var i = 0; i < anzahl; i++)
-        {
-            switch (usages[i])
-            {
-                case UsageHookSwitch:
-                    offHook = true;
-                    break;
-
-                case UsagePhoneMute:
-                    mute = true;
-                    break;
-            }
-        }
+        // Was der Report sagt, liest HidReportDeutung (W2.1 Etappe B7) —
+        // eine Rechnung ueber eine Liste, und die gehoert in Tests.
+        var (offHook, mute) = HidReportDeutung.Lies(usages, anzahl);
 
         // <b>Was das Geraet wirklich geschickt hat.</b> Ohne diese Zeile war
         // „die Taste tut nichts" nicht von „hier kommt gar nichts an" zu

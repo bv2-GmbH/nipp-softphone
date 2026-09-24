@@ -876,19 +876,8 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     /// verschiedenen Anlagen (§20.2) wählte nipp die Nebenstelle damit auf der
     /// falschen Anlage, und die Meldung lautete „Nummer unbekannt".
     /// </summary>
-    private string ToDialableAddress(string destination, string? accountIdentity)
-    {
-        if (destination.Contains('@', StringComparison.Ordinal)
-            || destination.StartsWith("sip:", StringComparison.OrdinalIgnoreCase)
-            || destination.StartsWith("sips:", StringComparison.OrdinalIgnoreCase))
-        {
-            return destination;
-        }
-
-        return DomainOf(accountIdentity) is { Length: > 0 } domain
-            ? $"sip:{destination}@{domain}"
-            : destination;
-    }
+    private string ToDialableAddress(string destination, string? accountIdentity) =>
+        CallAddressing.ToDialable(destination, DomainOf(accountIdentity));
 
     /// <summary>
     /// Die Domäne eines Kontos. Ohne Angabe die des Standardkontos, und wenn
@@ -992,16 +981,10 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         {
             Directory.CreateDirectory(RecordingDirectory);
 
-            var invalid = Path.GetInvalidFileNameChars();
-            var safe = new string([.. remoteNumber.Where(c => !invalid.Contains(c) && c is not ('*' or '#'))]);
-            if (safe.Length == 0)
-            {
-                safe = "unbekannt";
-            }
-
-            var name = string.Create(
-                System.Globalization.CultureInfo.InvariantCulture,
-                $"{DateTimeOffset.Now:yyyy-MM-dd_HHmmss}_{safe}.wav");
+            // Der Name selbst ist eine reine Rechnung und steht in
+            // CallAddressing (W2.1 Etappe B5); hier bleibt, was das
+            // Dateisystem anfasst.
+            var name = CallAddressing.RecordingFileName(remoteNumber, DateTimeOffset.Now);
 
             return Path.Combine(RecordingDirectory, name);
         }
