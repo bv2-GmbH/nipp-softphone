@@ -1956,7 +1956,12 @@ Alles andere ist ein Befund und kein Halt.
 Kein Komponententest berührt eine dieser Klassen. Die vier Architekturtests,
 die ihre Namen nennen, prüfen Grenzen, nicht Verhalten.
 
-## B0 — Was „testbar" hier heisst · braucht einen ADR (ADR-066)
+## B0 — Was „testbar" hier heisst · **erledigt am 24.09.2026 (ADR-074)**
+
+> Die Regel steht als **ADR-074** in `docs/decisions.md` — einschliesslich des
+> Satzes, dass ein ungetesteter Rest bleibt und welcher: **die Ausführung.**
+> Wer später «`SipService` ist getestet» liest, findet dort, dass das nie
+> behauptet wurde.
 
 **Die Massnahme W2.1 schlägt eine `ISdkCore`-Fassade vor. Dieser Plan weicht
 davon ab, und das gehört in einen ADR.**
@@ -1985,7 +1990,20 @@ Damit bleibt ein ungetesteter Rest — **die Ausführung** —, und der ist gena
 der Teil, für den es Teil A gibt. Der ADR sagt das ausdrücklich, damit niemand
 später „SipService ist getestet" liest und mehr hineindeutet, als dasteht.
 
-## B1 — Die Zustandsmaschine der Anrufe · die grösste Etappe
+## B1 — Die Zustandsmaschine der Anrufe · **gebaut am 24.09.2026**
+
+> **Was daraus geworden ist.** `SipEventBridge.Lies` übersetzt den Anruf
+> einmal in einen `CallSnapshot` (kein SDK-Typ, auch kein Enum);
+> `CallFlow.Decide` und `CallFlow.Apply` entscheiden daraus, ohne
+> Nebenwirkung; `OnBridgeCallStateChanged` führt nur noch aus und ist von
+> **165 auf 27 Codezeilen** gekommen. Die sechs Regeln haben **24 Tests**,
+> 1346 grün insgesamt.
+>
+> **Der Vorbehalt, und er ist der wichtige Teil:** gemessen ist damit, dass
+> die *Entscheidungen* stimmen — **nicht**, dass das SDK danach tut, was es
+> soll. **T04 bis T09 sind nach diesem Umbau erneut fällig** und stehen am
+> Anfang des nächsten Tages an der Anlage. nipp läuft, meldet sich an und
+> protokolliert fehlerfrei; ein Gespräch hat noch keines stattgefunden.
 
 **Heute:** `OnBridgeCallStateChanged` (`SipService.cs:1782`–`1946`) mischt vier
 Dinge — SDK lesen, entscheiden, protokollieren, melden. Darin stecken die

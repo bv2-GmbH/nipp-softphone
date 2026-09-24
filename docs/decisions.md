@@ -8,6 +8,41 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-074 — Was «testbar» in der SDK-Schicht heisst: übersetzen, entscheiden, ausführen
+
+**Datum:** 24.09.2026 · **Status:** angenommen · **Bezug:** `docs/plans/REVIEW-2026-09-12.md` (W2.1), `docs/plans/BEWEIS-PLAN.md` (B0, B1), ADR-053, §6, §14.1
+
+**Die Massnahme W2.1 schlägt eine `ISdkCore`-Fassade vor. Dieses ADR weicht davon ab.**
+
+**Warum die Fassade allein nicht trägt.** `SipService` berührt **46 Core-Member**, dazu zehn an `Call` und weitere an `Account`, `Friend`, `FriendList`, `AuthInfo`, `Player`, `CallParams` und `Address`. Alle diese Typen sind im C#-Wrapper **gewöhnliche Klassen ohne virtuelle Member und ohne Schnittstelle** — es gibt nichts zum Überschreiben. Eine Fassade müsste also **jeden einzelnen** dieser Member nachbauen: rund achtzig Durchreichungen, und sie wäre selbst ungetestet, weil sie genau die Schicht ist, die niemand fahren kann. Der Beweis wäre um eine Schicht verschoben, nicht erbracht.
+
+**Was stattdessen gilt — und dieses Haus macht es bereits vor.** `RingbackWatch`, `TransferOutcomes`, `TransportPorts`, `DoNotDisturb`, `SipErrorCatalog`, `ToneCardChooser`, `HeadsetPolicy`, `HeadsetSignalGate` und `HookWatch` sind herausgetrennte Entscheidungen ohne SDK-Typ, jede mit Tests. **Nicht eine davon brauchte eine Fassade.**
+
+> **Die Regel, in drei Teilen:**
+>
+> - Was das SDK **liest**, wird an **einer** Stelle in eine eigene Momentaufnahme übersetzt — in `SipEventBridge`, wo ohnehin `using Linphone` steht. Das ist ihr Zweck.
+> - Was daraus **folgt**, entscheidet eine **reine Klasse ohne SDK-Typ**, mit Tests.
+> - Was das SDK **tut**, bleibt in `SipService` und wird weiterhin **am Gerät** geprüft.
+
+**Damit bleibt ein ungetesteter Rest, und das steht hier ausdrücklich:** die Ausführung. Wer später liest «`SipService` ist getestet», soll hier finden, dass das nie behauptet wurde — geprüft sind die Entscheidungen, nicht das Verhalten des SDK. Dafür gibt es `docs/test-matrix.md` und den Tag am Gerät.
+
+**Erste Umsetzung am 24.09.2026 (Etappe B1), die Zustandsmaschine der Anrufe:**
+
+| | vorher | nachher |
+|---|---|---|
+| Wo das SDK gelesen wird | mitten in der Zustandsmaschine, fünf Eigenschaften am `Call` | `SipEventBridge.Lies` → `CallSnapshot` |
+| Wer entscheidet | dieselbe Methode, 165 Zeilen | `CallFlow.Decide` / `CallFlow.Apply`, ohne SDK-Typ |
+| Was der Callback tut | alles | ausführen: **27 Codezeilen**, keine Entscheidung |
+| Prüfbar | nur an einer echten Anlage | **24 Tests**, die sechs teuer bezahlten Regeln je einzeln |
+
+**Die sechs Regeln**, die vorher nur als Kommentar dastanden und jetzt je einen Test haben: ein neuer Anruf hat **keinen** Vorzustand (sonst ist ein eingehender Anruf unsichtbar — kein Toast, kein Ansichtswechsel); der dritte Anruf wird **vorgemerkt**, nicht sofort abgelehnt (Reentranz); die automatische Annahme wird **vorgemerkt**, nicht im Callback ausgeführt; ein Zwischenzustand ohne eigene Aussage lässt den bisherigen stehen; der Endgrund wird **beim letzten Ereignis** festgehalten, danach ist der Anruf aus der Verwaltung; der eigene Rufton endet, sobald der Anruf nicht mehr läutet.
+
+**Der rohe `Call` bleibt neben der Momentaufnahme stehen**, solange `SipService` ihn zum Ausführen braucht (`Matches`, `Accept`, `Decline`, `Terminate`). Gelesen wird aus ihm nichts mehr.
+
+**Konsequenz.** Die Etappen B2 bis B7 des Beweisplans folgen derselben Regel; eine Fassade wird nicht gebaut. **Und der Umbau ist noch nicht am Gerät gemessen** — T04 bis T09 stehen aus. Was die Tests zeigen, ist, dass die Entscheidungen stimmen; dass das SDK danach tut, was es soll, zeigt erst ein Gespräch.
+
+---
+
 ## ADR-073 — Die begleitete Übergabe ruft das Ziel selbst an, und die Gesprächsansicht misst ihre Breite
 
 **Datum:** 23.09.2026 · **Status:** angenommen · **Bezug:** §8.2, ADR-047, `docs/plans/VERMITTELN-PLAN.md`, T314, T321–T323

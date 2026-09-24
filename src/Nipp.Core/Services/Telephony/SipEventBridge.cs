@@ -1,9 +1,15 @@
-using Linphone;
+﻿using Linphone;
 using Microsoft.Extensions.Logging;
 using Nipp.Core.Diagnostics;
 using Nipp.Core.Services.Telephony.Model;
 
 using LinphoneCore = Linphone.Core;
+
+// Linphone bringt einen eigenen CallStatus mit (den der Anrufliste des SDK),
+// und der hat mit unserem nichts zu tun. Der Alias macht an jeder Stelle
+// sichtbar, welcher gemeint ist — ohne ihn ist es ein CS0104, mit einem
+// blossen using waere es eine stille Verwechslung.
+using NippCallStatus = Nipp.Core.Services.Telephony.Model.CallStatus;
 
 namespace Nipp.Core.Services.Telephony;
 
@@ -173,7 +179,169 @@ internal sealed class SipEventBridge : IDisposable
     };
 
     private void OnCallStateChanged(LinphoneCore core, Call call, CallState state, string message) =>
-        CallStateChanged?.Invoke(this, new SdkCallStateEventArgs(call, state, message));
+        CallStateChanged?.Invoke(this, new SdkCallStateEventArgs(call, state, message, Lies(call, state, message)));
+
+    /// <summary>
+    /// Der Anruf als eigener Wert — <b>einmal gelesen, an einer Stelle</b>
+    /// (W2.1 Etappe B1, ADR-074).
+    ///
+    /// <para><b>Warum hier und nicht im Dienst.</b> Diese Klasse ist die
+    /// Stelle, die das SDK uebersetzt; das ist ihr Zweck. Bis zum 24.09.2026
+    /// las <c>SipService</c> mitten in seiner Zustandsmaschine fuenf
+    /// Eigenschaften direkt am <c>Call</c> — und weil jede davon einen
+    /// laufenden Anruf braucht, war die ganze Methode nur an einer echten
+    /// Anlage pruefbar.</para>
+    ///
+    /// <para><b>Jeder Lesezugriff ist einzeln abgesichert</b>, und das ist
+    /// kein Vorratsbau: das SDK wirft je nach Zustand, statt <c>null</c> zu
+    /// liefern — vor der Verhandlung gibt es keinen Codec, und an einem
+    /// beendeten Anruf nicht mehr jede Angabe. Gemeldet wird das einmal je
+    /// Sitzung (W1.7), nicht bei jedem Ereignis.</para>
+    /// </summary>
+    private CallSnapshot Lies(Call call, CallState state, string message)
+    {
+        var status = MapCallStatus(state);
+
+        return new CallSnapshot(
+            Number: LiesAdresse(call, static c => c.RemoteAddress?.Username) ?? "unbekannt",
+            DisplayName: LiesAdresse(call, static c => c.RemoteAddress?.DisplayName),
+            Status: status,
+            Message: message,
+            IsIncomingNew: state is CallState.IncomingReceived or CallState.IncomingEarlyMedia,
+
+            // Paragraf 9.4: «Ringing» steht fuer zwei verschiedene Dinge — mit
+            // Early Media spielt die Anlage, ohne spielt das SDK selbst.
+            EarlyMedia: state == CallState.OutgoingEarlyMedia,
+
+            Codec: LiesCodec(call),
+            Encryption: LiesVerschluesselung(call),
+
+            // Nur beim letzten Ereignis: danach ist der Anruf aus der
+            // Verwaltung, und der Grund stuende nirgends (Paragraf 20.3).
+            EndReason: status is NippCallStatus.Ended or NippCallStatus.Failed
+                ? LiesEndgrund(call, status.Value)
+                : null,
+
+            SdkAccountIdentity: LiesAdresse(call, static c => c.Params?.Account?.Params?.IdentityAddress?.AsStringUriOnly()),
+            ToAddress: LiesAdresse(call, static c => c.ToAddress?.AsStringUriOnly()),
+            RawState: state.ToString());
+    }
+
+    private string? LiesAdresse(Call call, Func<Call, string?> was)
+    {
+        try
+        {
+            var wert = was(call);
+            return string.IsNullOrWhiteSpace(wert) ? null : wert;
+        }
+        catch (Exception ex)
+        {
+            QuietFailures.Report(_logger, "LiestAdresse", ex);
+            return null;
+        }
+    }
+
+    private string? LiesCodec(Call call)
+    {
+        try
+        {
+            return call.CurrentParams?.UsedAudioPayloadType?.MimeType;
+        }
+        catch (Exception ex)
+        {
+            QuietFailures.Report(_logger, "LiestCodec", ex);
+            return null;
+        }
+    }
+
+    private MediaEncryptionMode LiesVerschluesselung(Call call)
+    {
+        try
+        {
+            return call.CurrentParams?.MediaEncryption switch
+            {
+                MediaEncryption.None => MediaEncryptionMode.None,
+                MediaEncryption.SRTP => MediaEncryptionMode.Srtp,
+                MediaEncryption.ZRTP => MediaEncryptionMode.Zrtp,
+                MediaEncryption.DTLS => MediaEncryptionMode.Dtls,
+                _ => MediaEncryptionMode.Unknown,
+            };
+        }
+        catch (Exception ex)
+        {
+            QuietFailures.Report(_logger, "LiestVerschluesselung", ex);
+            return MediaEncryptionMode.Unknown;
+        }
+    }
+
+    /// <summary>
+    /// Warum das Gespraech endete (Paragraf 20.3). Das SDK nennt den Grund am
+    /// Anruf; ohne brauchbare Angabe entscheidet der Zustand.
+    ///
+    /// <para>Ohne diese Auswertung stand in der Anrufliste „fehlgeschlagen",
+    /// wenn das Ziel schlicht besetzt war.</para>
+    /// </summary>
+    private CallEndReason LiesEndgrund(Call call, NippCallStatus status)
+    {
+        Reason reason;
+
+        try
+        {
+            reason = call.Reason;
+        }
+        catch (Exception ex)
+        {
+            QuietFailures.Report(_logger, "LiestAnrufende", ex);
+            return status == NippCallStatus.Failed ? CallEndReason.Failed : CallEndReason.Normal;
+        }
+
+        return reason switch
+        {
+            Reason.Busy => CallEndReason.Busy,
+            Reason.Declined or Reason.DoNotDisturb => CallEndReason.Declined,
+            Reason.NotAnswered or Reason.TemporarilyUnavailable => CallEndReason.NoAnswer,
+
+            // Ein echter Fehler ist nur, was einer ist: Netz, Anlage,
+            // Berechtigung, Protokoll. Diese Liste ist ausdruecklich und
+            // vollstaendig — der Rest faellt unten durch.
+            Reason.IOError or Reason.NotFound or Reason.NotAcceptable
+                or Reason.Forbidden or Reason.Unauthorized or Reason.NoMatch
+                or Reason.Gone or Reason.MovedPermanently or Reason.AddressIncomplete
+                or Reason.NotImplemented or Reason.BadGateway or Reason.ServerTimeout
+                or Reason.SessionIntervalTooSmall or Reason.Unknown
+                => CallEndReason.Failed,
+
+            // Alles Uebrige entscheidet der Zustand, und das ist der wichtige
+            // Teil dieser Regel.
+            //
+            // Vorher stand hier "_ => CallEndReason.Failed". Am 08.09.2026 kamen
+            // drei eingehende Anrufe herein, klingelten 19 bis 23 Sekunden und
+            // wurden dann vom ANRUFER abgebrochen (CANCEL, Q.850 cause 16 —
+            // normal aufgelegt). In der Anrufliste standen sie als
+            // "fehlgeschlagen". Das ist nicht nur ungenau, es hat den Verdacht
+            // erzeugt, nipp habe etwas falsch gemacht: der Benutzer sah drei
+            // Fehler, wo drei verpasste Anrufe waren.
+            _ => status == NippCallStatus.Failed ? CallEndReason.Failed : CallEndReason.Normal,
+        };
+    }
+
+    /// <summary>
+    /// Der SDK-Zustand als eigener. <c>null</c> heisst: ein Zwischenschritt
+    /// ohne eigene Aussage — der bisherige Zustand bleibt stehen.
+    /// </summary>
+    private static NippCallStatus? MapCallStatus(CallState state) => state switch
+    {
+        CallState.OutgoingInit or CallState.OutgoingProgress => NippCallStatus.Dialing,
+        CallState.OutgoingRinging or CallState.OutgoingEarlyMedia => NippCallStatus.Ringing,
+        CallState.IncomingReceived or CallState.IncomingEarlyMedia => NippCallStatus.Incoming,
+        CallState.Connected or CallState.StreamsRunning or CallState.UpdatedByRemote
+            or CallState.Updating or CallState.Resuming => NippCallStatus.Connected,
+        CallState.Pausing or CallState.Paused => NippCallStatus.OnHold,
+        CallState.PausedByRemote => NippCallStatus.RemoteOnHold,
+        CallState.Error => NippCallStatus.Failed,
+        CallState.End or CallState.Released => NippCallStatus.Ended,
+        _ => null,
+    };
 
     private void OnSubscriptionStateChanged(
         LinphoneCore core,
@@ -314,13 +482,25 @@ internal sealed class SipEventBridge : IDisposable
     /// Anrufzustand mitsamt dem rohen SDK-Anruf. <c>internal</c>, weil dieser
     /// Typ die Schichtgrenze aus §6 nicht überschreiten darf.
     /// </summary>
-    internal sealed class SdkCallStateEventArgs(Call call, CallState state, string message) : EventArgs
+    internal sealed class SdkCallStateEventArgs(Call call, CallState state, string message, CallSnapshot snapshot) : EventArgs
     {
+        /// <summary>
+        /// Der rohe Anruf. <b>Bleibt daneben stehen</b>, solange
+        /// <c>SipService</c> ihn zum Ausfuehren braucht — fuer <c>Matches</c>,
+        /// <c>Accept</c>, <c>Decline</c> und <c>Terminate</c>. Gelesen wird
+        /// aus ihm nichts mehr: das steht in <see cref="Snapshot"/>.
+        /// </summary>
         public Call Call { get; } = call;
 
         public CallState State { get; } = state;
 
         public string Message { get; } = message;
+
+        /// <summary>
+        /// Was das SDK ueber diesen Anruf sagt, einmal gelesen und ohne
+        /// SDK-Typ (W2.1 Etappe B1). Daraus entscheidet <c>CallFlow</c>.
+        /// </summary>
+        public CallSnapshot Snapshot { get; } = snapshot;
     }
 
     /// <summary>

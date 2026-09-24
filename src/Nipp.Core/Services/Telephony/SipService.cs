@@ -1826,165 +1826,186 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         TransferCompleted?.Invoke(this, new TransferResultEventArgs(tracked.Handle, outcome));
     }
 
+    /// <summary>
+    /// Der Zustand eines Anrufs hat sich geaendert.
+    ///
+    /// <para><b>Diese Methode entscheidet nichts</b> (W2.1 Etappe B1,
+    /// ADR-074). Was das SDK sagt, steht als <c>CallSnapshot</c> im Ereignis;
+    /// was daraus folgt, entscheidet <see cref="CallFlow"/>; hier wird nur
+    /// ausgefuehrt. Vorher standen 165 Zeilen hier, und die sechs Regeln
+    /// darin — jede einmal teuer bezahlt — waren nur als Kommentar
+    /// festgehalten und nur an einer echten Anlage pruefbar.</para>
+    ///
+    /// <para><b>Was hier bleibt und nicht in CallFlow gehoert:</b> alles
+    /// Zustandsaendernde. Ablehnen und Annehmen werden vorgemerkt und
+    /// ausserhalb des Callbacks ausgefuehrt (ADR-053), der Anruf wird erst
+    /// nach dem Ereignis aus der Verwaltung genommen, und die Zuordnung zum
+    /// Konto braucht die Kontenliste dieses Dienstes.</para>
+    /// </summary>
     private void OnBridgeCallStateChanged(object? sender, SipEventBridge.SdkCallStateEventArgs e)
     {
+        var snapshot = e.Snapshot;
         var tracked = _calls.Values.FirstOrDefault(c => c.Matches(e.Call));
 
-        // Ob dieser Anruf gerade eben erst entstanden ist. Davon haengt ab, was
-        // als Vorzustand nach aussen geht — und daran wiederum, ob die
-        // Oberflaeche einen eingehenden Anruf ueberhaupt bemerkt (siehe unten).
-        var isNew = tracked is null;
+        var entscheidung = CallFlow.Decide(
+            snapshot,
+            tracked?.Info,
+            ActiveCalls.Count,
+            _autoAnswer,
+            MaxConcurrentCalls,
+            _ringback.IsPlaying);
 
-        if (tracked is null)
+        switch (entscheidung.Action)
         {
-            // Eingehender Anruf: das SDK meldet ihn, bevor wir ihn kennen.
-            if (e.State is CallState.IncomingReceived or CallState.IncomingEarlyMedia)
-            {
-                var number = e.Call.RemoteAddress?.Username ?? "unbekannt";
-
-                if (ActiveCalls.Count >= MaxConcurrentCalls)
-                {
-                    // §8.2: mehr als zwei wird abgelehnt. Lieber hier als die
-                    // Oberfläche mit einem dritten Gespräch überfordern.
-                    //
-                    // Vormerken statt sofort ablehnen: Decline ist
-                    // zustandsändernd, und aus einem Callback heraus meldet das
-                    // SDK die nächsten Zustände mitten im laufenden Aufruf —
-                    // dieselbe Reentranz, die bei der automatischen Annahme
-                    // schon einmal einen echten Fehler ergeben hat.
-                    TelephonyLog.IncomingCallRejected(_logger, LogMasking.Number(number));
-                    _pendingDecline.Enqueue(e.Call);
-
-                    // §8.2 verlangt „mit klarer Meldung" — bisher stand die nur
-                    // im Protokoll, wo sie niemand sucht.
-                    CallRejectedBusy?.Invoke(this, new CallRejectedEventArgs(number));
-                    return;
-                }
-
-                var handle = Track(e.Call, number, CallDirection.Incoming, IdentityOf(e.Call));
-                tracked = _calls[handle];
-                TelephonyLog.IncomingCall(_logger, handle.ToString(), LogMasking.Number(number));
-
-                // Nur vormerken, nicht hier annehmen — siehe
-                // AcceptPendingAutoAnswer.
-                if (_autoAnswer)
-                {
-                    _pendingAutoAnswer.Enqueue(handle);
-                }
-            }
-            else
-            {
+            case CallAction.Ignorieren:
                 return;
-            }
+
+            case CallAction.Ablehnen:
+                AblehnenVormerken(e.Call, snapshot);
+                return;
+
+            case CallAction.Anlegen:
+                tracked = Anlegen(e.Call, snapshot, entscheidung.AutoAnswer);
+                break;
         }
 
-        // Ein neuer Anruf hat keinen Vorzustand — und genau das wird gemeldet.
-        //
-        // Track legt einen eingehenden Anruf bereits mit CallStatus.Incoming an,
-        // damit die Momentaufnahme von Anfang an stimmt. Wurde derselbe Wert
-        // auch als "previous" nach aussen gegeben, sah jeder Empfaenger, der auf
-        // den Uebergang nach Incoming prueft, einen Anruf, der schon immer
-        // geklingelt hatte: der Toast blieb aus, und das Fenster wechselte nicht
-        // in die Gespraechsansicht. Ein eingehender Anruf war damit unsichtbar.
-        var previous = isNew ? (CallStatus?)null : tracked.Info.Status;
-
-        // Ein Zwischenzustand ohne eigene Aussage lässt den bisherigen stehen.
-        var status = MapCallStatus(e.State) ?? tracked.Info.Status;
-
-        var info = tracked.Info with
+        if (tracked is not null)
         {
-            Status = status,
-            StatusMessage = e.Message,
-            RemoteDisplayName = e.Call.RemoteAddress?.DisplayName ?? tracked.Info.RemoteDisplayName,
-            ConnectedAt = status == CallStatus.Connected && tracked.Info.ConnectedAt is null
-                ? DateTimeOffset.UtcNow
-                : tracked.Info.ConnectedAt,
-            Codec = ReadCodec(e.Call) ?? tracked.Info.Codec,
-            Encryption = ReadEncryption(e.Call),
+            UebernehmenUndMelden(tracked, snapshot, entscheidung);
+        }
+    }
 
-            // §20.3: „besetzt" und „abgelehnt" stehen nur dann in der
-            // Anrufliste, wenn der Grund hier festgehalten wird — beim
-            // nächsten Ereignis ist der Anruf aus der Verwaltung.
-            EndReason = status is CallStatus.Ended or CallStatus.Failed
-                ? ReadEndReason(e.Call, status)
-                : null,
-        };
+    /// <summary>
+    /// Der dritte gleichzeitige Anruf (Paragraf 8.2).
+    ///
+    /// <para><b>Vormerken statt hier ablehnen:</b> ein <c>Decline</c> ist
+    /// zustandsaendernd, und aus einem Callback heraus meldet das SDK die
+    /// naechsten Zustaende mitten im laufenden Aufruf. Dieselbe Reentranz hat
+    /// bei der automatischen Annahme schon einmal einen echten Fehler
+    /// ergeben.</para>
+    /// </summary>
+    private void AblehnenVormerken(Call call, CallSnapshot snapshot)
+    {
+        TelephonyLog.IncomingCallRejected(_logger, LogMasking.Number(snapshot.Number));
+        _pendingDecline.Enqueue(call);
 
-        // §15: im Fehlerfall die erklärte Meldung, nicht den SDK-Text.
-        if (status == CallStatus.Failed)
+        // Paragraf 8.2 verlangt „mit klarer Meldung" — bisher stand die nur
+        // im Protokoll, wo sie niemand sucht.
+        CallRejectedBusy?.Invoke(this, new CallRejectedEventArgs(snapshot.Number));
+    }
+
+    /// <summary>
+    /// Ein eingehender Anruf, den nipp noch nicht kennt, kommt in die
+    /// Verwaltung — und bekommt seine Kennung.
+    /// </summary>
+    private TrackedCall Anlegen(Call call, CallSnapshot snapshot, bool autoAnswer)
+    {
+        var handle = Track(call, snapshot.Number, CallDirection.Incoming, IdentityOf(snapshot));
+
+        TelephonyLog.IncomingCall(_logger, handle.ToString(), LogMasking.Number(snapshot.Number));
+
+        if (autoAnswer)
+        {
+            // Nur vormerken, nicht hier annehmen — siehe
+            // AcceptPendingAutoAnswer.
+            _pendingAutoAnswer.Enqueue(handle);
+        }
+
+        return _calls[handle];
+    }
+
+    /// <summary>
+    /// Den neuen Stand uebernehmen, melden und aufraeumen — in dieser
+    /// Reihenfolge, und die ist nicht beliebig.
+    /// </summary>
+    private void UebernehmenUndMelden(TrackedCall tracked, CallSnapshot snapshot, CallDecision entscheidung)
+    {
+        var info = CallFlow.Apply(tracked.Info, snapshot, DateTimeOffset.UtcNow);
+
+        // Paragraf 15: im Fehlerfall die erklaerte Meldung, nicht den
+        // SDK-Text. Sie braucht den Kern — ob Verschluesselung Pflicht ist,
+        // steht dort und nicht am Anruf.
+        if (info.Status == CallStatus.Failed)
         {
             var core = _core;
             info = info with
             {
                 StatusMessage = SipErrorCatalog.DescribeCallFailure(
-                    e.Message,
+                    snapshot.Message,
                     info.RemoteNumber,
                     core?.IsMediaEncryptionMandatory ?? false),
             };
         }
 
         tracked.Info = info;
+        tracked.EarlyMedia = snapshot.EarlyMedia;
 
-        // §9.4: der Rufton-Wächter braucht den SDK-Zustand, nicht den eigenen.
-        // Ringing steht für zwei verschiedene Dinge — mit Early Media spielt
-        // das SDK nichts, ohne spielt es selbst.
-        tracked.EarlyMedia = e.State == CallState.OutgoingEarlyMedia;
+        MerkeRuftonWeg(tracked, info);
 
-        // Der Zeitpunkt des SIP-Ereignisses, ab dem die Karenzzeit läuft — und
-        // die eine Zeile, die sagt, welcher Weg beim Läuten spielt. Beide Wege
-        // spielen dieselbe Datei; am Gehör sind sie nicht zu unterscheiden.
-        if (status == CallStatus.Ringing
-            && tracked.Info.Direction == CallDirection.Outgoing
-            && tracked.RingingSince is null)
+        if (entscheidung.StopRingback)
         {
-            tracked.RingingSince = DateTimeOffset.UtcNow;
-
-            TelephonyLog.RingbackWay(
-                _logger,
-                tracked.EarlyMedia
-                    ? "Early Media — die Anlage hat Vorrang, nipp beobachtet"
-                    : "das SDK spielt seine Datei (180 ohne SDP)");
-        }
-
-        // Ein eigener Rufton endet, sobald der Anruf nicht mehr läutet. Hier
-        // nur vormerken: aus einem SDK-Callback wird das SDK nicht angefasst.
-        if (_ringback.IsPlaying && status is not (CallStatus.Dialing or CallStatus.Ringing))
-        {
+            // Hier nur vormerken: aus einem SDK-Callback wird das SDK nicht
+            // angefasst.
             _ringbackStopPending = true;
         }
 
-        if (previous != status)
+        if (entscheidung.Previous != info.Status)
         {
-            // "neu" statt einer leeren Zeichenfolge: im Protokoll soll erkennbar
-            // sein, dass es keinen Vorzustand gab, statt dass dort nichts steht.
+            // "neu" statt einer leeren Zeichenfolge: im Protokoll soll
+            // erkennbar sein, dass es keinen Vorzustand gab, statt dass dort
+            // nichts steht.
             TelephonyLog.CallStateChanged(
                 _logger,
                 tracked.Handle.ToString(),
-                previous?.ToString() ?? "neu",
-                status.ToString());
+                entscheidung.Previous?.ToString() ?? "neu",
+                info.Status.ToString());
         }
 
-        CallStateChanged?.Invoke(this, new CallStateEventArgs(info, previous));
+        CallStateChanged?.Invoke(this, new CallStateEventArgs(info, entscheidung.Previous));
 
         // Beendete Anrufe aus der Verwaltung nehmen, aber erst nachdem das
-        // Ereignis draussen ist — sonst findet die Oberfläche den Anruf nicht
-        // mehr, den sie gerade abschliessen will.
-        if (status is CallStatus.Ended or CallStatus.Failed)
+        // Ereignis draussen ist — sonst findet die Oberflaeche den Anruf
+        // nicht mehr, den sie gerade abschliessen will.
+        if (entscheidung.Remove)
         {
             _calls.TryRemove(tracked.Handle, out _);
+        }
 
-            // Bleibt genau ein Gespräch übrig und liegt es auf Halten, gehört
-            // es zurückgeholt — sonst sitzt der Benutzer vor einem stummen
-            // Gespräch, das er selbst nie gehalten hat.
-            //
-            // <b>Der Fall, für den das gebaut ist</b> (23.09.2026, T322): beim
-            // begleiteten Vermitteln nimmt das Ziel nicht ab, der
-            // Rückfrageanruf wird beendet — und das erste Gespräch lag noch
-            // auf Halten, weil PlaceCallAsync es dorthin gelegt hatte. Bis
-            // hierhin musste man erst umschalten und dann beenden, um wieder
-            // beim Anrufer zu landen.
+        if (entscheidung.ResumeLast)
+        {
+            // Bleibt genau ein Gespraech uebrig und liegt es auf Halten,
+            // gehoert es zurueckgeholt (ADR-073, T322) — sonst sitzt der
+            // Benutzer vor einem stummen Gespraech, das er selbst nie
+            // gehalten hat.
             _resumeLastPending = true;
         }
+    }
+
+    /// <summary>
+    /// Der Zeitpunkt des SIP-Ereignisses, ab dem die Karenzzeit laeuft — und
+    /// die eine Zeile, die sagt, welcher Weg beim Laeuten spielt.
+    ///
+    /// <para>Beide Wege spielen dieselbe Datei; am Gehoer sind sie nicht zu
+    /// unterscheiden. Ohne diese Zeile ist im Protokoll nicht zu sehen, wer
+    /// gerade klingelt — und genau das hat die Suche nach dem Fremdton
+    /// zweimal aufgehalten.</para>
+    /// </summary>
+    private void MerkeRuftonWeg(TrackedCall tracked, CallInfo info)
+    {
+        if (info.Status != CallStatus.Ringing
+            || info.Direction != CallDirection.Outgoing
+            || tracked.RingingSince is not null)
+        {
+            return;
+        }
+
+        tracked.RingingSince = DateTimeOffset.UtcNow;
+
+        TelephonyLog.RingbackWay(
+            _logger,
+            tracked.EarlyMedia
+                ? "Early Media — die Anlage hat Vorrang, nipp beobachtet"
+                : "das SDK spielt seine Datei (180 ohne SDP)");
     }
 
     /// <summary>
@@ -2744,30 +2765,29 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     /// INVITE. Bleibt beides ohne Treffer, gilt das Standardkonto — ein Anruf
     /// ohne zuordenbares Konto ist immer noch ein Anruf.
     /// </summary>
-    private string? IdentityOf(Call call)
+    /// <summary>
+    /// Welches Konto zu diesem Anruf gehoert.
+    ///
+    /// <para><b>Ohne SDK-Zugriff</b> (W2.1 Etappe B1): die beiden Adressen
+    /// stehen in der Momentaufnahme, die Zuordnung braucht die Kontenliste
+    /// dieses Dienstes und bleibt deshalb hier.</para>
+    /// </summary>
+    private string? IdentityOf(CallSnapshot snapshot)
     {
-        try
+        if (snapshot.SdkAccountIdentity is { Length: > 0 } fromSdk
+            && _accountSettings.ContainsKey(fromSdk))
         {
-            var fromSdk = call.Params?.Account?.Params?.IdentityAddress?.AsStringUriOnly();
-
-            if (fromSdk is { Length: > 0 } && _accountSettings.ContainsKey(fromSdk))
-            {
-                return fromSdk;
-            }
-
-            if (call.ToAddress?.AsStringUriOnly() is { Length: > 0 } to)
-            {
-                var matched = _accountSettings.Keys.FirstOrDefault(k => SipUri.Same(k, to));
-
-                if (matched is not null)
-                {
-                    return matched;
-                }
-            }
+            return fromSdk;
         }
-        catch (Exception ex)
+
+        if (snapshot.ToAddress is { Length: > 0 } to)
         {
-            TelephonyLog.AccountLookupFailed(_logger, $"{ex.GetType().Name}: {ex.Message}");
+            var matched = _accountSettings.Keys.FirstOrDefault(k => SipUri.Same(k, to));
+
+            if (matched is not null)
+            {
+                return matched;
+            }
         }
 
         return _defaultAccountIdentity;
