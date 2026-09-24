@@ -38,6 +38,43 @@ einmaliger Stall, der in einer Schleife gemeldet wird**: die Zahl sagt, wie
 lang die Schleife lief, nicht wie schlimm es war. Das erklärt, warum sie über
 sechs Messungen zwischen 2 und 68 schwankt. A7 bleibt offen.
 
+## 24.09.2026, morgens: 0.9.13 ist draussen
+
+**Das erste Release seit dem 16.09.** Dazwischen lagen **63 Commits** — die
+ganze Schreibtisch-Runde A1, der Umbau des Vermittelns (ADR-073), was der
+erste Tag an der Anlage gekostet und gebracht hat, und die drei
+Alltagsmeldungen. Nichts davon war bei irgendeinem Arbeitsplatz angekommen:
+«Aktualisieren» fand 0.9.12 und meldete, es sei alles aktuell.
+
+**Was geprüft wurde, bevor es hochging** — und nicht erst danach:
+
+| | |
+|---|---|
+| Native Kette | 325 DLLs, **8 von 8 Grammatiken**, 346 MB. Das ist der Befund aus R0, der lokal unsichtbar bleibt und erst auf dem Zielrechner zuschlägt |
+| Fassung | die EXE meldet `0.9.13+01253e8` — genau der Commit, der gepusht wurde |
+| Delta | gegen 0.9.12 gebaut: 7 Dateien gepatcht, 647 unverändert, **1,8 MB** statt 141 |
+
+**Und danach am veröffentlichten Release**, nicht am lokalen Verzeichnis:
+`v0.9.13` steht als **Latest**, kein Entwurf, keine Vorabversion; der Tag zeigt
+auf denselben Commit; alle fünf Dateien hängen dran; `Setup.exe` und Delta
+liefern **HTTP 200** mit exakt den erwarteten Bytezahlen.
+
+**Zwei Dinge haben dabei Zeit gekostet und stehen jetzt in CLAUDE.md:**
+
+- **`-SkipBuild` überspringt nur den Publish, nicht das Paketieren.** `vpk pack`
+  lief trotzdem und brach ab, weil das Paket schon dalag. Zum reinen Hochladen
+  eines fertigen Pakets gibt es `vpk upload github` direkt — mit dem x64-Host.
+- **Der hochgeladene Feed ist 500 Bytes, der lokale 6,5 KB.** Das sah nach
+  halbem Upload aus und ist keiner: am Release hängt nur der Feed **dieses**
+  Releases. 0.9.12 hat ebenfalls 500 Bytes, es ist seit 0.9.6 bei jedem so.
+
+**Der Vorbehalt bleibt, und er ist der wichtigste Satz dieses Abschnitts:**
+belegt ist, dass das Release **vollständig und abrufbar** ist — nicht, dass ein
+installiertes nipp es findet und einspielt. **T120 bis T133 sind offen**, alle
+mit Rüstzeug F. Die Update-Kette ist seit dem 07.09. gebaut und bis heute nie
+abgenommen. Dazu kommt: das Setup ist **unsigniert** (AP9.2, T130) — beim
+ersten Start sagt Windows «Unbekannter Herausgeber».
+
 ## Noch später: drei Meldungen aus der Benutzung
 
 **Drei Sachen, die im Alltag störten**, gemeldet nach dem Gerätetag und am

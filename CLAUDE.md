@@ -370,6 +370,20 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   Schritt — und was das **Setup** betrifft, sieht nur, wer den Installer
   wirklich startet (`docs/plans/RELEASE-PLAN.md`). Wer das nicht bedenkt, baut
   drei Fassungen und hält den Fix für kaputt.
+  **`-SkipBuild` überspringt nur den Publish, nicht das Paketieren** (24.09.2026).
+  `vpk pack` läuft danach trotzdem und bricht ab, sobald im Ausgabeverzeichnis
+  schon ein Release dieser Version liegt: *«There is a release in channel
+  win-stable which is equal or greater to the current version»*. Wer ein
+  fertig gebautes Paket nur noch **hochladen** will, ruft deshalb direkt
+  `vpk upload github` mit denselben Argumenten, die das Skript benutzt —
+  Repo-Adresse, Kanal, `--outputDir dist\releases`, `--tag`, `--releaseName`,
+  `--publish` — und **mit dem x64-Host** (`C:\Program Files\dotnet\x64\`), nie
+  mit dem `dotnet` im PATH. Der andere Weg wäre, die 0.9.x-Dateien im
+  Ausgabeverzeichnis vorher wegzuräumen.
+  **Der hochgeladene Feed ist absichtlich klein:** `releases.<kanal>.json` am
+  Release trägt nur die Assets **dieses** Releases (rund 500 Bytes), während
+  die Fassung in `dist\releases` die ganze Historie führt. Das ist kein
+  halber Upload — es ist seit 0.9.6 bei jedem Release so.
 - Oberfläche maschinell prüfen: `. .\tools\Test-Ui.ps1` — liest den
   UIA-Baum (`Get-NippTree`), bedient Elemente (`Invoke-NippElement`) und zeigt,
   was ein Bildschirmleser vorlesen würde (`Test-NippAccessibleNames`).
