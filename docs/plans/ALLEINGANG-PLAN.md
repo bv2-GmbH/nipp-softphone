@@ -264,11 +264,26 @@ hat bis zur nächsten Änderung (oder bis zum Neustart) eine Lampe, die nichts
 meldet. Der Zustand steht dann ehrlich auf «unbekannt» — es sieht also nicht
 kaputt aus, es ist nur still.
 
-**Nicht repariert**, weil repariert gesammelt wird und nicht mitten in einer
-Messrunde (CLAUDE.md). Die naheliegende Reparatur ist ein
+**Nicht repariert — und der naheliegende Griff ist der falsche.** Ein
 `_blf.SynchronizeAsync()` hinter `ReloadTeam()` in
-`ShellViewModel.OnSettingsChanged` — mit der Gegenprobe aus ADR-060, dass
-daraus nicht zwei gleiche Zeilen für einen Vorgang werden.
+`ShellViewModel.OnSettingsChanged` wäre zwei Zeilen Arbeit und bräche genau
+die Zusage, die im `BlfService` als Begründung steht: dann synchronisieren
+**beide** Abonnenten bei jeder Einstellungsänderung, und im Protokoll stehen
+zwei gleiche Zeilen für einen Vorgang. **Das ist eine Entscheidung, keine
+Fehlersuche**, und sie gehört dir:
+
+| | Weg | Preis |
+|---|---|---|
+| **a)** | `BlfService.OnSettingsChanged` lädt den Team-Teil des Stores **selbst** nach, bevor er zählt | Der Dienst wird unabhängig von der Reihenfolge — aber `ReloadTeam()` läuft dann auf dem speichernden Thread, und zweimal statt einmal |
+| **b)** | `BlfService` hört **nicht mehr** auf die Einstellungen; wer den Store lädt, synchronisiert (so, wie der Kommentar es ohnehin behauptet) | Die klarere Zuständigkeit — aber das Besetztlampenfeld hinge dann an der Oberfläche, und das ist eine Kernfunktion |
+| **c)** | Der `ContactStore` meldet nach `ReloadTeam()` eine Änderung, auf die der Dienst hört | Die Reihenfolge wird zur Eigenschaft der Daten statt zur Eigenschaft der Registrierung — dafür wird ein Ereignis lauter, das heute bewusst still ist |
+| **d)** | nichts tun | Wer eine SIP-Adresse korrigiert, hat bis zur nächsten Änderung eine stille Lampe. Sie zeigt «unbekannt» und lügt nicht |
+
+**Meine Empfehlung ist (c)**, weil sie die Ursache trifft: heute entscheidet
+die Erzeugungsreihenfolge im Container, was ein Dienst zu sehen bekommt, und
+das ist an keiner Stelle aufgeschrieben. Die Gegenprobe aus ADR-060 gilt für
+jede der drei: es darf **kein** zweiter Synchronisierungslauf je Vorgang
+entstehen.
 
 ## Befund 2 — drei Gründe, warum ein Mausklick ins Leere geht
 
