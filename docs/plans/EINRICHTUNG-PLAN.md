@@ -21,7 +21,7 @@ plus 16 Architekturtests grün.
 | **K1** Feldkatalog, `role()`, `anyOf()` | erledigt | `K1: Feldkatalog …` |
 | **K2** Connector-Katalog, Zusammenführen | erledigt | `K2: Connector-Katalog …` |
 | **K3** Quellen-Oberfläche | erledigt | `K3: Quellen einrichten an einem Ort …` |
-| **K4** Karten-Designer | erledigt, **ohne Ziehen** (T101) | `K4: der Karten-Designer` |
+| **K4** Karten-Designer | erledigt — **mit Ziehen seit dem 24.09.2026** (T101 bestanden) | `K4: der Karten-Designer` |
 | **K5** Toast als Kartenart | erledigt, **anders als geplant** — siehe unten | `K5: der Toast als Kartenart …` |
 | **K6** Dokumentation und ADRs | erledigt | dieser Commit |
 
@@ -41,9 +41,7 @@ plus 16 Architekturtests grün.
   zu entfernen, und damit Endpunkt und Mapping zu löschen. Ein Schalter, der
   bei jedem Umlegen die Arbeit einer halben Stunde wegwirft, ist kein Komfort.
   Sie werden **angezeigt**; geschaltet wird die Quelle.
-- **K4, Ziehen.** Nicht gebaut. Eingefügt wird über Doppelklick und einen
-  Knopf; das Ziehen steht als **T101** auf der Testmatrix. Ein halb
-  funktionierendes Ziehen wäre schlimmer als keines.
+- **K4, Ziehen.** **Gebaut am 24.09.2026** (T101). Nach ADR-065: die Liste merkt den Druck, nach acht Pixeln startet der Zug an der Vorlage — der eingebaute Weg von WinUI scheitert an der gruppierten Palette. Ablegeziel ist die Zeile, weil ein neues Feld eingefügt und nichts verschoben wird.
 - **K2, Ablage der Vorlagen.** Statt einer Kopie im Quellbaum bettet das csproj
   **dieselben** Dateien aus `docs/integrations/` ein. Produktressourcen in
   `docs/` sind unübliche Lage; zwei Dateien mit demselben Inhalt wären

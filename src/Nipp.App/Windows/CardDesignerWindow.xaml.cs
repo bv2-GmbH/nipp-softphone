@@ -4,6 +4,7 @@ using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -14,6 +15,7 @@ using Nipp.Core.Services.Integrations.Catalog;
 using Nipp.Core.Services.Integrations.Config;
 using Nipp.Core.Services.Settings;
 using Nipp.Core.ViewModels;
+using Windows.ApplicationModel.DataTransfer;
 using WinRT.Interop;
 
 namespace Nipp.App.Windows;
@@ -102,6 +104,16 @@ public sealed partial class CardDesignerWindow : Window
 
         ApplyTheme();
         FocusPalette();
+
+        // <b>Der Ziehvorgang gehoert uns, nicht WinUI</b> (ADR-065): die Liste
+        // merkt sich das Druecken und startet nach acht Pixeln selbst.
+        // handledEventsToo, weil das ListViewItem den Druck als behandelt
+        // markiert — ohne das kommt hier nichts an.
+        PaletteList.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnPalettePointerPressed), true);
+        PaletteList.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler(OnPalettePointerMoved), true);
+        PaletteList.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnPalettePointerEnde), true);
+        PaletteList.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler(OnPalettePointerEnde), true);
+        PaletteList.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler(OnPalettePointerEnde), true);
 
         ApplyWindowSize();
         BuildFixedLists();
@@ -546,6 +558,22 @@ public sealed partial class CardDesignerWindow : Window
                     ViewModel.SelectedRow = zeile;
                     Refresh();
                 };
+
+                // <b>Ablegeziel ist die Zeile</b> — anders als im Team
+                // (ADR-066), und mit Grund: dort wird eine vorhandene Zeile
+                // umgehaengt und braucht eine Einfuegestelle zwischen zwei
+                // Zeilen; hier kommt ein NEUES Feld in GENAU EINE Zeile. Die
+                // Frage «zwischen welchen?» stellt sich gar nicht.
+                //
+                // Der Zwischenraum bleibt damit totes Gebiet. Das ist hier
+                // vertretbar, weil ein Zug, der dort endet, nichts
+                // verschiebt, sondern nur nichts einfuegt — und die Zeile
+                // faerbt sich beim Ueberfahren, sagt also vorher, ob sie
+                // trifft.
+                rahmen.AllowDrop = true;
+                rahmen.DragOver += (absender, args) => ZeigeZielzeile(absender as Border, args);
+                rahmen.DragLeave += (absender, _) => LoescheZielzeile(absender as Border);
+                rahmen.Drop += (_, args) => LegeFeldAb(zeile, args);
 
                 StructurePanel.Children.Add(rahmen);
             }
@@ -1038,6 +1066,224 @@ public sealed partial class CardDesignerWindow : Window
     /// Ein Klick neben die Bausteine hebt die Auswahl auf — sonst bleibt der
     /// Eigenschaftenbereich auf etwas stehen, das niemand mehr meint.
     /// </summary>
+    // --- Ein Feld aus der Palette in eine Zeile ziehen (K4, T101) --------
+    //
+    // <b>Warum das ueberhaupt gebaut wurde und warum erst jetzt.</b> K4 hat
+    // den Designer ohne Ziehen ausgeliefert, und T101 stand seither mit dem
+    // Satz «noch nicht gebaut» in der Matrix: ein halb funktionierendes
+    // Ziehen waere schlimmer als keines. Was seither dazugekommen ist, ist
+    // die Erfahrung aus ADR-065 und ADR-066 — und die sagt, dass der
+    // eingebaute Weg von WinUI keiner ist.
+
+    /// <summary>Acht Pixel — darunter bleibt es ein Klick (ADR-065).</summary>
+    private const double ZugSchwelle = 8;
+
+    // global::, weil dieser Namespace selbst Nipp.App.Windows heisst —
+    // ohne das sucht der Compiler Nipp.App.Windows.Foundation.
+    private global::Windows.Foundation.Point? _zugStart;
+    private FrameworkElement? _zugQuelle;
+    private PaletteEntry? _zugEintrag;
+    private Border? _zugZiel;
+
+    private void OnPalettePointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        var punkt = e.GetCurrentPoint(null);
+
+        if (!punkt.Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        if (Vorlagenwurzel(e.OriginalSource as DependencyObject) is not { } quelle
+            || quelle.DataContext is not PaletteEntry eintrag)
+        {
+            return;
+        }
+
+        _zugStart = punkt.Position;
+        _zugQuelle = quelle;
+        _zugEintrag = eintrag;
+    }
+
+    private void OnPalettePointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (_zugStart is not { } start || _zugQuelle is not { } quelle)
+        {
+            return;
+        }
+
+        var punkt = e.GetCurrentPoint(null);
+
+        if (!punkt.Properties.IsLeftButtonPressed)
+        {
+            OnPalettePointerEnde(sender, e);
+            return;
+        }
+
+        var dx = punkt.Position.X - start.X;
+        var dy = punkt.Position.Y - start.Y;
+
+        if ((dx * dx) + (dy * dy) < ZugSchwelle * ZugSchwelle)
+        {
+            return;
+        }
+
+        _zugStart = null;
+        _zugQuelle = null;
+
+        StarteZug(quelle, e.GetCurrentPoint(quelle));
+    }
+
+    private void OnPalettePointerEnde(object sender, PointerRoutedEventArgs e)
+    {
+        _zugStart = null;
+        _zugQuelle = null;
+    }
+
+    /// <summary>
+    /// Die Wurzel der Listenvorlage ueber einem Element — sie traegt den
+    /// <c>DataContext</c> und startet den Zug.
+    /// </summary>
+    private static FrameworkElement? Vorlagenwurzel(DependencyObject? von)
+    {
+        for (var knoten = von; knoten is not null; knoten = VisualTreeHelper.GetParent(knoten))
+        {
+            if (knoten is SelectorItem eintrag)
+            {
+                return eintrag.ContentTemplateRoot as FrameworkElement;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Startet den Zug und wartet sein Ende ab.
+    ///
+    /// <para><b>Der Fehlerfall schweigt nicht</b> (ADR-065): ein Zug, der gar
+    /// nicht erst beginnt, ist von einem stillen Abbruch nicht zu
+    /// unterscheiden, und genau dieser Unterschied hat am 13.09.2026 Stunden
+    /// gekostet.</para>
+    /// </summary>
+    private async void StarteZug(FrameworkElement quelle, Microsoft.UI.Input.PointerPoint punkt)
+    {
+        if (_zugEintrag is null)
+        {
+            return;
+        }
+
+        var ergebnis = DataPackageOperation.None;
+
+        try
+        {
+            ergebnis = await quelle.StartDragAsync(punkt);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException)
+        {
+            // async void: eine Ausnahme von hier beendete die Anwendung
+            // (ADR-053). Ein Zug, der nicht starten kann, ist ein Zug ohne
+            // Wirkung — mehr nicht.
+            AppLog.DragWithoutMove(_log, ex.GetType().Name);
+        }
+
+        LoescheZielzeile(_zugZiel);
+        _zugEintrag = null;
+
+        if (ergebnis != DataPackageOperation.Copy)
+        {
+            AppLog.DragWithoutMove(_log, ergebnis.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Das Feld mitgeben. <b>Ohne Inhalt im Paket startet WinUI keinen
+    /// Zug</b> — der Text ist der Pfad des Feldes und damit auch das, was in
+    /// einem fremden Fenster ankaeme.
+    /// </summary>
+    private void OnPaletteDragStarting(UIElement sender, DragStartingEventArgs args)
+    {
+        if (_zugEintrag is null)
+        {
+            args.Cancel = true;
+            return;
+        }
+
+        args.Data.SetText(_zugEintrag.Path);
+        args.Data.RequestedOperation = DataPackageOperation.Copy;
+    }
+
+    /// <summary>
+    /// Beim Ueberfahren faerbt sich die Zielzeile — <b>die einzige
+    /// Rueckmeldung, die es hier braucht</b>: eingefuegt wird ein neues Feld,
+    /// nichts wird verschoben, und «zwischen welchen Zeilen?» ist keine Frage.
+    /// </summary>
+    private void ZeigeZielzeile(Border? ziel, DragEventArgs args)
+    {
+        if (ziel is null)
+        {
+            return;
+        }
+
+        args.AcceptedOperation = DataPackageOperation.Copy;
+        args.DragUIOverride.Caption = "Hier einfügen";
+        args.DragUIOverride.IsGlyphVisible = false;
+        args.Handled = true;
+
+        if (ReferenceEquals(_zugZiel, ziel))
+        {
+            return;
+        }
+
+        LoescheZielzeile(_zugZiel);
+
+        _zugZiel = ziel;
+        ziel.BorderBrush = Resource("AccentFillColorDefaultBrush");
+        ziel.BorderThickness = new Thickness(2);
+    }
+
+    private void LoescheZielzeile(Border? ziel)
+    {
+        if (ziel is null)
+        {
+            return;
+        }
+
+        ziel.BorderBrush = Resource("CardOutlineBrush");
+        ziel.BorderThickness = new Thickness(1);
+
+        if (ReferenceEquals(_zugZiel, ziel))
+        {
+            _zugZiel = null;
+        }
+    }
+
+    /// <summary>
+    /// Das Feld landet in der Zeile, auf der losgelassen wurde — <b>und in
+    /// keiner anderen</b>. Hier wird nichts mehr gerechnet: die Zeile unter
+    /// dem Zeiger ist der Auftrag (ADR-066).
+    /// </summary>
+    private void LegeFeldAb(DraftRow zeile, DragEventArgs args)
+    {
+        args.Handled = true;
+
+        LoescheZielzeile(_zugZiel);
+
+        if (_zugEintrag is not { } eintrag)
+        {
+            return;
+        }
+
+        args.AcceptedOperation = DataPackageOperation.Copy;
+
+        // Erst die Zielzeile, dann einfuegen: AddField arbeitet auf der
+        // ausgewaehlten Zeile, und die ist beim Ziehen eine andere als die
+        // zuletzt angeklickte.
+        ViewModel.SelectedRow = zeile;
+        ViewModel.AddField(eintrag);
+
+        Refresh();
+    }
+
     private void OnStructureTapped(object sender, TappedRoutedEventArgs e)
     {
         if (e.OriginalSource is not ScrollViewer and not StackPanel)

@@ -121,6 +121,8 @@
                 <ListView
                     x:Name="PaletteList"
                     Grid.Row="1"
+                    CanDragItems="False"
+                    CanReorderItems="False"
                     DoubleTapped="OnPaletteDoubleTapped"
                     SelectionMode="Single">
                     <ListView.ItemTemplate>
@@ -128,6 +130,8 @@
                             <StackPanel
                                 Padding="0,3,0,3"
                                 AutomationProperties.Name="{x:Bind AutomationName}"
+                                Background="Transparent"
+                                DragStarting="OnPaletteDragStarting"
                                 Spacing="0">
                                 <TextBlock
                                     Text="{x:Bind Label}"
