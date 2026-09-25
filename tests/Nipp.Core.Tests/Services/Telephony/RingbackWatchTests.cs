@@ -1,4 +1,4 @@
-using Nipp.Core.Services.Telephony;
+﻿using Nipp.Core.Services.Telephony;
 using Nipp.Core.Services.Telephony.Model;
 
 namespace Nipp.Core.Tests.Services.Telephony;
@@ -77,18 +77,63 @@ public class RingbackWatchTests
     }
 
     /// <summary>
-    /// Der Fall, den es nie geben darf: das SDK spielt bei
-    /// <c>OutgoingRinging</c> selbst, und ein zweiter Ton darüber wäre lauter,
-    /// nicht deutlicher.
+    /// <b>Ohne Early Media spielt nipp selbst</b> — und bis zum 25.09.2026
+    /// stand hier das Gegenteil.
+    ///
+    /// <para><b>Was der Test vorher festhielt:</b> «Der Fall, den es nie geben
+    /// darf: das SDK spielt bei <c>OutgoingRinging</c> selbst, und ein zweiter
+    /// Ton darüber wäre lauter, nicht deutlicher.» Der Satz klang richtig und
+    /// war nie gemessen — <b>ein Test, der eine Annahme festhält, macht sie
+    /// nicht wahr.</b></para>
+    ///
+    /// <para><b>Gemessen</b> (ADR-075), nachdem «beim Rauswählen höre ich
+    /// nicht immer das Tuten» gemeldet wurde: das SDK baut den Ruftonstrom
+    /// und hängt ihn an eine <b>Leersenke</b> — <c>MSFilePlayer → MSDtmfGen →
+    /// MSResample → MSTee → MSVoidSink</c> — weil der Anrufstrom die
+    /// Wiedergabekarte 532 ms vorher reserviert hat. Beim eingehenden
+    /// Klingeln endet dieselbe Kette in <c>MSWASAPIWrite</c> und ist hörbar.
+    /// Drei von drei ausgehenden Anrufen, über drei Tage.</para>
+    ///
+    /// <para><b>Der Preis dieser Änderung</b> steht im ADR: spielt das SDK
+    /// auf einer anderen Maschine doch, hört man dort zwei Töne. Das ist
+    /// hörbar und damit prüfbar — Stille war es nicht.</para>
     /// </summary>
     [Fact]
-    public void Ohne_Early_Media_bleibt_nipp_still()
+    public void Ohne_Early_Media_spielt_nipp_selbst()
     {
         var watch = new RingbackWatch();
 
         watch.Update(Laeutet(), T0);
 
-        Assert.Equal(RingbackAction.None, watch.Update(Laeutet(), T0 + TimeSpan.FromSeconds(5)));
+        // In der Karenzzeit noch nicht: die Gegenseite darf auf Early Media
+        // umschwenken, und deren Strom setzt gemessen nach rund 420 ms ein.
+        Assert.Equal(RingbackAction.None, watch.Update(Laeutet(), T0 + TimeSpan.FromMilliseconds(500)));
+        Assert.False(watch.IsPlaying);
+
+        Assert.Equal(RingbackAction.Start, watch.Update(Laeutet(), T0 + RingbackWatch.Grace));
+        Assert.True(watch.IsPlaying);
+
+        // Und der Grund nennt, was wirklich vorlag — nicht «kein Strom»:
+        // «kein Strom» hiesse, dass etwas angekündigt war und nichts kam.
+        Assert.Equal(RingbackGrund.KeinEarlyMedia, watch.Grund);
+    }
+
+    /// <summary>
+    /// <b>Die Gegenprobe:</b> schwenkt die Gegenseite innerhalb der Karenzzeit
+    /// doch auf Early Media um und schickt hörbares Audio, bleibt nipp still.
+    /// Sonst setzte der eigene Ton mitten in den fremden hinein.
+    /// </summary>
+    [Fact]
+    public void Kommt_Early_Media_in_der_Karenzzeit_bleibt_nipp_still()
+    {
+        var watch = new RingbackWatch();
+
+        watch.Update(Laeutet(), T0);
+
+        var mitAudio = EarlyMedia(kbit: 60f, volumeDb: -20f, packets: 40);
+
+        Assert.Equal(RingbackAction.None, watch.Update(mitAudio, T0 + TimeSpan.FromMilliseconds(600)));
+        Assert.Equal(RingbackAction.None, watch.Update(mitAudio, T0 + RingbackWatch.Grace));
         Assert.False(watch.IsPlaying);
     }
 

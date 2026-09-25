@@ -1,4 +1,4 @@
-using Nipp.Core.Services.Telephony.Model;
+﻿using Nipp.Core.Services.Telephony.Model;
 
 namespace Nipp.Core.Services.Telephony;
 
@@ -46,7 +46,16 @@ public enum RingbackGrund
     /// <summary>Ende: die Anlage läutet selbst, und es ist hörbar.</summary>
     HoerbaresAudio,
 
-    /// <summary>Ende: kein Early Media — das SDK spielt seinen eigenen Ton.</summary>
+    /// <summary>
+    /// Start: die Gegenseite kündigt gar kein Early Media an (180 ohne SDP).
+    ///
+    /// <para><b>Dieser Grund war bis zum 25.09.2026 ein Ende</b>, mit der
+    /// Begründung «dann spielt das SDK seinen eigenen Ton». Das war eine
+    /// Annahme, und sie war falsch: das SDK baut den Ruftonstrom, hängt ihn
+    /// aber an eine <b>Leersenke</b> statt an das Ausgabegerät, weil der
+    /// Anrufstrom die Wiedergabekarte 532 ms vorher reserviert hat. Gemessen
+    /// über drei Tage, in jedem einzelnen Fall (ADR-075).</para>
+    /// </summary>
     KeinEarlyMedia,
 
     /// <summary>Ende: es wählt kein Anruf mehr.</summary>
@@ -306,12 +315,22 @@ public sealed class RingbackWatch
             return RingbackAction.None;
         }
 
-        // Kein Early Media heisst: das SDK spielt seinen eigenen Rufton
-        // (OutgoingRinging). Dann ist hier nichts zu tun.
-        if (!sample.IsEarlyMedia)
-        {
-            return StopIfPlaying(RingbackGrund.KeinEarlyMedia);
-        }
+        // <b>Hier stand bis zum 25.09.2026 ein Abbruch</b>: «kein Early Media
+        // heisst, das SDK spielt seinen eigenen Rufton — dann ist hier nichts
+        // zu tun.» Der Satz klang richtig und war nie gemessen. Gemessen wurde
+        // er, als der Befund «beim Rauswählen höre ich nicht immer das Tuten»
+        // kam: das SDK baut den Strom, hängt ihn aber an eine <b>Leersenke</b>
+        // (MSVoidSink) statt an das Ausgabegerät, weil der Anrufstrom die
+        // Wiedergabekarte 532 ms vorher für sich reserviert hat. Beim
+        // eingehenden Klingeln endet dieselbe Kette in MSWASAPIWrite — der
+        // Unterschied ist eine Zeile im Trace (ADR-075).
+        //
+        // <b>Ohne Early Media kommt also von niemandem ein Ton</b>, und der
+        // Fall fällt jetzt in dieselbe Regel wie «kein Strom»: nach der
+        // Karenzzeit spielt nipp selbst. Die Karenzzeit bleibt, und sie hat
+        // hier denselben Zweck wie dort — abwarten, ob die Gegenseite doch
+        // noch auf Early Media umschwenkt; gemessen setzt deren Strom nach
+        // rund 420 ms ein, die Karenz ist dreimal so lang.
 
         // <b>Ein Strom, der einmal lief, gilt weiter als vorhanden</b> — auch
         // wenn er abreisst. Sonst fiele nipp mitten im Läuten auf die kurze
@@ -337,7 +356,16 @@ public sealed class RingbackWatch
 
             _playing = true;
             Gewartet = gewartet;
-            Grund = _streamSeen ? RingbackGrund.StillerStrom : RingbackGrund.KeinStrom;
+
+            // Drei Gründe, drei verschiedene Zeilen im Protokoll — sonst ist
+            // «die Anlage schickt nichts» nicht von «sie kündigt nicht einmal
+            // etwas an» zu unterscheiden, und genau das hat hier vier Tage
+            // gekostet.
+            Grund = _streamSeen
+                ? RingbackGrund.StillerStrom
+                : sample.IsEarlyMedia
+                    ? RingbackGrund.KeinStrom
+                    : RingbackGrund.KeinEarlyMedia;
 
             return RingbackAction.Start;
         }

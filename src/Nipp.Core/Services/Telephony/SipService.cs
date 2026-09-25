@@ -2438,7 +2438,7 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         RingbackGrund.KeinStrom => "kein Strom der Gegenstelle",
         RingbackGrund.StillerStrom => "Strom ohne messbaren Pegel",
         RingbackGrund.HoerbaresAudio => "hoerbares Audio der Anlage",
-        RingbackGrund.KeinEarlyMedia => "kein Early Media, das SDK spielt selbst",
+        RingbackGrund.KeinEarlyMedia => "kein Early Media angekuendigt (180 ohne SDP)",
         RingbackGrund.KeinWaehlenderAnruf => "kein waehlender Anruf mehr",
         RingbackGrund.AndererAnruf => "ein anderer Anruf waehlt",
         _ => "ohne Angabe",

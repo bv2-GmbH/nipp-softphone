@@ -8,6 +8,54 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-075 — Das Freizeichen beim Rauswählen spielt nipp selbst, auch ohne Early Media
+
+**Datum:** 25.09.2026 · **Status:** angenommen · **Bezug:** §9.4, ADR-029, `RingbackWatch`, `SettingsApplier.ApplyToneCards`, T143, A7
+
+**Gemeldet aus dem Betrieb:** «Wenn ich raus wähle, höre ich nicht immer das Tuten.»
+
+**Es war nicht «nicht immer» — es war jedes Mal, wenn der Ton von nipp hätte kommen sollen.** Was hörbar war, kam von der Anlage.
+
+### Was gemessen wurde
+
+Vier ausgehende Anrufe an einem Tag, dazu die Protokolle zweier Vortage:
+
+| Weg | Filterkette des Ruftons | hörbar |
+|---|---|---|
+| SDK spielt selbst (180 ohne SDP) | `MSFilePlayer → MSDtmfGen → MSResample → MSTee → `**`MSVoidSink`** | **nein** |
+| Early Media der Anlage | eigener Strom, 45–80 kbit/s, Pegel −43 bis −10 dBm0 | ja |
+| **Gegenprobe:** eingehendes Klingeln | `MSFilePlayer → MSDtmfGen → MSResample → MSTee → `**`MSWASAPIWrite`** | ja |
+
+**Der Unterschied ist eine Zeile im Trace** — Leersenke gegen Ausgabegerät. Beim Ruftonstart wird kein Ausgabegerät initialisiert; beim Klingelton schon.
+
+**Die Ursache liegt in der Reihenfolge, nicht in der Karte.** Die Tonkarte ist gesetzt (`WASAPI: Default Playback`, im Protokoll bestätigt) — `ApplyToneCards` zieht dafür seit jeher die veraltete Geräte-API nach, weil der Tonspieler des SDK nur diese liest. Aber **532 ms vor dem Ruftonstart reserviert der Anrufstrom dieselbe Wiedergabekarte** («Notifying playback sound card that it is going to be used»). Beim eingehenden Klingeln passiert das nicht: dort spielt die Klingelkarte, und die ist frei. Die frühere Diagnose lautete «die Ringer-Karte war belegt, die Wiedergabe-Karte nicht» — heute ist es umgekehrt, und die damalige Reparatur greift deshalb nicht mehr.
+
+### Die Entscheidung
+
+**`RingbackWatch` springt jetzt auch ohne Early Media ein.** Der Abbruch mit der Begründung «kein Early Media heisst, das SDK spielt seinen eigenen Rufton» ist entfallen; der Fall nimmt dieselbe Regel wie «kein Strom»: nach der Karenzzeit von 1 400 ms spielt nipp selbst, über seinen eigenen Player auf der Wiedergabekarte.
+
+**Die Karenzzeit bleibt**, und sie hat hier denselben Zweck: abwarten, ob die Gegenseite doch noch auf Early Media umschwenkt. Deren Strom setzt gemessen nach rund 420 ms ein — die Karenz ist dreimal so lang.
+
+**Der Grund heisst jetzt, was er ist.** `KeinEarlyMedia` war ein Ende und ist ein Anfang: «kein Early Media angekündigt (180 ohne SDP)». Drei Startgründe, drei verschiedene Protokollzeilen — «die Anlage schickt nichts» ist etwas anderes als «sie kündigt nicht einmal etwas an».
+
+### Was das kostet, und warum es trotzdem richtig ist
+
+**Spielt das SDK auf einer anderen Maschine doch, hört man dort zwei Töne.** Das ist der Preis, und er steht hier, weil er bekannt ist und nicht überrascht werden soll.
+
+Dagegen steht dreierlei: die Leersenke entsteht durch die Kartenreservierung, und die passiert bei **jedem** ausgehenden Anruf; der eigene Weg ist erprobt (am 24.09.2026 lief er 2 902 ms auf einem Jabra Engage 75, bis die Anlage hörbares Audio schickte); und **zwei Töne sind hörbar und damit prüfbar — Stille war es nicht.**
+
+### Die Lehre, und sie ist die teurere Hälfte
+
+**Der Satz, der das verhindert hat, stand als Kommentar im Code und als Test daneben:**
+
+> «Der Fall, den es nie geben darf: das SDK spielt bei `OutgoingRinging` selbst, und ein zweiter Ton darüber wäre lauter, nicht deutlicher.»
+
+Er klang richtig, und niemand hatte ihn gemessen. **Ein Test, der eine Annahme festhält, macht sie nicht wahr** — er schützt sie. Das ist dasselbe Muster wie bei ADR-042 («WinUI hängt die gezogene Zeile selbst um») und beim Kommentar am `GroupStyle.Panel`, nur eine Stufe schärfer: dort stand die Annahme in einem Kommentar, hier stand sie zusätzlich als grüner Test im Projekt.
+
+**Konsequenz.** Am Gerät zu prüfen: **T331** — beim Rauswählen an ein Ziel ohne Early Media muss das Tuten hörbar sein, und zwar genau einmal.
+
+---
+
 ## ADR-074 — Was «testbar» in der SDK-Schicht heisst: übersetzen, entscheiden, ausführen
 
 **Datum:** 24.09.2026 · **Status:** angenommen · **Bezug:** `docs/plans/REVIEW-2026-09-12.md` (W2.1), `docs/plans/BEWEIS-PLAN.md` (B0, B1), ADR-053, §6, §14.1
