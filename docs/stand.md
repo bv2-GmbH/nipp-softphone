@@ -38,6 +38,40 @@ einmaliger Stall, der in einer Schleife gemeldet wird**: die Zahl sagt, wie
 lang die Schleife lief, nicht wie schlimm es war. Das erklärt, warum sie über
 sechs Messungen zwischen 2 und 68 schwankt. A7 bleibt offen.
 
+## 25.09.2026, abends: das Tuten beim Rauswählen
+
+**Gemeldet:** «Wenn ich raus wähle, höre ich nicht immer den Summton und das
+Tuten.» **Es war nicht «nicht immer» — es war jedes Mal, wenn der Ton von nipp
+hätte kommen sollen.** Was hörbar war, kam von der Anlage.
+
+**Die Messung, und sie ist eine Zeile im Trace:**
+
+```
+ausgehend, ohne Early Media:  MSFilePlayer → … → MSTee → MSVoidSink      still
+eingehendes Klingeln:         MSFilePlayer → … → MSTee → MSWASAPIWrite   hörbar
+```
+
+Das SDK baut den Ruftonstrom und hängt ihn an eine **Leersenke**, weil der
+Anrufstrom die Wiedergabekarte **532 ms vorher** reserviert hat. Drei von drei
+Anrufen an einem Tag, dazu die Protokolle zweier Vortage — **und es lag nicht
+am Umbau der Nacht davor**, am 23. und 24.09. endete dieselbe Kette ebenso.
+
+**Behoben (ADR-075):** `RingbackWatch` springt jetzt auch ohne Early Media ein.
+Der Abbruch mit der Begründung «kein Early Media heisst, das SDK spielt seinen
+eigenen Rufton» ist entfallen — **er war nie gemessen, stand aber als Kommentar
+im Code und als grüner Test daneben.** Ein Test, der eine Annahme festhält,
+macht sie nicht wahr; er schützt sie.
+
+**Am selben Abend gehört: T331 bestanden**, beide Hälften. Und der befürchtete
+Doppelton ist ausgeschlossen — das SDK spielt weiter in die Leersenke, nipps
+Player öffnet das Gerät; nur einer der beiden Wege erreicht eine Karte.
+
+**Was dabei nebenbei belegt wurde:** der umgebaute Telefonie-Kern aus der Nacht
+zuvor trägt. An diesem Tag liefen **sieben Gespräche** darüber — bis zu zehn
+Minuten, alle verbunden, alle sauber beendet, **kein einziger Fehlschlag im
+Protokoll**. T04 bis T09 bleiben trotzdem als Zeilen offen; gehört ist nicht
+gemessen.
+
 ## 24.09.2026, abends und nachts: was ohne Dominic zu holen war
 
 **Auftrag:** «Was könntest du erledigen, ohne dass ich etwas machen muss?» —

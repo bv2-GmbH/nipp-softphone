@@ -54,6 +54,12 @@ Er klang richtig, und niemand hatte ihn gemessen. **Ein Test, der eine Annahme f
 
 **Konsequenz.** Am Gerät zu prüfen: **T331** — beim Rauswählen an ein Ziel ohne Early Media muss das Tuten hörbar sein, und zwar genau einmal.
 
+> **Am selben Abend gehört und belegt (T331 bestanden).** Anruf an die eigene Nebenstelle um 19:11:20: das SDK meldet «180 ohne SDP», nipp wartet 1 597 ms und spielt dann selbst auf `WASAPI: Default Playback`, 5 793 ms lang. Rückmeldung aus dem Betrieb: **«hat nun ein tuut tuut»** — die Kadenz der Datei.
+>
+> **Der befürchtete Doppelton ist ausgeschlossen, und zwar gemessen statt angenommen:** das SDK baut seine Kette parallel weiter, endet dabei aber unverändert in `MSTee → MSVoidSink` (19:11:21.312), während nipps Player über `MSResample → MSWASAPIWrite` das Gerät öffnet (19:11:22.94). **Es können gar nicht zwei Töne sein — nur einer der beiden Wege erreicht eine Karte.** Damit ist der Preis dieser Entscheidung nicht eingetreten; er bleibt oben stehen, weil er auf einer Maschine mit anderer Kartenlage wieder gelten kann.
+>
+> Die Gegenprobe (Early Media, externes Ziel) ist an zwei Anrufen desselben Abends belegt: nipp blieb still, der Ton kam von der Anlage.
+
 ---
 
 ## ADR-074 — Was «testbar» in der SDK-Schicht heisst: übersetzen, entscheiden, ausführen
