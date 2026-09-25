@@ -134,11 +134,20 @@ begleitet übergeben.
 
 ## Wo das Projekt steht
 
-**Stand 23.09.2026.** Funktional ist nipp weit: Telefonie, Präsenz,
+**Stand 25.09.2026.** Funktional ist nipp weit: Telefonie, Präsenz,
 Headset-Tasten, Integrationsplattform, Karten-Designer, Anrufliste, Installer
-und Update-Kanal sind gebaut. Der Build läuft ohne Warnungen, **1 274
+und Update-Kanal sind gebaut. Der Build läuft ohne Warnungen, **1 397
 Komponententests** und **37 Architekturtests** bestehen, und die CI baut bei
 jedem Push auf **echter x64-Hardware**.
+
+**Was am 24. und 25.09.2026 dazugekommen ist**, sind vor allem Tests: die
+SDK-Schicht ist zum ersten Mal in Teilen ohne Gerät prüfbar (**ADR-074**).
+Was das SDK **liest**, wird jetzt an einer Stelle in einen eigenen Wert
+übersetzt; was daraus **folgt**, entscheiden sieben Klassen ohne SDK-Typ; was
+das SDK **tut**, bleibt, wo es war — und bleibt am Gerät zu prüfen. Die
+Zustandsmaschine der Anrufe ist dabei von 165 auf 27 Codezeilen geschrumpft,
+und die sechs Regeln darin, jede einmal teuer bezahlt, haben aufgehört
+Kommentare zu sein.
 
 **Am 23.09.2026 stand nipp zum ersten Mal einen ganzen Arbeitstag lang unter
 Beobachtung** — knapp zwölf Stunden Dauerbetrieb, 17 echte Gespräche, ohne
@@ -153,6 +162,21 @@ davon im Abstand von ein bis vier Millisekunden — der Auslöser ist damit nich
 die Audioausgabe, sondern der Reset davor. Gefunden wurde das, weil jemand
 **zugehört** hat: das Protokoll war vollständig und hatte die falsche Frage
 beantwortet.
+
+**Am 25.09.2026 kam eine Meldung, die wie eine Kleinigkeit klang:** «Wenn ich
+raus wähle, höre ich nicht immer das Tuten.» Es war nicht «nicht immer» — es
+war **jedes Mal, wenn der Ton von nipp hätte kommen sollen**. Was hörbar war,
+kam von der Anlage. Das SDK baut den Ruftonstrom und hängt ihn an eine
+**Leersenke**, weil der Anrufstrom die Wiedergabekarte 532 ms vorher
+reserviert; beim eingehenden Klingeln endet dieselbe Kette am Gerät. Der
+Unterschied ist eine Zeile im Trace.
+
+**Verhindert hat das ein Satz, den niemand gemessen hatte** — und der stand
+nicht nur als Kommentar im Code, sondern **als grüner Test daneben**: «Der
+Fall, den es nie geben darf: das SDK spielt bei `OutgoingRinging` selbst.»
+nipp spielt den Rufton jetzt selbst, wenn keine Early Media angekündigt ist
+(ADR-075), und am selben Abend war er zu hören. **Ein Test, der eine Annahme
+festhält, macht sie nicht wahr — er schützt sie.**
 
 **Und das begleitete Vermitteln ist umgebaut** (ADR-073). Es verlangte bisher,
 das zweite Gespräch selbst aufzubauen — zurück zur Wähltastatur, das Ziel
@@ -1297,9 +1321,11 @@ Mehr davon: [docs/sdk-api-notes.md](docs/sdk-api-notes.md) und der Fortschrittst
 | [CLAUDE.md](CLAUDE.md) | **Die Regeln** — Grenzen, Befehle, was beim Bauen gilt. Seit dem 13.09.2026 nur noch das (ADR-059) |
 | [docs/stand.md](docs/stand.md) | **Was zuletzt passiert ist** — Meilenstein, was am Gerät aussteht, und die Chronologie von unten nach oben |
 | [docs/lehren.md](docs/lehren.md) | **Was Erfahrung ist und keine Regel** — die teuren Stellen, nach Gebiet gruppiert: Telefonie, Audio, WinUI, Windows-Integration, Konfiguration, Bauen, packaged |
+| [BEWEIS-PLAN.md](docs/plans/BEWEIS-PLAN.md) | **Wie aus «es läuft» ein Beweis wird.** Teil A ist der Gerätetag, nach Rüstzeug sortiert, damit man ein Headset einmal umsteckt und nicht dreimal; Teil B macht die SDK-Schicht prüfbar (B0 bis B9). **B0 bis B8 sind gebaut** — siehe ADR-074 |
+| [ALLEINGANG-PLAN.md](docs/plans/ALLEINGANG-PLAN.md) | Was sich ohne den Benutzer abarbeiten lässt und was nicht — mit der ehrlichen Zahl dazu: von 137 offenen Prüfzeilen brauchten 120 die Anlage, ein Headset, einen frischen Rechner oder andere Hardware |
 | [ALLTAG-PLAN-2.md](docs/plans/ALLTAG-PLAN-2.md) | Drei Meldungen aus dem Alltag vom 13.09.2026 — eine Gliederungsebene weniger bei den Nebenstellen, die Vorschau im Karten-Designer, der Mailbox-Reiter fällt weg. **Alle drei umgesetzt** (ADR-062 bis ADR-064) |
 | [ZIEHVORSCHAU-PLAN.md](docs/plans/ZIEHVORSCHAU-PLAN.md) | Die Vorschau beim Ziehen (ADR-066) — mit dem Messprotokoll von 29 Zügen: was trägt, was zittert, und warum das Ablegeziel die Liste ist und nicht die Zeile |
-| [HEADSET-FREMDBELEGUNG-PLAN.md](docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md) | nipp beendete fremde Gespräche (ADR-068) — vier Messungen vor dem ersten Codezeichen, darunter die eine, die den Plan gedreht hat. **Offen: H5**, der Notausgang als Einstellung |
+| [HEADSET-FREMDBELEGUNG-PLAN.md](docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md) | nipp beendete fremde Gespräche (ADR-068) — vier Messungen vor dem ersten Codezeichen, darunter die eine, die den Plan gedreht hat. **H5 ist seit dem 24.09.2026 gebaut**: die Einstellung «Meldungen ans Headset senden», für ein Gerät, das sich anders verhält als die beiden gemessenen |
 | `docs/plans/` | **Die abgeschlossenen Pläne und Reviews**, sechzehn Stück. Sie lagen bis zum 13.09.2026 im Wurzelverzeichnis |
 | [IMPLEMENTATION-PLAN.md](docs/plans/IMPLEMENTATION-PLAN.md) | Phasen, Arbeitspakete, was wann fertig wurde |
 | [INTEGRATION-PLAN.md](docs/plans/INTEGRATION-PLAN.md) | Generische Anbindung externer Systeme (CRM, ERP, Ticketing) für Anruferkontext und Kontaktsuche — Analyse des Bestands, Zielarchitektur, Phasen I0–I8. **Gebaut und angebunden** |
@@ -1324,7 +1350,7 @@ Mehr davon: [docs/sdk-api-notes.md](docs/sdk-api-notes.md) und der Fortschrittst
 | [docs/review-oberflaeche.md](docs/review-oberflaeche.md) | Review der Oberfläche mit Vorher/Nachher und Ergebnis |
 | [docs/blf-pruefung.md](docs/blf-pruefung.md) | Besetztlampenfeld gegen die Anlage gemessen — Verfahren und Befund |
 | `tools/Get-HidTelephony.ps1` | Welche Tasten und Lampen ein Headset über HID anbietet. Für die Frage „warum tut die Taste nichts?" |
-| `tools/Test-Ui.ps1` | Liest und bedient die Oberfläche über UI Automation — für die Zeilen der Testmatrix, die sich ohne Augen prüfen lassen. `Test-NippAccessibleNames` zeigt, wo eine Sprachausgabe einen Klassennamen vorläse; so wurde der Gruppenkopf gefunden (§8.4) |
+| `tools/Test-Ui.ps1` | Liest und bedient die Oberfläche über UI Automation — für die Zeilen der Testmatrix, die sich ohne Augen prüfen lassen. `Test-NippAccessibleNames` zeigt, wo eine Sprachausgabe einen Klassennamen vorläse; so wurde der Gruppenkopf gefunden (§8.4). **Seit dem 24.09.2026 auch mit echter Maus** (`Invoke-NippKlick`, `Invoke-NippZug`): über UI Automation lässt sich nicht ziehen, und ein `InvokePattern` bewegt den Fokus nicht |
 | [docs/integrations/einrichten.md](docs/integrations/einrichten.md) | Eine Integration einrichten — in sechs Schritten, seit dem 07.09.2026 über den Katalog |
 | [docs/integrations/karten.md](docs/integrations/karten.md) | Karten zusammenstellen: der Designer, die Bausteine, woher ein Wert kommt |
 | [docs/integrations/feldnamen.md](docs/integrations/feldnamen.md) | Welcher Feldname was bedeutet — und warum nur ein katalogisierter den Toast bekommt |

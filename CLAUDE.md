@@ -11,13 +11,13 @@ lesbar bleiben.
 | Was | Wo |
 |---|---|
 | Was nipp tun soll | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-073. **ADR-072** hat die sechs Befunde der Runde A1 entschieden, **ADR-073** das begleitete Vermitteln und die Breitenmessung im Gespräch (23.09.2026) |
+| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-075. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen»), **ADR-075** warum nipp das Freizeichen beim Rauswählen selbst spielt (25.09.2026) |
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
-| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 ist am 23.09.2026 durch**: fünfzehn Messrunden, 79 Zeilen abgenommen, **24 Befunde — 22 repariert und nachgemessen**, einer ein falscher Alarm (A1-15), einer bewusst offen (A1-19, zweite Hälfte: die Prüflücke bei zehn `async void`). Die sechs Befunde, die eine Entscheidung brauchten, stehen in **ADR-072**. **Nach dem Tag an der Anlage tragen zwei Zeilen «nicht bestanden»:** T310 (der Rufton, A7 — jetzt mit einer Spur) und **T143**, dessen Eintrag am selben Tag zurückgenommen werden musste, weil er aus dem Protokoll allein entstanden war und die Zeile ausdrücklich verlangt, **zu hören**. Gezählt: **137 offen von 319** (Stand 23.09.2026, nach den drei Alltagsmeldungen), davon **14 am Schreibtisch**, und bei jeder dieser vierzehn steht im Plan, was ihr fehlt — ein Windows-Neustart, Ohren, ein neues Logo, eine Beta-Fassung, Bauzeit oder eine Datenlage in der Quelle. **Die Zahl ist nachrechenbar**: `Zaehle-Matrix.ps1` in den Testaufbauten trägt die Zählregel — sie zählt **geprüft gegen ungeprüft**, nicht bestanden gegen durchgefallen, und die bisher fortgeschriebenen 190 von 303 liessen sich aus der Matrix nicht herstellen. **Repariert wird gesammelt, nicht mitten in einer Messrunde** — sonst prüft die halbe Runde gegen einen anderen Build als die andere |
+| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 ist am 23.09.2026 durch**: fünfzehn Messrunden, 79 Zeilen abgenommen, **24 Befunde — 22 repariert und nachgemessen**, einer ein falscher Alarm (A1-15), einer bewusst offen (A1-19, zweite Hälfte: die Prüflücke bei zehn `async void`). Die sechs Befunde, die eine Entscheidung brauchten, stehen in **ADR-072**. **Nach dem Tag an der Anlage tragen zwei Zeilen «nicht bestanden»:** T310 (der Rufton, A7 — jetzt mit einer Spur) und **T143**, dessen Eintrag am selben Tag zurückgenommen werden musste, weil er aus dem Protokoll allein entstanden war und die Zeile ausdrücklich verlangt, **zu hören**. Gezählt: **132 offen von 321** (Stand 25.09.2026), davon nur noch **acht am Schreibtisch** — T21, T22, T25, T33, T93, T95, T128, T273. **Bei jeder dieser acht steht im Plan, was ihr fehlt**, und es ist nie Zeit: ein Windows-Neustart, Ohren, ein neues Logo, eine Beta-Fassung, Outlook mit COM oder ein echter Wählversuch. Die übrigen **120 brauchen die Anlage, ein Headset, einen frischen Rechner, Windows 10 oder x64-Hardware** — nachgesehen am 24.09.2026: Windows Sandbox ist hier nicht installiert, Hyper-V auch nicht, die Konsole läuft ohne Adminrechte, und ein x64-Gast wäre auf ARM64 ohnehin keiner. **Die Zahl ist nachrechenbar**: `Zaehle-Matrix.ps1` in den Testaufbauten trägt die Zählregel — sie zählt **geprüft gegen ungeprüft**, nicht bestanden gegen durchgefallen, und die bisher fortgeschriebenen 190 von 303 liessen sich aus der Matrix nicht herstellen. **Repariert wird gesammelt, nicht mitten in einer Messrunde** — sonst prüft die halbe Runde gegen einen anderen Build als die andere |
 | Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
-| Pläne und Reviews | `docs/plans/` — zwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `OEFFENTLICH-PLAN.md`. **Laufend sind fünf:** `BEWEIS-PLAN.md` (A1 läuft), `ZIEHVORSCHAU-PLAN.md` (V8: T292–T296 sind bestanden, **offen bleiben der Zug auf einen Gruppenkopf und hell bei 150 %**), `HEADSET-FREMDBELEGUNG-PLAN.md` (offen: H5 und T300), `AUDIOQUALITAET-PLAN.md` (**A7 hat seit dem 23.09.2026 eine Spur**: jedem `Could not get buffer`-Burst geht ein Jitterpuffer-Reset voraus, über vier Messungen — und der Fremdton ist **hörbar, jedes Mal**. Nächster Schritt: T307. Offen bleiben die Senderichtung und T38) und `SHELL-IM-GESPRAECH-PLAN.md` (T313 und T317 sind bestanden; T314 ist nach der Reparatur vom 23.09.2026 abgenommen; **offen: T315 und T316**), `VERMITTELN-PLAN.md` (**gebaut und am Gerät abgenommen**, ADR-073 — T321–T323 bestanden; offen: externe Ziele und die Vorschlagsliste) und **`ALLTAG-PLAN-3.md`** (drei Meldungen aus der Benutzung vom 23.09.2026 — **alle drei gebaut, T324–T329 bestanden**, nichts offen). Der Rest ist abgeschlossen |
+| Pläne und Reviews | `docs/plans/` — einundzwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `ALLEINGANG-PLAN.md`. **Laufend sind fünf:** `BEWEIS-PLAN.md` (**A1 ist durch, Teil B angefangen** — B0 bis B8 sind am 24./25.09.2026 gebaut, siehe ADR-074), `ALLEINGANG-PLAN.md` (was ohne Dominic zu holen war; Runden 1 bis 4 durch, offen ist nur noch der Entscheid zu einem Befund aus B8), `ZIEHVORSCHAU-PLAN.md` (V8: **der Zug auf einen Gruppenkopf trägt**, offen bleibt nur «hell bei 150 %», eine Augenprüfung), `HEADSET-FREMDBELEGUNG-PLAN.md` (**H5 ist gebaut** — die Einstellung «Meldungen ans Headset senden», am Gerät abzunehmen mit T330; offen bleibt T300), `AUDIOQUALITAET-PLAN.md` (**A7 hat seit dem 23.09.2026 eine Spur**: jedem `Could not get buffer`-Burst geht ein Jitterpuffer-Reset voraus, über vier Messungen — und der Fremdton ist **hörbar, jedes Mal**. Nächster Schritt: T307. Offen bleiben die Senderichtung und T38) und `SHELL-IM-GESPRAECH-PLAN.md` (T313 und T317 sind bestanden; T314 ist nach der Reparatur vom 23.09.2026 abgenommen; **offen: T315 und T316**), `VERMITTELN-PLAN.md` (**gebaut und am Gerät abgenommen**, ADR-073 — T321–T323 bestanden; offen: externe Ziele und die Vorschlagsliste) und **`ALLTAG-PLAN-3.md`** (drei Meldungen aus der Benutzung vom 23.09.2026 — **alle drei gebaut, T324–T329 bestanden**, nichts offen). Der Rest ist abgeschlossen |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
 
 ## Grenzen
@@ -26,6 +26,26 @@ lesbar bleiben.
 - ViewModels kennen keine SDK-Typen, nur eigene Modelle.
 - `Core.Iterate()` läuft im UI-Thread (DispatcherQueueTimer, 20 ms).
   Nichts Blockierendes in SDK-Callbacks.
+- **Was das SDK liest, wird einmal übersetzt; was daraus folgt, entscheidet
+  eine reine Klasse; was das SDK tut, bleibt in `SipService`** (ADR-074, W2.1).
+  Übersetzt wird in `SipEventBridge`, wo ohnehin `using Linphone` steht —
+  heraus kommt ein `CallSnapshot`, und der trägt **keinen** SDK-Typ, auch kein
+  Enum. Entschieden wird in `CallFlow`, `AccountRegistry`, `AudioDeviceChoice`,
+  `PresenceWatch`, `CallAddressing`, `HidReportDeutung`, `LampenSammler` — alle
+  ohne Gerät prüfbar. **Eine `ISdkCore`-Fassade wäre der falsche Weg**: 46
+  Core-Member ohne virtuelle Member, achtzig Durchreichungen, die selbst
+  ungetestet blieben. Und der Satz, den ADR-074 ausdrücklich hinschreibt:
+  **die Ausführung bleibt ungetestet** — wer «`SipService` ist getestet» liest,
+  soll dort finden, dass das nie behauptet wurde.
+- **Was ein Dienst zu sehen bekommt, darf nicht an der Erzeugungsreihenfolge
+  hängen** (24.09.2026, gemessen). `BlfService` und `ShellViewModel` hingen
+  beide an `SettingsService.Changed`; der Dienst lief zuerst und zählte einen
+  `ContactStore`, den erst das ViewModel über `ReloadTeam()` aktualisiert. Wer
+  zuerst lief, entschied der Container — **und das steht nirgends
+  geschrieben**. Folge: eine geänderte SIP-Adresse bekam ihr Lampen-Abo erst
+  beim übernächsten Ereignis. Behoben über `ContactStore.TeamReloaded`: das
+  Ereignis meldet nicht, **dass jemand gespeichert hat**, sondern **dass die
+  Daten stehen**.
 - **Eine Ausnahme kommt nie in den nativen Rahmen zurück** (ADR-053). Die
   Callbacks des SDK kommen über einen Reverse-P/Invoke-Rahmen; der `try` in
   `SipPumpHost.OnTick` liegt **ausserhalb** davon. Deshalb drei Stellen:
@@ -510,7 +530,14 @@ Nie ein blankes `dotnet build` — siehe „Bauen auf dieser Maschine".
   Stelle nicht anzufassen. Dasselbe zweimal im Protokoll: «die Gegenstelle
   schickt Early Media ohne Audio», obwohl beide Male Audio da war.
   **Wer nicht gemessen hat, schreibt «vermutlich» hin** — oder misst.
-  **Zum dritten Mal am 13.09.2026, und diesmal stand der Satz in einem ADR:**
+  **Zum vierten Mal am 25.09.2026, und diesmal stand die Annahme zusätzlich
+  als grüner Test da** (ADR-075): «Der Fall, den es nie geben darf: das SDK
+  spielt bei `OutgoingRinging` selbst, und ein zweiter Ton darüber wäre
+  lauter, nicht deutlicher.» Niemand hatte es gemessen; tatsächlich hängt das
+  SDK seinen Ruftonstrom an eine **Leersenke**, und beim Rauswählen war es
+  still. **Ein Test, der eine Annahme festhält, macht sie nicht wahr — er
+  schützt sie**, und zwar besser als ein Kommentar.
+  **Zum dritten Mal am 13.09.2026, und damals stand der Satz in einem ADR:**
   ADR-042 behauptete, WinUI hänge eine gezogene Zeile selbst um. Niemand hatte
   es geprüft, es stimmte nicht, und das Ziehen zwischen Gruppen hat deshalb nie
   funktioniert — gemerkt hat es niemand, weil der Fehlerfall schwieg (ADR-065).
@@ -713,7 +740,7 @@ erfüllt. Details: docs/environment.md.
 | Frage | Dokument |
 |---|---|
 | Was soll nipp tun? | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-073 |
+| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-075 |
 | Wo steht das Projekt insgesamt? | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmenplan in Wellen. **`docs/plans/WELLE-0-PLAN.md`** — die fünf Schritte davor, alle umgesetzt |
 | Wo hakt die Bedienung? | **`docs/plans/UX-REVIEW-2.md`** — 20 Befunde (12.09.2026), davor **`docs/plans/UX-REVIEW.md`** — 25 Befunde. Umsetzungsstand jeweils ganz vorn |
 | Was passiert auf einem breiten Fenster? | **`docs/plans/BREITBILD-PLAN.md`** — zwei Spalten, Kacheln, der Detailbereich in der Zeile |
