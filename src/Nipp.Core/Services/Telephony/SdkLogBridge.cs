@@ -40,6 +40,23 @@ public sealed class SdkLogBridge
     public SdkLogBridge(ILogger<SdkLogBridge> logger) => _logger = logger;
 
     /// <summary>
+    /// Meldet eine erkannte Audiostörung (ADR-077). Hängt sich der
+    /// <c>SipService</c> hier ein, zählt er sie ins laufende Gespräch.
+    ///
+    /// <para><b>Das Ereignis feuert im SDK-Callback</b>, also in demselben
+    /// Rahmen wie jede andere SDK-Meldung — ein Empfänger zählt und kehrt
+    /// zurück, mehr nicht (§6, ADR-053).</para>
+    /// </summary>
+    public event EventHandler<Stoerung>? StoerungErkannt;
+
+    /// <summary>
+    /// Ob das SDK gerade auf Debug-Lautstärke steht. Der Gesprächsbericht
+    /// nennt es mit, weil «null Störungen» bei abgeschaltetem Protokoll etwas
+    /// anderes heisst als bei eingeschaltetem.
+    /// </summary>
+    public bool StufeIstDebug { get; private set; }
+
+    /// <summary>
     /// Hängt sich an den <c>LoggingService</c> des SDK. Der ist ein Singleton
     /// der Factory — es braucht keinen Core dafür, aber die Factory muss
     /// geladen sein.
@@ -77,6 +94,8 @@ public sealed class SdkLogBridge
                 ? SdkLogLevel.Message
                 : SdkLogLevel.Warning;
 
+            StufeIstDebug = verbosity == LogVerbosity.Debug;
+
             SdkLogBridgeLog.VerbosityApplied(_logger, verbosity.ToString());
         }
         catch (Exception ex)
@@ -94,6 +113,17 @@ public sealed class SdkLogBridge
         if (text.Length == 0)
         {
             return;
+        }
+
+        // ADR-077: vor dem Maskieren, denn LogMasking.SipLine arbeitet an
+        // Rufnummern — und die Störungszeilen tragen Millisekunden, die ihr
+        // ähnlich genug sehen könnten. Gezählt wird der Rohtext, protokolliert
+        // der maskierte; was im Protokoll steht, ändert sich dadurch nicht.
+        var stoerung = SdkStoerung.Lies(text);
+
+        if (stoerung is { } erkannt)
+        {
+            StoerungErkannt?.Invoke(this, erkannt);
         }
 
         SdkLogBridgeLog.SdkMessage(_logger, Map(level), domain ?? "sdk", LogMasking.SipLine(text));

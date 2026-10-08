@@ -429,4 +429,35 @@ internal static partial class TelephonyLog
         Message = "Nicht stoeren: {Zustand}. Anrufe kommen weiterhin an, nur der Klingelton "
             + "schweigt.")]
     public static partial void DoNotDisturbChanged(ILogger logger, string zustand);
+
+    /// <summary>
+    /// Protokolliert den Echo-Canceller, den das SDK <b>zurückgibt</b> — nicht
+    /// den, der gesetzt wurde (ADR-076).
+    ///
+    /// <para>Der Unterschied ist der Zweck der Zeile. Nimmt das SDK den Namen
+    /// nicht an, steht hier der alte Wert, und T332 ist damit zu deuten statt
+    /// nur zu zählen: ein leerer oder fremder Name heisst „die Wahl kam nicht
+    /// an", ein `Count 0` bei richtigem Namen heisst „der Filter kann diese
+    /// Rate nicht". Ohne diese Zeile sähen beide Fehlschläge gleich aus.</para>
+    /// </summary>
+    [LoggerMessage(EventId = 2114, Level = LogLevel.Information,
+        Message = "Echounterdrueckung: Filter {Filter}, wirksam bei {Raten} Hz")]
+    public static partial void EchoCancellerChosen(ILogger logger, string filter, string raten);
+
+    /// <summary>
+    /// Der Bericht am Ende eines Gesprächs (ADR-077).
+    ///
+    /// <para><b>Auf <c>Information</c> und nicht auf <c>Debug</c></b>, und das
+    /// ist der ganze Zweck: Debug kostet rund 20 MB am Tag und wird deshalb im
+    /// Alltag nicht eingeschaltet — genau dann aber treten die Probleme auf,
+    /// die später erklärt werden sollen. Eine Zeile je Gespräch kostet nichts
+    /// und trägt alles, was dafür gebraucht wird.</para>
+    ///
+    /// <para><b>Keine Rufnummer, kein Name</b> (§21.2, ADR-022). Zugeordnet
+    /// wird über die Kennung, die auch die Zustandswechsel tragen; wer das
+    /// Gespräch sucht, findet es darüber.</para>
+    /// </summary>
+    [LoggerMessage(EventId = 2115, Level = LogLevel.Information,
+        Message = "Gespraech {Call} ausgewertet: {Bericht}")]
+    public static partial void CallReport(ILogger logger, string call, string bericht);
 }

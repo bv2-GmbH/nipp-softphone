@@ -18,6 +18,62 @@ Geräte».
 
 ---
 
+## Nachmessung im Alltag (08.10.2026) — das Rauschen ist weg, die Aussetzer sind es nicht
+
+**Anlass, aus dem Betrieb:** «Ich hatte ein paar Mal Probleme mit der
+Sprachqualität, vor allem beim letzten Call.» Ausgewertet wurden vier
+Protokolltage, 05. bis 08.10.2026 (57 MB, Debug-Stufe), **25 verbundene
+Gespräche**.
+
+**Was A6 bestätigt:** `MSNoiseSuppressor` steht in **keiner** Filterstatistik
+dieser vier Tage mehr — `NoiseSuppression` ist in den Einstellungen aus, und
+der Filter, der am 16.09.2026 mit 77,24 ms den Tick überzog, ist aus der Kette
+verschwunden. Die Spitzenlast liegt jetzt bei **11,17 ms** (`MSRtpRecv`), und
+das ist dieselbe Grössenordnung wie in der Gegenprobe von damals.
+
+**Was trotzdem bleibt**, und darum geht dieser Abschnitt:
+
+| Gespräch | Dauer | Verwürfe | max | `We are late` | max |
+|---|---|---|---|---|---|
+| 08.10. 13:44 (**der gemeldete**) | 9:20 | 13 | 46 ms | 3 | **87 ms** |
+| 08.10. 13:41 (das davor) | 0:34 | 3 | 68 ms | 8 | **144 ms** |
+| 08.10. 09:37 | 49:58 | 22 | 34 ms | 0 | – |
+| 06.10. 10:20 | 45:40 | **2** | 25 ms | 0 | – |
+
+Gemeint ist mit «Verwurf» die Zeile `output buffer was filled with at least N
+ms in the last 5000 ms, asking to drop` — aufgebaute Latenz, die
+`MSAudioFlowControl` wegwirft. Auf die Dauer gerechnet: **1,4 pro Minute im
+gemeldeten Gespräch gegen 0,04 am 06.10.** Die Störungen liegen geballt in den
+ersten zwei Minuten (13:44:27 bis 13:46:07), danach ist es still bis zum Ende —
+**episodisch, wie schon am 16.09.2026.**
+
+### Was dabei ausgeschlossen ist
+
+**Das Netz.** Über das ganze gemeldete Gespräch: `lost_percentage=0.000000`,
+`int_jitter` zwischen 0,5 und 1,75 ms, `rt_prop` zwischen 5 und 25 ms —
+durchgehend, in jeder Messung des `MSSimpleQosAnalyzer`. Es ist nichts
+verlorengegangen und nichts zu spät gekommen. **Die Ursache sitzt lokal in der
+Wiedergabe.**
+
+**Und ein einzelner überziehender Filter.** Das war die Erklärung vom
+16.09.2026, und sie trägt hier nicht: die höchste Einzellast ist 11,17 ms. Eine
+Verspätung von 144 ms entsteht daraus nicht.
+
+### Was offen ist
+
+| | |
+|---|---|
+| **Der Build** | Gelaufen ist der **Debug-Build aus dem Repo** (`src/Nipp.App/bin/x64/Debug/…`), x64-emuliert auf ARM64. Das ist der nächstliegende Kandidat und **nicht gemessen**. Die Gegenprobe ist billig: dieselbe Fassung als Release bauen, einen Tag laufen lassen, Verwürfe je Minute vergleichen |
+| **Die Aufbauphase** | Beide Störfenster liegen **in den ersten zwei Minuten** eines Gesprächs. Das passt zu dem, was oben schon unter «die Aufbauphase stört weiter» steht, und ist bis heute nicht auseinandergenommen |
+| **Eine Korrelation, die keine Ursache ist** | Eine Sekunde vor dem schlimmsten Ausbruch (13:41:59) stehen **27 `TrayIconHost MouseMove`-Zeilen in einer Sekunde** im Protokoll. Verlockend — aber **die Gegenprobe fehlt**: beim zweiten Ausbruch um 13:44:33 ist nichts dergleichen da. Hier steht es als Beobachtung, nicht als Hypothese mit Rang |
+
+**Nicht hierher gehört die Echounterdrückung.** Dass `MSWebRTCAEC` in allen
+128 Statistiken dieser vier Tage bei `Count 0` steht, ist bei derselben
+Durchsicht aufgefallen und in **ADR-076** entschieden — es erklärt Echo, nicht
+Aussetzer, und die beiden Fäden werden hier bewusst nicht verknotet.
+
+---
+
 ## Stand: **die Ursache ist belegt** (16.09.2026, A4 und A6)
 
 > **A6 ist bestanden** (T304). Mit abgeschalteter Rauschunterdrückung — im

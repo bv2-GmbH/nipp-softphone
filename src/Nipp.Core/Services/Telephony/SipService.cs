@@ -306,8 +306,10 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     public IReadOnlyList<AccountStatus> Accounts => _accounts.Snapshot();
 
     /// <summary>
-    /// §9.4 und ADR-006: die Einstellung sagt „ein", der Canceller schaltet
-    /// sich bei 8 kHz aber selbst ab. Hier steht, was tatsächlich gilt.
+    /// §9.4 und ADR-006: die Einstellung sagt „ein", der Canceller arbeitet
+    /// aber nur bei den Raten, die sein Filter beherrscht. Hier steht, was
+    /// tatsächlich gilt — welche Raten das sind, sagt
+    /// <see cref="EchoCancellerChoice"/> und sonst nichts.
     /// </summary>
     public bool IsEchoCancellationEffective
     {
@@ -327,12 +329,12 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
                 return true;
             }
 
-            // Der Canceller unterstützt 8 kHz nicht. Der verhandelte Codec
-            // verrät die Abtastrate.
+            // Der verhandelte Codec verrät die Abtastrate; ob der Canceller
+            // bei dieser Rate arbeitet, entscheidet EchoCancellerChoice.
             try
             {
                 var clockRate = running.SdkCall.CurrentParams?.UsedAudioPayloadType?.ClockRate ?? 0;
-                return clockRate > 8000;
+                return EchoCancellerChoice.IstWirksamBei(clockRate);
             }
             catch (Exception ex)
             {
@@ -381,6 +383,10 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
 
         // §6: nur EIN Listener pro Core. Die Bridge ist der einzige Ort, der
         // die Delegates setzt — wer sie anderswo überschreibt, hängt sie ab.
+        // ADR-077: die Störungszählung läuft über die Protokollbrücke, weil
+        // das SDK diese vier Ereignisse nirgendwo sonst meldet.
+        _sdkLog.StoerungErkannt += OnStoerungErkannt;
+
         _bridge = new SipEventBridge(_core, _logger);
         _bridge.RegistrationChanged += OnBridgeRegistrationChanged;
         _bridge.CallStateChanged += OnBridgeCallStateChanged;
@@ -474,6 +480,19 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
 
         // §9.4 und §9.5: Vorgaben, die im SDK anders stehen
         core.EchoCancellationEnabled = true;
+
+        // §9.4 und ADR-006 Punkt 2: der Standardfilter des SDK schaltet sich
+        // bei 8 kHz ab, und 8 kHz ist hier der Normalfall — gemessen über vier
+        // Tage, siehe EchoCancellerChoice. Ohne diese Zeile ist die
+        // Echounterdrückung im Alltag eine Einstellung ohne Wirkung.
+        core.EchoCancellerFilterName = EchoCancellerChoice.FilterName;
+
+        // Zurückgelesen, nicht wiederholt: was das SDK meldet, ist die Wahrheit
+        // über die Wahl — siehe EchoCancellerChosen.
+        TelephonyLog.EchoCancellerChosen(
+            _logger,
+            core.EchoCancellerFilterName ?? "(leer)",
+            string.Join(", ", EchoCancellerChoice.UnterstuetzteRaten));
         core.NoiseSuppressionEnabled = true;
         core.AdaptiveRateControlEnabled = true;
         core.UseRfc2833ForDtmf = true;
@@ -1589,7 +1608,53 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
                 continue;
             }
 
+            tracked.Bericht?.Erfasse(quality);
+            BerichtErgaenzen(tracked);
+
             QualityUpdated?.Invoke(this, new CallQualityEventArgs(tracked.Handle, quality));
+        }
+    }
+
+    /// <summary>
+    /// Trägt Codec, Geräte und den Echo-Zustand in den Bericht nach (ADR-077).
+    ///
+    /// <para><b>Im Sekundentakt und nicht einmal beim Verbinden</b>, weil
+    /// nichts davon beim Verbinden schon feststeht: der Codec wird zu diesem
+    /// Zeitpunkt noch verhandelt, und das Gerät kann mitten im Gespräch
+    /// wechseln. Geschrieben wird immer der zuletzt gesehene Stand — bei einem
+    /// Gerätewechsel steht also das Gerät im Bericht, auf dem das Gespräch
+    /// geendet hat. Das ist eine bewusste Vereinfachung; wer den Wechsel
+    /// sucht, findet ihn als eigene Zeile im Protokoll.</para>
+    ///
+    /// <para>Jeder Zugriff einzeln abgesichert, aus demselben Grund wie in
+    /// <c>PublishQuality</c>: das SDK wirft je nach Zustand, statt
+    /// <c>null</c> zu liefern — und eine Ausnahme dürfte hier die
+    /// Ereignisschleife nicht verlassen (ADR-053).</para>
+    /// </summary>
+    private void BerichtErgaenzen(TrackedCall tracked)
+    {
+        if (tracked.Bericht is not { } bericht)
+        {
+            return;
+        }
+
+        try
+        {
+            var payload = tracked.SdkCall.CurrentParams?.UsedAudioPayloadType;
+
+            if (payload is not null)
+            {
+                bericht.Codec = payload.MimeType;
+                bericht.Abtastrate = payload.ClockRate;
+            }
+
+            bericht.Eingabegeraet = tracked.SdkCall.InputAudioDevice?.DeviceName;
+            bericht.Ausgabegeraet = tracked.SdkCall.OutputAudioDevice?.DeviceName;
+            bericht.EchoLautSdk = tracked.SdkCall.EchoCancellationEnabled;
+        }
+        catch (Exception ex)
+        {
+            QuietFailures.Report(_logger, "LiestBerichtsdaten", ex);
         }
     }
 
@@ -1893,6 +1958,8 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
                 info.Status.ToString());
         }
 
+        BerichtFuehren(tracked, info, entscheidung.Previous);
+
         CallStateChanged?.Invoke(this, new CallStateEventArgs(info, entscheidung.Previous));
 
         // Beendete Anrufe aus der Verwaltung nehmen, aber erst nachdem das
@@ -1911,6 +1978,84 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
             // gehalten hat.
             _resumeLastPending = true;
         }
+    }
+
+    /// <summary>
+    /// Ordnet eine erkannte Störung dem laufenden Gespräch zu (ADR-077).
+    ///
+    /// <para><b>Dem verbundenen Gespräch, und sonst verfällt sie.</b> Die
+    /// Störungen gehören zum Audiogerät, nicht zum Anruf — sie treten auch
+    /// beim Rufton auf und zwischen Gesprächen. Ein gehaltenes Gespräch hat
+    /// keinen Audiostrom, also kann es sie nicht verursachen; gibt es keines,
+    /// das verbunden ist, wäre jede Zuordnung geraten.</para>
+    ///
+    /// <para>Stehen zwei Gespräche gleichzeitig (eines gehalten), trägt das
+    /// verbundene sie. Das ist nicht beweisbar richtig, aber es ist die
+    /// einzige Zuordnung, die nicht würfelt.</para>
+    /// </summary>
+    private void OnStoerungErkannt(object? sender, Stoerung stoerung)
+    {
+        foreach (var tracked in _calls.Values)
+        {
+            if (tracked.Info.Status == CallStatus.Connected && tracked.Bericht is { } bericht)
+            {
+                bericht.Erfasse(stoerung);
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Legt den Gesprächsbericht an und schreibt ihn am Ende (ADR-077).
+    ///
+    /// <para><b>Angelegt beim ersten <c>Connected</c>, geschrieben beim
+    /// Ende</b> — und dazwischen überlebt er das Halten. Ein Gespräch, das
+    /// gehalten und zurückgeholt wird, ist eines; zwei Berichte dafür wären
+    /// zwei halbe.</para>
+    /// </summary>
+    private void BerichtFuehren(TrackedCall tracked, CallInfo info, CallStatus? vorher)
+    {
+        if (info.Status == CallStatus.Connected)
+        {
+            if (tracked.Bericht is null)
+            {
+                tracked.Bericht = new GespraechsBericht(DateTimeOffset.UtcNow);
+
+                // Sofort einmal lesen, nicht erst im Sekundentakt: ein
+                // Gespräch unter einer Sekunde bekäme sonst nie einen
+                // Durchlauf.
+                //
+                // Das holt aber nur, was zu diesem Zeitpunkt schon dasteht —
+                // am 08.10.2026 an zwei Testanrufen gemessen: der
+                // Echo-Zustand kommt an, **Codec und Geräte nicht**. Sie
+                // stehen erst, wenn der Medienstrom läuft, und das ist nach
+                // `Connected`. Für ein Gespräch von einer halben Sekunde
+                // bleibt im Bericht deshalb «Codec ?/0» — kein Mangel dieser
+                // Zeile, sondern die Reihenfolge des SDK, und bei einem so
+                // kurzen Gespräch gibt es ohnehin keine Audioqualität zu
+                // beurteilen.
+                BerichtErgaenzen(tracked);
+            }
+
+            return;
+        }
+
+        if (info.Status is not (CallStatus.Ended or CallStatus.Failed)
+            || vorher == info.Status
+            || tracked.Bericht is not { } bericht)
+        {
+            return;
+        }
+
+        // Nur einmal: der Zustand kann mehrfach gemeldet werden (End, dann
+        // Released), und zwei gleiche Berichte liessen jede Auszählung
+        // doppelt zählen.
+        tracked.Bericht = null;
+
+        TelephonyLog.CallReport(
+            _logger,
+            tracked.Handle.ToString(),
+            bericht.AlsZeile(DateTimeOffset.UtcNow, _sdkLog.StufeIstDebug));
     }
 
     /// <summary>
@@ -2957,6 +3102,14 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
         public Call SdkCall { get; } = sdkCall;
 
         public required CallInfo Info { get; set; }
+
+        /// <summary>
+        /// Was über dieses Gespräch gesammelt wird, solange es steht
+        /// (ADR-077). <c>null</c>, bevor es verbunden war — ein Anruf, der nie
+        /// zustande kam, hat keine Audioqualität, und ein Bericht darüber
+        /// wäre eine Zeile Rauschen je verpasstem Anruf.
+        /// </summary>
+        public GespraechsBericht? Bericht { get; set; }
 
         /// <summary>
         /// Ob das SDK für diesen Anruf im Zustand <c>OutgoingEarlyMedia</c>

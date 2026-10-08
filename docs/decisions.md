@@ -8,6 +8,223 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-077 — Jedes Gespräch hinterlässt einen Bericht, damit der Alltag auswertbar wird
+
+**Datum:** 08.10.2026 · **Status:** angenommen · **Bezug:** §8.2, §9.6, §21.2, ADR-022, ADR-053, ADR-074, `GespraechsBericht`, `SdkStoerung`, T333
+
+**Auftrag von Dominic:** «Sorg dafür, dass nipp alle nötigen Infos sammelt, damit ich das im Alltag nutzen kann und wir dann anhand der Logs die Probleme lösen und das Ganze immer weiter optimieren können.»
+
+### Was der Anlass war
+
+Am selben Tag ist eine gemeldete Sprachqualität («ein paar Mal Probleme, vor
+allem beim letzten Call») aus **57 MB Rohprotokoll von Hand** rekonstruiert
+worden: Gespräche aus Zustandswechseln zusammengesucht, Störungen über
+Zeitfenster zugeordnet, Verlustwerte aus verstreuten Analysatorzeilen gelesen,
+Codec und Abtastrate aus der SDP-Verhandlung. Das hat rund eine Stunde
+gekostet — und wäre beim nächsten Mal genauso teuer.
+
+**Die Zahlen waren alle da. Nur nicht an einer Stelle, und nicht in einer
+Form, die man vergleichen kann.**
+
+### Entscheidung
+
+Jedes Gespräch, das verbunden war, schreibt beim Ende **eine Zeile** auf
+`Information`:
+
+```
+Gespraech 09dfa3f4 ausgewertet: Dauer 9:20, Codec PCMU/8000, Echo AUS (SDK
+meldete Abschaltung bei 8000 Hz), Aus Default Playback, Ein Default Capture,
+Verlust max 0.0%, Umlauf 15 ms (max 25), Puffer 40 ms (max 60), MOS 4.2
+(min 3.8), Verwuerfe 13 (max 46 ms), Ticker spaet 3 (max 87 ms),
+Pufferfehler 0, Messungen 548, SDK-Stufe normal
+```
+
+Drei Teile, drei Orte — nach ADR-074:
+
+| Was | Wo | Prüfbar ohne Gerät |
+|---|---|---|
+| Was eine SDK-Zeile bedeutet | `SdkStoerung.Lies` | ja |
+| Was daraus über ein Gespräch folgt | `GespraechsBericht` | ja |
+| Wann gesammelt und geschrieben wird | `SipService` | nein |
+
+### Warum nipp seine eigenen Protokollzeilen liest
+
+Das sieht nach einem Umweg aus und ist der kurze Weg: **die vier Ereignisse,
+auf die es ankommt, meldet das SDK ausschliesslich über das Protokoll.** Es
+gibt dafür keine Zählung, kein Ereignis und keinen Statistikwert —
+Verwürfe der Flusskontrolle, Ticker-Verspätungen, Pufferfehler der Wiedergabe
+und die Selbstabschaltung des Echo-Cancellers.
+
+Die Filterstatistik mit den Spitzenlasten gäbe es auch, aber erst beim
+Streamende und nur auf Debug-Stufe. **Debug kostet rund 20 MB am Tag** und
+wird im Alltag nicht eingeschaltet — also genau dann nicht, wenn die Probleme
+auftreten, die später erklärt werden sollen. Die vier gezählten Zeilen kommen
+dagegen als `Warning` und `Error` durch, also immer.
+
+### Was dabei schiefgehen kann, und was dagegen steht
+
+**Ändert eine SDK-Fassung ihre Texte, hört die Zählung still auf zu zählen** —
+und ein Bericht ohne Störungen sieht aus wie ein gutes Gespräch. Das ist die
+unangenehme Sorte Fehler, dieselbe Klasse wie der Schutz an der toten Methode
+in `CallHistoryStore` (CLAUDE.md). Dagegen stehen zwei Dinge: `SdkStoerungTests`
+hält **sieben Zeilen im Wortlaut** fest, wie sie am 08.10.2026 im Protokoll
+standen, und der Bericht nennt die **Protokollstufe** mit — «null Störungen bei
+SDK-Stufe normal» ist eine andere Aussage als «null Störungen bei Debug».
+
+### Drei Abgrenzungen, die bewusst so sind
+
+**Der Bericht urteilt nicht.** Er stuft nicht ein und sagt nicht, ob ein
+Gespräch gut war; dafür gibt es `CallQuality.Rating` in der Oberfläche, und das
+beantwortet eine andere Frage — was der Benutzer *jetzt* sieht. Hier stehen
+Messwerte, damit jemand sie später vergleichen kann. **Mittel und Maximum
+stehen beide da**, weil sie nie dasselbe beantworten (CLAUDE.md, 16.09.2026).
+
+**Störungen gehören dem verbundenen Gespräch, sonst verfallen sie.** Sie
+stammen vom Audiogerät, nicht vom Anruf — sie treten auch beim Rufton auf und
+zwischen Gesprächen. Ein gehaltenes Gespräch hat keinen Audiostrom und kann
+sie nicht verursachen. Stehen zwei Gespräche, trägt sie das verbundene: nicht
+beweisbar richtig, aber die einzige Zuordnung, die nicht würfelt.
+
+**Keine Rufnummer, kein Name** (§21.2, ADR-022). Zugeordnet wird über die
+Kennung, die auch die Zustandswechsel tragen.
+
+### Konsequenz
+
+- **Debug wird im Alltag nicht mehr gebraucht.** Wer ein Problem meldet, liefert
+  mit `Gespraech … ausgewertet` die Grundlage; Debug bleibt für den Fall, dass
+  die Zeile allein nicht reicht.
+- Eine Woche Protokoll ergibt mit einem `Select-String` eine Tabelle aller
+  Gespräche. **Darum ist es eine Zeile und nicht fünf** — mehrzeilig wäre sie
+  schöner zu lesen und für genau diesen Zweck unbrauchbar.
+- `T333` prüft am Gerät, dass die Zeile erscheint und ihre Zahlen stimmen.
+
+---
+
+## ADR-076 — Der Echo-Canceller ist MSSpeexEC, weil der Standardfilter bei 8 kHz nie läuft
+
+**Datum:** 08.10.2026 · **Status:** angenommen · **Bezug:** §9.4, ADR-006 Punkt 2, `EchoCancellerChoice`, `SipService.ApplyBaselineConfiguration`, T332
+
+**Gemeldet aus dem Betrieb:** «Ich hatte ein paar Mal Probleme mit der Sprachqualität, vor allem beim letzten Call.»
+
+Die gesuchte Ursache war das nicht — die Aussetzer in jenem Gespräch sind eine
+andere Sache und bleiben offen (siehe unten). Beim Durchsehen der Protokolle
+stand aber eine Zahl da, die ADR-006 Punkt 2 seit dem 07.09.2026 vorhergesagt
+und niemand seither nachgerechnet hatte.
+
+### Was gemessen wurde
+
+Vier Protokolltage, 05. bis 08.10.2026, `%LOCALAPPDATA%\nipp\logs` (57 MB,
+Debug-Stufe), 25 verbundene Gespräche:
+
+| Was | Zahl |
+|---|---|
+| Filterstatistiken mit `MSWebRTCAEC` | **128** |
+| davon mit einem Count über null | **0** |
+| `Echo canceller does not support sampling rate 8000Hz, so it has been disabled` | **27** |
+| Codec-Verhandlungen, die bei 8 kHz endeten (PCMU/PCMA) | **29 von 29** |
+| Gespräche mit einem Breitband-Codec | **0** |
+
+**Der Standardfilter des SDK hat in keinem einzigen Gespräch dieser Woche
+einen Tick gearbeitet.** Die Einstellung aus §9.4 stand dabei durchgehend auf
+`true`. Das ist keine neue Erkenntnis — ADR-006 Punkt 2 hat es beschrieben,
+der Audioplan hat es unter H5 gemessen, und in den Einstellungen stand seit
+P5 ein Hinweis, der es dem Benutzer erklärte. **Neu ist nur, dass die Frage,
+die ADR-006 Punkt 2 offen gelassen hat, inzwischen beantwortbar ist.**
+
+### Die Frage, die offen stand
+
+> «Zu prüfen in P5 (AP5.7): ob `EchoCancellerFilterName` (derzeit leer) einen
+> Filter zulässt, der 8 kHz beherrscht.»
+
+Er lässt. In `mediastreamer2.dll` stehen **zwei** Canceller: `MSWebRTCAEC` und
+`MSSpeexEC`, dazu die Symbole `speex_echo_state_init`,
+`speex_echo_cancellation` und `speex_echo_ctl`. Der Wrapper führt
+`Core.EchoCancellerFilterName` als schreibbare Eigenschaft
+(`linphone_core_set_echo_canceller_filter_name`). Speex ist als
+Telefonie-Canceller für Schmalband gebaut; WebRTC rechnet ab 16 kHz.
+
+### Entscheidung
+
+`core.EchoCancellerFilterName = "MSSpeexEC"`, gesetzt in
+`ApplyBaselineConfiguration` neben den übrigen Vorgaben, die im SDK anders
+stehen. Der Name und die Raten, bei denen er greift, stehen zusammen in
+**`EchoCancellerChoice`** — einer reinen Klasse nach ADR-074.
+
+**Warum sie zusammen stehen müssen.** Die Grenze stand vorher als Literal im
+Dienst: `return clockRate > 8000;` in `IsEchoCancellationEffective`. Diese
+Acht war die Grenze von `MSWebRTCAEC`, aber sie sah aus wie eine Eigenschaft
+der Echounterdrückung überhaupt. Hätte jemand nur den Filter gewechselt,
+meldete die Oberfläche weiter die Grenze eines Filters, den nipp nicht mehr
+benutzt — dieselbe Doppelwahrheit, die ADR-032 und ADR-044 je einmal
+aufgelöst haben, nur mit einer Zahl statt einem Namen.
+
+### Der Preis, und er steht als Test da
+
+Speex deckt 48 kHz nicht ab. Ein Opus-Gespräch mit voller Bandbreite liefe
+also ohne Echounterdrückung — genau wie heute jedes 8-kHz-Gespräch.
+`Volle_Bandbreite_ist_nicht_abgedeckt` hält das fest, damit der Tausch
+sichtbar bleibt und nicht als Versehen gelesen wird. In den vier gemessenen
+Tagen kam der Fall **kein einziges Mal** vor; käme er häufiger vor, wäre die
+Wahl neu zu treffen und nicht die Liste zu erweitern.
+
+### Was hier ausdrücklich noch nicht bewiesen ist
+
+**Dass `MSSpeexEC` bei 8 kHz tatsächlich läuft.** Belegt sind der Filtername
+in der DLL, die Speex-Symbole und der Einsatzzweck — das ist ein guter Grund,
+keine Messung. Fünf Tests halten fest, was nipp *annimmt*; ein grüner Test
+macht eine Annahme nicht wahr, er schützt sie, und genau das ist am
+25.09.2026 bei ADR-075 schon einmal teuer gewesen.
+
+**Den Beweis trägt T332:** eine Zeile `MSSpeexEC` mit einem Count über null
+in der Filterstatistik eines echten Gesprächs. Bleibt sie bei null oder
+erscheint die Abschaltmeldung erneut, ist diese Entscheidung falsch und
+gehört zurückgenommen.
+
+### Nachtrag vom selben Tag: die Protokollhälfte ist gemessen
+
+**T332, Protokollhälfte bestanden** (08.10.2026, vier Anrufe auf die 920, alle
+PCMU/8000):
+
+| | |
+|---|---|
+| `MSSpeexEC` in der Filterstatistik | **Count 14, 12, 12, 14** — Mittel um 0,11 ms, Spitze 0,80 ms |
+| In der Kette sichtbar | `MSEqualizer → MSSpeexEC → MSResample`, dazu `MSSpeexEC → MSVolume` |
+| `Echo canceller does not support sampling rate 8000Hz` | **letzte Meldung 13:44:17**, also vor dem Wechsel; danach keine mehr |
+| `Call.EchoCancellationEnabled` (über ADR-077) | meldet `an` — **stimmt mit dem Count überein** |
+
+**Damit ist der Satz aus ADR-006 Punkt 2 eingelöst**, und zwar gemessen statt
+behauptet: der Filter arbeitet bei 8 kHz, und zwar für rund ein Zehntel einer
+Millisekunde je Tick — kein Vergleich zu den 77 ms, die der Rauschfilter am
+16.09.2026 gekostet hat.
+
+**Die zweite Quelle taugt.** Weil `Call.EchoCancellationEnabled` dasselbe sagt
+wie der Count, ist die Echounterdrückung künftig **ohne Debug-Stufe** zu
+beurteilen — der Gesprächsbericht trägt sie.
+
+**Was offen bleibt, ist die Hälfte, die man hört:** ob die Gegenseite sich noch
+selbst hört, wenn über Lautsprecher gesprochen wird. Die vier Testanrufe
+dauerten eine halbe Sekunde und hatten keinen Gesprächspartner. Das entscheidet
+ein Ohr, nicht ein Protokoll.
+
+
+### Konsequenz
+
+- Der feste Hinweis in den Einstellungen ist **entfernt**. Er sagte, die
+  Abschaltung sei «eine Eigenschaft des SDK, keine Fehlfunktion» — richtig
+  für den alten Filter, aber als Dauerzusage falsch, sobald die Wahl eine
+  andere ist. Fällt T332 durch, kommt er zurück.
+- `IsEchoCancellationEffective` fragt `EchoCancellerChoice` und trägt keine
+  eigene Zahl mehr.
+- **Nicht behoben ist damit die gemeldete Sprachqualität.** Die Aussetzer im
+  Gespräch vom 08.10.2026 (13 Verwürfe bis 46 ms, drei Ticker-Verspätungen
+  bis 87 ms, in den ersten zwei Minuten geballt) stehen bei **null Prozent
+  Paketverlust, 0,5 bis 1,75 ms Jitter und 5 bis 25 ms Laufzeit** — das Netz
+  war einwandfrei, die Ursache sitzt lokal. Ein Kandidat ist der Debug-Build
+  unter x64-Emulation, der dort lief; das ist **nicht gemessen** und gehört
+  in `AUDIOQUALITAET-PLAN.md`, nicht in diesen ADR.
+
+---
+
 ## ADR-075 — Das Freizeichen beim Rauswählen spielt nipp selbst, auch ohne Early Media
 
 **Datum:** 25.09.2026 · **Status:** angenommen · **Bezug:** §9.4, ADR-029, `RingbackWatch`, `SettingsApplier.ApplyToneCards`, T143, A7

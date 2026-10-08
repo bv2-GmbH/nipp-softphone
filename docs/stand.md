@@ -13,6 +13,79 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**Stand 08.10.2026 — eine Woche Alltag nachgemessen, und zwei Dinge gebaut,
+die den nächsten Durchgang billiger machen.**
+
+Anlass war eine Meldung aus dem Betrieb: «Ich hatte ein paar Mal Probleme mit
+der Sprachqualität, vor allem beim letzten Call.» Ausgewertet wurden vier
+Protokolltage (05. bis 08.10.2026, 57 MB, Debug), **25 verbundene Gespräche**.
+
+### Was die Woche ergeben hat
+
+| | |
+|---|---|
+| **Das Rauschen ist weg** | `MSNoiseSuppressor` steht in keiner Filterstatistik mehr. Die Gegenprobe A6 vom 16.09.2026 hält im Alltag |
+| **Die Aussetzer nicht** | Das gemeldete Gespräch: 13 Verwürfe bis 46 ms, drei Ticker-Verspätungen bis 87 ms, geballt in den ersten zwei Minuten. **1,4 Verwürfe je Minute** gegen 0,04 beim besten Gespräch der Woche |
+| **Das Netz ist ausgeschlossen** | Null Prozent Verlust, 0,5 bis 1,75 ms Jitter, 5 bis 25 ms Laufzeit — durchgehend. Die Ursache sitzt **lokal in der Wiedergabe** |
+| **Ein einzelner Filter auch** | Höchste Einzellast 11,17 ms. Die Erklärung vom 16.09.2026 (ein Filter überzieht den Tick) trägt hier nicht |
+
+**Offen und ungemessen bleibt die Ursache.** Der nächstliegende Kandidat war
+der **Debug-Build**, auf dem der Arbeitsplatz monatelang lief; seit diesem Tag
+läuft er auf **Release** (`src\Nipp.App\bin\x64\Release\…`), und das ist die
+laufende Gegenprobe. Alles dazu im `AUDIOQUALITAET-PLAN.md`, Abschnitt
+«Nachmessung im Alltag».
+
+### ADR-076 — der Echo-Canceller, einen Monat zu spät
+
+Bei derselben Durchsicht stand die Zahl da, die ADR-006 Punkt 2 seit dem
+07.09.2026 vorhergesagt hatte: **`MSWebRTCAEC` mit `Count 0` in allen 128
+Filterstatistiken.** Die Echounterdrückung hat in keinem Gespräch dieser Woche
+gearbeitet, bei 27 Abschaltmeldungen und 29 von 29 Verhandlungen bei 8 kHz.
+
+Das war **nicht neu** — es stand im ADR, im Audioplan unter H5 und als Hinweis
+in den Einstellungen. Neu war nur, dass die **Folgefrage** nie jemand angefasst
+hatte: ob `EchoCancellerFilterName` einen Filter zulässt, der 8 kHz kann. Er
+lässt. `MSSpeexEC` steht in `mediastreamer2.dll`, es brauchte eine Zeile.
+
+**T332, Protokollhälfte bestanden am selben Tag:** vier Anrufe, alle PCMU/8000,
+`MSSpeexEC` mit Count 14, 12, 12 und 14 — Mittel um 0,11 ms. Die
+Abschaltmeldung steht zuletzt um 13:44:17, also vor dem Wechsel. **Offen bleibt
+das Gehör:** ob die Gegenseite sich noch selbst hört.
+
+### ADR-077 — jedes Gespräch hinterlässt eine Zeile
+
+Die Auswertung oben hat **eine Stunde von Hand** gekostet: Gespräche aus
+Zustandswechseln zusammengesucht, Störungen über Zeitfenster zugeordnet,
+Verlustwerte aus verstreuten Analysatorzeilen gelesen. Die Zahlen waren alle
+da, nur nicht an einer Stelle.
+
+Seither schreibt jedes verbundene Gespräch beim Ende **eine Zeile** auf
+`Information` — Dauer, Codec, Echo-Zustand, Geräte, Verlust, Umlauf,
+Jitterpuffer, MOS, und gezählt: Verwürfe, Ticker-Verspätungen, Pufferfehler.
+Gelesen wird sie mit **`.\tools\Zeige-Gespraeche.ps1`**.
+
+Dass nipp dafür seine eigenen Protokollzeilen liest, ist kein Umweg: diese vier
+Ereignisse meldet das SDK **ausschliesslich** über das Protokoll. Sie kommen
+als `Warning` und `Error` durch, also auch ohne Debug — und Debug kostet rund
+20 MB am Tag und ist im Alltag aus, also genau dann, wenn die Probleme
+auftreten.
+
+**T333 ist zur Hälfte abgenommen:** die Zeile erscheint, Kennung und
+Echo-Zustand stimmen. Die Audiozahlen fehlen — beide Testanrufe dauerten eine
+halbe Sekunde, und darin liegt kein Sekundentakt.
+
+### Was am Gerät aussteht
+
+| Zeile | was fehlt |
+|---|---|
+| **T332** | Ein Gespräch über Lautsprecher: hört sich die Gegenseite selbst? |
+| **T333** | Ein Gespräch von mehr als ein paar Sekunden — dann müssen `Messungen` ungefähr der Dauer in Sekunden entsprechen |
+| **Die Aussetzer** | Ein paar Tage Alltag auf dem Release-Build, dann Verwürfe je Minute gegen die Werte dieser Woche halten |
+
+---
+
+
+
 **Stand 23.09.2026, abends — der erste Tag an der Anlage, und er war schon
 gelaufen, bevor er begann.** nipp lief an diesem Tag **11 Stunden 55 Minuten
 am Stück** im echten Betrieb, auf Debug, mit **17 Gesprächen** und einem

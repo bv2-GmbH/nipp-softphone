@@ -385,12 +385,21 @@
                             OffContent="Aus"
                             OnContent="Ein" />
 
-                        <!-- ADR-006: die Einstellung verspricht mehr, als bei 8 kHz eintritt -->
-                        <InfoBar
-                            IsClosable="False"
-                            IsOpen="True"
-                            Message="Bei Gesprächen mit 8-kHz-Codecs (PCMU, PCMA — also bei den meisten externen Anrufen) schaltet sich die Echounterdrückung selbst ab. Das ist eine Eigenschaft des SDK, keine Fehlfunktion."
-                            Severity="Informational" />
+                        <!--
+                            Hier stand bis zum 08.10.2026 ein Hinweis, dass sich die
+                            Echounterdrueckung bei 8 kHz selbst abschaltet (ADR-006
+                            Punkt 2). Das stimmte: der Standardfilter des SDK,
+                            MSWebRTCAEC, stand in 128 Filterstatistiken aus vier
+                            Protokolltagen ausnahmslos bei Count 0, und alle 29
+                            Codec-Verhandlungen dieser Tage endeten bei 8 kHz.
+
+                            Seit ADR-076 waehlt nipp stattdessen MSSpeexEC, der fuer
+                            Schmalband gebaut ist. Die Einschraenkung ist damit keine
+                            Dauerzusage mehr und gehoert nicht als solche in die
+                            Oberflaeche. Ob der neue Filter wirklich greift, misst
+                            T332 an einem Gespraech — faellt er durch, kommt dieser
+                            Hinweis zurueck.
+                        -->
 
                         <!--
                             Am 16.09.2026 aus der Filterkette des SDK gelesen: der
