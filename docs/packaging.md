@@ -1,4 +1,4 @@
-# Paket und Auslieferung
+﻿# Paket und Auslieferung
 
 Wie aus dem Quellcode ein installierbares nipp wird (P9, §16).
 
@@ -229,7 +229,7 @@ System.TypeInitializationException: The type initializer for '<Module>' threw an
 
 ## Aktualisieren
 
-`Add-AppxPackage` mit einer höheren Version ersetzt die bestehende Installation. Einstellungen unter `%APPDATA%\nipp` und die Anrufliste unter `%LOCALAPPDATA%\nipp` bleiben erhalten — sie liegen ausserhalb des Pakets.
+`Add-AppxPackage` mit einer höheren Version ersetzt die bestehende Installation. Einstellungen unter `%APPDATA%\nipp` und die Anrufliste unter `%LOCALAPPDATA%\bv2\nipp` (ADR-079) bleiben erhalten — sie liegen ausserhalb des Pakets.
 
 Eine automatische Update-Prüfung in der App gibt es nicht (§16.4 ist offen). Die Verteilung übernimmt, wer auch die anderen Anwendungen verteilt.
 

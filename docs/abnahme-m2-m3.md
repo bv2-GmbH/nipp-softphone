@@ -1,4 +1,4 @@
-# Abnahme M2 und M3 — die Tests, die einen Menschen brauchen
+﻿# Abnahme M2 und M3 — die Tests, die einen Menschen brauchen
 
 Stand 04.09.2026. Sieben Punkte, alle gegen `pbx.example.ch`. Alles andere an M2 und M3 ist gebaut und im Log nachgewiesen.
 
@@ -69,7 +69,7 @@ Im Gespräch **Aufnahme** einschalten, etwas sprechen, ausschalten, auflegen.
 
 **Erwartet:**
 - Die Warnleiste **„Aufnahme läuft"** erscheint ganz oben und ist nicht zu übersehen (§8.2 — Mitschneiden ohne Kenntnis der Gegenseite ist in der Schweiz strafbar).
-- Unter `%LOCALAPPDATA%\nipp\recordings` liegt eine WAV im Schema `JJJJ-MM-TT_HHMMSS_<Nummer>.wav`.
+- Unter `%LOCALAPPDATA%\bv2\nipp\recordings` liegt eine WAV im Schema `JJJJ-MM-TT_HHMMSS_<Nummer>.wav`.
 - Die Datei lässt sich abspielen und beide Seiten sind hörbar.
 
 ---

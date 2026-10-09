@@ -11,7 +11,7 @@ lesbar bleiben.
 | Was | Wo |
 |---|---|
 | Was nipp tun soll | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-077. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen»), **ADR-075** warum nipp das Freizeichen beim Rauswählen selbst spielt (25.09.2026), **ADR-076** warum der Echo-Canceller `MSSpeexEC` heisst und **ADR-077** warum jedes Gespräch eine Auswertungszeile hinterlässt (08.10.2026) |
+| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-079. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen»), **ADR-075** warum nipp das Freizeichen beim Rauswählen selbst spielt (25.09.2026), **ADR-076** warum der Echo-Canceller `MSSpeexEC` heisst und **ADR-077** warum jedes Gespräch eine Auswertungszeile hinterlässt (08.10.2026) |
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
@@ -46,6 +46,19 @@ lesbar bleiben.
   beim übernächsten Ereignis. Behoben über `ContactStore.TeamReloaded`: das
   Ereignis meldet nicht, **dass jemand gespeichert hat**, sondern **dass die
   Daten stehen**.
+- **Wo nipp seine Daten ablegt, entscheidet genau eine Stelle:**
+  `NippPfade` (ADR-079) — `%LOCALAPPDATA%\bv2\nipp`, **nicht** `…\nipp`.
+  Der Herstellerordner ist kein Schmuck: Velopack packt mit `packId nipp` und
+  installiert nach `%LOCALAPPDATA%\nipp`. Lagen die Daten dort, fand das Setup
+  sein eigenes Verzeichnis vor und fragte, ob es überschreiben solle — **eine
+  Installation war damit auf jedem Rechner unmöglich, auf dem nipp schon
+  einmal gelaufen war**, und eine Deinstallation hätte die Anrufliste
+  mitgenommen. Der Pfad stand vorher an **elf** Stellen von Hand im Code.
+  **Die Einstellungen ziehen nicht mit** und bleiben unter `%APPDATA%\nipp`:
+  dorthin installiert Velopack nicht, dort gab es nie einen Konflikt.
+  `DatenUebernahme` holt Altbestand einmalig herüber — sie **wirft nie**
+  (sie läuft in `Program.Main`, vor dem Protokoll und vor WinUI), verschiebt
+  statt zu kopieren und lässt stehen, was am Ziel schon liegt.
 - **Welcher Echo-Canceller gilt und bei welchen Raten er arbeitet, steht an
   einer Stelle:** `EchoCancellerChoice` (ADR-076). Die Grenze stand vorher als
   Literal im Dienst — `clockRate > 8000` —, und diese Acht war die Grenze von
@@ -442,7 +455,7 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   die Fassung in `dist\releases` die ganze Historie führt. Das ist kein
   halber Upload — es ist seit 0.9.6 bei jedem Release so.
 - **Gespräche auswerten: `.\tools\Zeige-Gespraeche.ps1`** — zieht die
-  Berichtszeilen aus `%LOCALAPPDATA%\nipp\logs` und legt sie als Tabelle
+  Berichtszeilen aus `%LOCALAPPDATA%\bv2\nipp\logs` und legt sie als Tabelle
   nebeneinander (`-Tage 7`, `-NurAuffaellige`). **Das ist der Einstieg bei
   jeder Meldung über Sprachqualität**, und zwar vor jedem Blick ins
   Rohprotokoll. Die Spalte, auf die es ankommt, ist `ProMinute`. Findet es
@@ -510,7 +523,7 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   (Befund A1-9). Ein Profil mit `<accounts>` **ersetzt die Kontenliste und
   nimmt die gespeicherten Passwörter mit**; `settings.json` zurückzuspielen
   holt sie nicht zurück, und nipp meldet danach «Zugangsdaten abgelehnt». Die
-  Datei liegt neben `history.db` unter `%LOCALAPPDATA%`.
+  Datei liegt neben `history.db` unter `%LOCALAPPDATA%\bv2\nipp`.
   **Das hat zweimal eine Anmeldung gekostet — am 17. und am 21.09.2026**, das
   zweite Mal, obwohl diese Warnung schon dastand und von demselben geschrieben
   war, der sie dann übersah. **Deshalb steht die Vorsicht seit dem 21.09.2026
@@ -820,7 +833,7 @@ erfüllt. Details: docs/environment.md.
 | Frage | Dokument |
 |---|---|
 | Was soll nipp tun? | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-077 |
+| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-079 |
 | Wo steht das Projekt insgesamt? | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmenplan in Wellen. **`docs/plans/WELLE-0-PLAN.md`** — die fünf Schritte davor, alle umgesetzt |
 | Wo hakt die Bedienung? | **`docs/plans/UX-REVIEW-2.md`** — 20 Befunde (12.09.2026), davor **`docs/plans/UX-REVIEW.md`** — 25 Befunde. Umsetzungsstand jeweils ganz vorn |
 | Was passiert auf einem breiten Fenster? | **`docs/plans/BREITBILD-PLAN.md`** — zwei Spalten, Kacheln, der Detailbereich in der Zeile |

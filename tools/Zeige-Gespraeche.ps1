@@ -22,7 +22,7 @@ param(
     # Nur Gespraeche mit Stoerungen zeigen.
     [switch]$NurAuffaellige,
 
-    [string]$Verzeichnis = "$env:LOCALAPPDATA\nipp\logs"
+    [string]$Verzeichnis = "$env:LOCALAPPDATA\bv2\nipp\logs"
 )
 
 $ErrorActionPreference = 'Stop'
