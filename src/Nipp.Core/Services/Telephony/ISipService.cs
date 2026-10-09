@@ -79,14 +79,20 @@ public interface ISipService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Startet die Echo-Kalibrierung (§9.4, AP5.7). Dauert etwa 15 Sekunden
-    /// und liefert das Ergebnis in Millisekunden.
+    /// Startet die Echo-Kalibrierung (§9.4, AP5.7, ADR-078). Dauert etwa 15
+    /// Sekunden.
     ///
-    /// Während der Kalibrierung darf kein Gespräch laufen — sie belegt Mikrofon
-    /// und Lautsprecher.
+    /// <para>Während der Kalibrierung darf kein Gespräch laufen — sie belegt
+    /// Mikrofon und Lautsprecher.</para>
+    ///
+    /// <para><b>Es gibt drei Ausgänge, nicht zwei.</b> Neben «Echo gemessen»
+    /// und «gescheitert» kennt das SDK «durchgelaufen, kein Echo gefunden»,
+    /// und das ist eine nützliche Auskunft: dann braucht dieser Arbeitsplatz
+    /// keine Echounterdrückung. Bis zum 09.10.2026 gab diese Methode ein
+    /// <c>int?</c> zurück und machte aus dem dritten Fall ein <c>null</c> —
+    /// also einen Fehlschlag.</para>
     /// </summary>
-    /// <returns>Verzögerung in ms, oder <c>null</c>, wenn die Messung scheiterte.</returns>
-    Task<int?> CalibrateEchoAsync(CancellationToken cancellationToken = default);
+    Task<EchoKalibrierung> CalibrateEchoAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Meldet, ob die Echounterdrückung im laufenden Gespräch <b>tatsächlich</b>

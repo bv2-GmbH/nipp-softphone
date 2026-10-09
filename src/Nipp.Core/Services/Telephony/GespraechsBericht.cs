@@ -107,12 +107,12 @@ public sealed class GespraechsBericht
         if (_messungen.Count > 0)
         {
             t.Add($"Verlust max {Max(q => q.ReceiverLossPercent):0.0}%");
-            t.Add($"Umlauf {Mittel(q => q.RoundTripSeconds * 1000):0} ms (max {Max(q => q.RoundTripSeconds * 1000):0})");
-            t.Add($"Puffer {Mittel(q => q.JitterBufferMilliseconds):0} ms (max {Max(q => q.JitterBufferMilliseconds):0})");
+            t.Add($"Umlauf {Median(q => q.RoundTripSeconds * 1000):0} ms (max {Max(q => q.RoundTripSeconds * 1000):0})");
+            t.Add($"Puffer {Median(q => q.JitterBufferMilliseconds):0} ms (max {Max(q => q.JitterBufferMilliseconds):0})");
 
             var mos = _messungen.Where(q => q.Mos > 0).Select(q => q.Mos).ToList();
             t.Add(mos.Count > 0
-                ? $"MOS {mos.Average():0.0} (min {mos.Min():0.0})"
+                ? $"MOS {MedianVon(mos):0.0} (min {mos.Min():0.0})"
                 : "MOS keiner");
         }
         else
@@ -146,7 +146,36 @@ public sealed class GespraechsBericht
         };
     }
 
-    private double Mittel(Func<CallQuality, double> wahl) => _messungen.Average(wahl);
+    /// <summary>
+    /// Der mittlere Wert, <b>nicht der Durchschnitt</b> — und das ist gemessen,
+    /// nicht Geschmack (09.10.2026).
+    ///
+    /// <para>In einem Gespräch von 19:37 meldete das SDK für den Jitterpuffer
+    /// 222 Werte: 220 davon zwischen 34 und 79 ms, einer bei 102 ms — und
+    /// einer bei <b>2 334 266 ms</b>. Das sind neununddreissig Minuten Puffer
+    /// in einem Gespräch von zwanzig; es ist kein Messwert, sondern Müll aus
+    /// dem SDK. Der Durchschnitt stand dadurch bei 12 031 ms statt bei 40, und
+    /// der ganze Eintrag war wertlos.</para>
+    ///
+    /// <para><b>Weggefiltert wird trotzdem nichts.</b> Eine Schwelle, ab der
+    /// ein Wert als Müll gilt, wäre eine erfundene Zahl — und sie würde
+    /// irgendwann einen echten Ausreisser verschlucken, also genau den Fall,
+    /// den man sucht. Der Median kommt ohne sie aus, und <b>das Maximum bleibt
+    /// daneben stehen</b>: wer beides liest, sieht sofort, dass einer der
+    /// Werte nicht stimmen kann.</para>
+    /// </summary>
+    private double Median(Func<CallQuality, double> wahl) =>
+        MedianVon(_messungen.Select(wahl).ToList());
+
+    private static double MedianVon<T>(List<T> werte) where T : IConvertible
+    {
+        var sortiert = werte.Select(w => w.ToDouble(null)).OrderBy(w => w).ToList();
+        var mitte = sortiert.Count / 2;
+
+        return sortiert.Count % 2 == 1
+            ? sortiert[mitte]
+            : (sortiert[mitte - 1] + sortiert[mitte]) / 2;
+    }
 
     private double Max(Func<CallQuality, double> wahl) => _messungen.Max(wahl);
 

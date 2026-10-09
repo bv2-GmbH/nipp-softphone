@@ -8,6 +8,67 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-078 — «Kein Echo» ist ein Ergebnis, und auf dieser Maschine ist es das Ergebnis
+
+**Datum:** 09.10.2026 · **Status:** angenommen · **Bezug:** §9.4, AP5.7, ADR-006 Punkt 2, ADR-076, ADR-074, `EchoKalibrierung`, T33
+
+**Anlass:** Die Nachmessung zu ADR-076 hat gezeigt, dass der tags zuvor eingeschaltete Echo-Canceller die Sprachqualität **verschlechtert** — gemessen und gehört. Die Kalibrierung, die den Verdacht klären sollte, hat stattdessen die Grundlage umgeworfen.
+
+### Was gemessen wurde
+
+**Der Canceller läuft, und er kostet.** Im ersten echten Gespräch mit `MSSpeexEC` (08.10.2026, 14:28, 65 Sekunden) standen **11 Verwürfe — 10,2 je Minute**. Am 09.10.2026 in einem Gespräch von 19:37: **106 Verwürfe, 5,4 je Minute**, dazu **124 Mal** `Not enough ref samples, using zeroes`.
+
+Zum Vergleich dieselbe Maschine ohne Canceller:
+
+| Tag | Verwürfe je Gesprächsminute |
+|---|---|
+| 06.10. | 0,15 |
+| 05.10. | 0,42 |
+| 08.10. vormittags | 0,66 |
+| 07.10. | 1,78 |
+| **08.10. 14:28, erstes Gespräch mit EC** | **10,2** |
+| **09.10.** | **5,4** |
+
+`Not enough ref samples` gibt es **ausschliesslich** seit dem Filterwechsel — null an allen zwölf Protokolltagen davor, 44 am 08.10., 124 am 09.10. Die Meldung kommt vom Canceller: er braucht das Wiedergabesignal als Referenz und rechnet ersatzweise mit Stille.
+
+**Und es ist hörbar.** Aus dem Betrieb: «gut, aber gegen Ende des Gesprächs war ein Rauschen und leichte Verzerrung». Die Verwürfe setzen um 09:40:08 ein, das Gespräch lief bis 09:49:56 — die erste Hälfte ist sauber, die zweite nicht.
+
+### Die Kalibrierung, und was sie wirklich sagte
+
+`linphonerc` trug nie ein `ec_delay`; die Kalibrierung aus §9.4 war nie gelaufen (T33). Nachgeholt am 09.10.2026 — und das SDK antwortete:
+
+> `[Echo Canceller Calibration] Using playback device ID: WASAPI: Default Playback`
+> `Echo calibration succeeded, no echo has been detected`
+
+**nipp schrieb daraufhin «Die Kalibrierung lieferte kein Ergebnis».**
+
+Der Grund stand im Code: gepollt wurde `Core.EchoCancellationCalibration`, gewertet nur ein Wert über null, und der Kommentar daneben sagte *«negativ heisst läuft noch oder fehlgeschlagen»*. Das SDK kennt aber **vier** Status — `InProgress`, `Done`, `Failed` und **`DoneNoEcho`** —, und der letzte legt eine Null ab. Ein sauber durchgelaufener Fall sah damit aus wie ein Fehlschlag.
+
+**Das ist der teuerste Teil dieses ADR:** die Auskunft «hier gibt es kein Echo» lag seit P5 in Reichweite, und sie hätte ADR-076 von vornherein erübrigt.
+
+### Entscheidung
+
+**Erstens: Das Ergebnis wird gelesen, nicht erraten.** `SipEventBridge` abonniert `OnEcCalibrationResult` und übersetzt den Status in `EchoKalibrierung` — ein eigener Typ ohne SDK-Enum (ADR-074). `CalibrateEchoAsync` wartet auf das Ereignis statt zu pollen und gibt alle drei Ausgänge zurück, jeden mit seinem eigenen Satz. Nebengewinn: die Kalibrierung ist nach **vier** Sekunden fertig statt nach fünfundzwanzig — das Pollen lief immer in die Zeitgrenze.
+
+**Zweitens: Die Echounterdrückung ist auf diesem Arbeitsplatz aus.** Nur die Einstellung, kein Rückbau von ADR-076.
+
+### Warum ADR-076 trotzdem stehen bleibt
+
+Es ist nicht falsch, sondern unnötig — und der Unterschied zählt. **Wenn** ein Arbeitsplatz Echo hat, greift seit ADR-076 ein Filter, der bei 8 kHz arbeitet, statt eines, der sich abschaltet. Diese Maschine hat keines: gemessen mit den Notebook-Lautsprechern als Standardgerät, also im denkbar ungünstigsten Fall — offener Lautsprecher neben offenem Mikrofon. Vermutlich unterdrückt der Audiotreiber es bereits selbst; **das ist nicht gemessen**, aber es passt dazu, dass in Wochen ohne funktionierenden Canceller nie jemand Echo gemeldet hat.
+
+### Was das für andere Arbeitsplätze heisst
+
+**Die Einstellung ist eine Entscheidung je Gerät, keine Vorgabe.** Wer einen neuen Arbeitsplatz einrichtet, kalibriert einmal: sagt die Messung «kein Echo», bleibt die Unterdrückung aus; sagt sie eine Zahl, gehört sie an. §9.4 führt «Echounterdrückung: ein» weiterhin als Standard, und das bleibt richtig für den unbekannten Fall.
+
+### Konsequenz
+
+- **T33 ist abgenommen** (09.10.2026): die Kalibrierung liefert ein Ergebnis und benennt es.
+- Der Gesprächsbericht aus ADR-077 ist die Messgrundlage dieser Entscheidung gewesen — er war einen Tag alt.
+- **Offen bleibt die Ursache der Aussetzer**, die am 08.10.2026 gemeldet wurden. Der Canceller hat sie verstärkt, aber es gab sie vorher schon (1,78 je Minute am 07.10.). Die Gegenprobe ohne ihn steht noch aus.
+
+---
+
+
 ## ADR-077 — Jedes Gespräch hinterlässt einen Bericht, damit der Alltag auswertbar wird
 
 **Datum:** 08.10.2026 · **Status:** angenommen · **Bezug:** §8.2, §9.6, §21.2, ADR-022, ADR-053, ADR-074, `GespraechsBericht`, `SdkStoerung`, T333
@@ -206,6 +267,19 @@ selbst hört, wenn über Lautsprecher gesprochen wird. Die vier Testanrufe
 dauerten eine halbe Sekunde und hatten keinen Gesprächspartner. Das entscheidet
 ein Ohr, nicht ein Protokoll.
 
+
+### Nachtrag vom 09.10.2026: richtig gebaut, hier nicht gebraucht
+
+Der Filter arbeitet — und **kostet mehr, als er bringt**. Im ersten echten
+Gespräch mit ihm standen 10,2 Verwürfe je Minute gegen 0,15 bis 1,78 an den
+Tagen davor, dazu 124 Mal `Not enough ref samples, using zeroes`, und aus dem
+Betrieb: «gegen Ende des Gesprächs ein Rauschen und leichte Verzerrung».
+
+**Der Grund steht in ADR-078:** die nachgeholte Kalibrierung findet auf dieser
+Maschine überhaupt kein Echo. Die Echounterdrückung ist deshalb hier
+**ausgeschaltet** — als Einstellung, nicht als Rückbau. Dieser ADR bleibt
+gültig für den Fall, dass ein Arbeitsplatz wirklich Echo hat: dann greift
+seither ein Filter, der bei 8 kHz arbeitet, statt eines, der sich abschaltet.
 
 ### Konsequenz
 

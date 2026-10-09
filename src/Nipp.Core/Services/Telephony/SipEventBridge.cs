@@ -85,6 +85,14 @@ internal sealed class SipEventBridge : IDisposable
         listener.OnTransferStateChanged = (core, transferred, state) =>
             CallbackGuard.Run(_logger, nameof(OnTransferStateChanged),
                 () => OnTransferStateChanged(core, transferred, state));
+
+        // ADR-078: das Ergebnis der Echo-Kalibrierung. Vorher hat SipService
+        // stattdessen Core.EchoCancellationCalibration gepollt und nur einen
+        // Wert ueber null als Ergebnis gewertet — der Status DoneNoEcho, der
+        // dort eine Null ablegt, sah damit aus wie ein Fehlschlag.
+        listener.OnEcCalibrationResult = (core, status, delayMs) =>
+            CallbackGuard.Run(_logger, nameof(OnEcCalibrationResult),
+                () => OnEcCalibrationResult(core, status, delayMs));
     }
 
     /// <summary>Registrierungszustand eines Kontos hat sich geändert.</summary>
@@ -108,6 +116,12 @@ internal sealed class SipEventBridge : IDisposable
     /// zuordnen kann — wie bei <see cref="CallStateChanged"/>.
     /// </summary>
     public event EventHandler<SdkTransferStateEventArgs>? TransferStateChanged;
+
+    /// <summary>
+    /// Die Echo-Kalibrierung ist fertig (ADR-078) — mit dem Ergebnis, nicht
+    /// nur mit einer Zahl.
+    /// </summary>
+    public event EventHandler<EchoKalibrierung>? EchoKalibrierungFertig;
 
     private void OnAccountRegistrationStateChanged(
         LinphoneCore core,
@@ -446,6 +460,35 @@ internal sealed class SipEventBridge : IDisposable
 
     private void OnAudioDevicesListUpdated(LinphoneCore core) =>
         AudioDevicesChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>
+    /// Übersetzt den Kalibrierungsstatus des SDK — und <b>hier endet das
+    /// SDK-Enum</b> (ADR-074): weiter nach aussen geht nur
+    /// <see cref="EchoKalibrierung"/>.
+    ///
+    /// <para><c>InProgress</c> wird nicht gemeldet. Das Ereignis dafür käme
+    /// mehrfach, und wer auf ein Ergebnis wartet, wartet auf ein Ergebnis.</para>
+    /// </summary>
+    private void OnEcCalibrationResult(LinphoneCore core, EcCalibratorStatus status, int delayMs)
+    {
+        if (status == EcCalibratorStatus.InProgress)
+        {
+            return;
+        }
+
+        var ergebnis = status switch
+        {
+            EcCalibratorStatus.Done => EchoKalibrierungsErgebnis.EchoGemessen,
+            EcCalibratorStatus.DoneNoEcho => EchoKalibrierungsErgebnis.KeinEcho,
+            _ => EchoKalibrierungsErgebnis.Fehlgeschlagen,
+        };
+
+        EchoKalibrierungFertig?.Invoke(
+            this,
+            new EchoKalibrierung(
+                ergebnis,
+                ergebnis == EchoKalibrierungsErgebnis.EchoGemessen ? delayMs : 0));
+    }
 
     private void OnGlobalStateChanged(LinphoneCore core, GlobalState state, string message) =>
         TelephonyLog.GlobalStateChanged(_logger, state.ToString(), message);

@@ -55,13 +55,13 @@ public class GespraechsBerichtTests
     }
 
     /// <summary>
-    /// <b>Mittel und Maximum stehen beide da</b>, und zwar weil sie nie
+    /// <b>Mittlerer Wert und Maximum stehen beide da</b>, und zwar weil sie nie
     /// dasselbe beantworten (CLAUDE.md, 16.09.2026 — der Rauschfilter stand
     /// bei 0,7 ms im Mittel und 77 ms im Maximum, und nur die zweite Zahl war
     /// das Problem).
     /// </summary>
     [Fact]
-    public void Umlaufzeit_traegt_Mittel_und_Maximum()
+    public void Umlaufzeit_traegt_mittleren_Wert_und_Maximum()
     {
         var b = Bericht();
         b.Erfasse(Messung(umlaufSekunden: 0.010f));
@@ -70,7 +70,34 @@ public class GespraechsBerichtTests
 
         var zeile = b.AlsZeile(Null.AddMinutes(1), stufeIstDebug: false);
 
-        Assert.Contains("Umlauf 90 ms (max 250)", zeile, StringComparison.Ordinal);
+        Assert.Contains("Umlauf 10 ms (max 250)", zeile, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>Ein einzelner Müllwert des SDK darf den Bericht nicht umwerfen</b> —
+    /// am 09.10.2026 passiert und der Grund für den Median.
+    ///
+    /// <para>Das SDK meldete für den Jitterpuffer 222 Werte, davon 220 zwischen
+    /// 34 und 79 ms und <b>einen bei 2 334 266 ms</b>. Der Durchschnitt stand
+    /// dadurch bei 12 031 ms, und niemand konnte den Eintrag mehr deuten. Der
+    /// Median nimmt davon keine Notiz; <b>das Maximum zeigt den Ausreisser
+    /// weiterhin</b>, und genau diese Gegenüberstellung macht ihn erkennbar.</para>
+    /// </summary>
+    [Fact]
+    public void Ein_Muellwert_verdirbt_den_mittleren_Wert_nicht()
+    {
+        var b = Bericht();
+
+        for (var i = 0; i < 20; i++)
+        {
+            b.Erfasse(Messung(puffer: 40));
+        }
+
+        b.Erfasse(Messung(puffer: 2334266));
+
+        var zeile = b.AlsZeile(Null.AddMinutes(20), stufeIstDebug: false);
+
+        Assert.Contains("Puffer 40 ms (max 2334266)", zeile, StringComparison.Ordinal);
     }
 
     /// <summary>

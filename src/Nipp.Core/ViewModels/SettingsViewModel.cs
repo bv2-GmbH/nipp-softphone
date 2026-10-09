@@ -1406,15 +1406,25 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         {
             var result = await _sip.CalibrateEchoAsync().ConfigureAwait(true);
 
-            if (result is { } ms)
+            // ADR-078: drei Ausgänge, drei Sätze. «Kein Echo» ist ein Ergebnis
+            // und gehört nicht in Error — es ist die beste Nachricht von den
+            // dreien, denn dann braucht dieser Arbeitsplatz die
+            // Echounterdrückung gar nicht.
+            switch (result.Ergebnis)
             {
-                EchoCalibrationMs = ms;
-                Message = $"Kalibrierung abgeschlossen: {ms} ms Verzögerung.";
-            }
-            else
-            {
-                Error = "Die Kalibrierung lieferte kein Ergebnis. "
-                    + "Mikrofon und Lautsprecher prüfen und erneut versuchen.";
+                case EchoKalibrierungsErgebnis.EchoGemessen:
+                    EchoCalibrationMs = result.VerzoegerungMs;
+                    Message = result.Beschreibung;
+                    break;
+
+                case EchoKalibrierungsErgebnis.KeinEcho:
+                    EchoCalibrationMs = 0;
+                    Message = result.Beschreibung;
+                    break;
+
+                default:
+                    Error = result.Beschreibung;
+                    break;
             }
         }
         catch (InvalidOperationException ex)

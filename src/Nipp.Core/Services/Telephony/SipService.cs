@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Globalization;
 using Linphone;
 using Microsoft.Extensions.Logging;
@@ -697,7 +697,7 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     /// <see cref="Task.Delay(TimeSpan, CancellationToken)"/> und blockiert den
     /// UI-Thread nicht (§14.1).
     /// </summary>
-    public async Task<int?> CalibrateEchoAsync(CancellationToken cancellationToken = default)
+    public async Task<EchoKalibrierung> CalibrateEchoAsync(CancellationToken cancellationToken = default)
     {
         var core = RequireCore();
 
@@ -708,29 +708,52 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
                     + "Zuerst das laufende Gespräch beenden.");
         }
 
-        TelephonyLog.EchoCalibrationStarted(_logger);
-        core.StartEchoCancellerCalibration();
+        // ADR-078: auf das Ereignis warten, nicht pollen. Der frühere Weg las
+        // Core.EchoCancellationCalibration und wertete nur einen Wert über null
+        // als Ergebnis — der Status DoneNoEcho legt dort aber eine Null ab, und
+        // «kein Echo gefunden» sah damit aus wie «Messung gescheitert». Am
+        // 09.10.2026 gemessen: das SDK meldete «Echo calibration succeeded, no
+        // echo has been detected», nipp schrieb «lieferte kein Ergebnis».
+        var bridge = _bridge
+            ?? throw new InvalidOperationException("Die Telefonie ist noch nicht gestartet.");
 
-        // §9.4 nennt etwa 15 Sekunden; mit Reserve auf 25 begrenzt.
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(25);
+        var warten = new TaskCompletionSource<EchoKalibrierung>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
-        while (DateTimeOffset.UtcNow < deadline)
+        void Fertig(object? sender, EchoKalibrierung ergebnis) => warten.TrySetResult(ergebnis);
+
+        bridge.EchoKalibrierungFertig += Fertig;
+
+        try
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(true);
+            TelephonyLog.EchoCalibrationStarted(_logger);
+            core.StartEchoCancellerCalibration();
 
-            var value = core.EchoCancellationCalibration;
+            // §9.4 nennt etwa 15 Sekunden; mit Reserve auf 25 begrenzt. Bleibt
+            // das Ereignis aus, gilt das als Fehlschlag — ein Warten ohne Ende
+            // wäre ein Knopf, der nie zurückkommt.
+            var fertig = await Task.WhenAny(
+                warten.Task,
+                Task.Delay(TimeSpan.FromSeconds(25), cancellationToken)).ConfigureAwait(true);
 
-            // Negativ heisst „läuft noch" oder „fehlgeschlagen"; positiv ist
-            // das Ergebnis in Millisekunden.
-            if (value > 0)
+            if (fertig != warten.Task)
             {
-                TelephonyLog.EchoCalibrationDone(_logger, value);
-                return value;
+                TelephonyLog.EchoCalibrationFailed(_logger);
+                return new EchoKalibrierung(EchoKalibrierungsErgebnis.Fehlgeschlagen, 0);
             }
-        }
 
-        TelephonyLog.EchoCalibrationFailed(_logger);
-        return null;
+            var ergebnis = await warten.Task.ConfigureAwait(true);
+            TelephonyLog.EchoCalibrationResult(
+                _logger,
+                ergebnis.Ergebnis.ToString(),
+                ergebnis.VerzoegerungMs);
+
+            return ergebnis;
+        }
+        finally
+        {
+            bridge.EchoKalibrierungFertig -= Fertig;
+        }
     }
 
     private static Account? FindSdkAccount(LinphoneCore core, string identity) =>

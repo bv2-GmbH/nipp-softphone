@@ -460,4 +460,15 @@ internal static partial class TelephonyLog
     [LoggerMessage(EventId = 2115, Level = LogLevel.Information,
         Message = "Gespraech {Call} ausgewertet: {Bericht}")]
     public static partial void CallReport(ILogger logger, string call, string bericht);
+
+    /// <summary>
+    /// Das Ergebnis der Echo-Kalibrierung mit seinem Ausgang (ADR-078).
+    ///
+    /// <para>Ersetzt <c>EchoCalibrationDone</c>, das nur eine Zahl trug und
+    /// deshalb für «kein Echo gefunden» gar nicht geschrieben wurde.</para>
+    /// </summary>
+    [LoggerMessage(EventId = 2116, Level = LogLevel.Information,
+        Message = "Echo-Kalibrierung: {Ergebnis}, {Milliseconds} ms")]
+    public static partial void EchoCalibrationResult(
+        ILogger logger, string ergebnis, int milliseconds);
 }
