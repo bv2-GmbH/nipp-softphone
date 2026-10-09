@@ -7,6 +7,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Nipp.Core.Services.Integrations.Config;
 using Nipp.Core.Services.Settings;
+using Nipp.Core.Services;
 
 namespace Nipp.Core.Diagnostics;
 
@@ -43,16 +44,10 @@ public sealed class DiagnosticsBundle(
     public string LogDirectory { get; } = logDirectory ?? DefaultLogDirectory;
 
     /// <summary>§10: Protokolle unter %LOCALAPPDATA%\nipp\logs.</summary>
-    public static string DefaultLogDirectory => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "nipp",
-        "logs");
+    public static string DefaultLogDirectory => NippPfade.Logs;
 
     /// <summary>Wohin das Paket geschrieben wird.</summary>
-    public static string DefaultOutputDirectory => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "nipp",
-        "diagnostics");
+    public static string DefaultOutputDirectory => NippPfade.Diagnose;
 
     /// <summary>
     /// Baut das Paket und gibt den Pfad zurück.

@@ -34,6 +34,7 @@ using Serilog;
 // existiert.
 using LaunchActivation = global::Windows.ApplicationModel.Activation.ILaunchActivatedEventArgs;
 using ProtocolActivation = global::Windows.ApplicationModel.Activation.IProtocolActivatedEventArgs;
+using Nipp.Core.Services;
 
 namespace Nipp.App;
 
@@ -97,6 +98,20 @@ public partial class App : Application, IDisposable
     {
         var version = GetType().Assembly.GetName().Version?.ToString() ?? "unbekannt";
         AppLog.Starting(_logger, version);
+
+        // ADR-079: Die Übernahme lief in Program.Main, vor dem Logger. Hier
+        // steht die erste Stelle, an der sich ihr Ergebnis hinschreiben
+        // lässt — und nur, wenn es etwas zu sagen gibt: ein Start ohne
+        // Umzug ist der Normalfall und keine Zeile wert.
+        if (Program.Uebernahme.EtwasGeschehen)
+        {
+            AppLog.DatenUebernommen(
+                _logger,
+                Program.Uebernahme.Uebernommen,
+                Program.Uebernahme.Uebersprungen,
+                Program.Uebernahme.Gescheitert,
+                NippPfade.Daten);
+        }
 
         // Die Aktivierung einmal holen und weiterreichen: sie trägt bei einem
         // tel:-Klick die URI, und genau die ging bisher verloren.
@@ -1450,10 +1465,7 @@ public partial class App : Application, IDisposable
 
     private static Serilog.Core.Logger CreateLogger()
     {
-        var logDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "nipp",
-            "logs");
+        var logDirectory = NippPfade.Logs;
 
         Directory.CreateDirectory(logDirectory);
 
@@ -1534,10 +1546,7 @@ public partial class App : Application, IDisposable
     {
         try
         {
-            var directory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "nipp",
-                "logs");
+            var directory = NippPfade.Logs;
             Directory.CreateDirectory(directory);
 
             var pfad = Path.Combine(directory, "beenden.txt");
@@ -1559,10 +1568,7 @@ public partial class App : Application, IDisposable
     {
         try
         {
-            var directory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "nipp",
-                "logs");
+            var directory = NippPfade.Logs;
             Directory.CreateDirectory(directory);
 
             var pfad = Path.Combine(directory, "crash.txt");

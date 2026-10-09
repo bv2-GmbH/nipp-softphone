@@ -18,6 +18,7 @@ using Nipp.Core.Services.Settings;
 using Nipp.Core.Services.Telephony;
 using Nipp.Core.Services.Telephony.Model;
 using Nipp.Core.ViewModels;
+using Nipp.Core.Services;
 
 namespace Nipp.App.Views.Settings;
 
@@ -687,10 +688,7 @@ public sealed partial class SettingsPage : Page
     /// <summary>§9.6: „Log-Ordner öffnen".</summary>
     private void OnOpenLogsClick(object sender, RoutedEventArgs e)
     {
-        var directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "nipp",
-            "logs");
+        var directory = NippPfade.Logs;
 
         try
         {

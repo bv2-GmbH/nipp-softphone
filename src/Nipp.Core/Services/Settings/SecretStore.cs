@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Nipp.Core.Services;
 
 namespace Nipp.Core.Services.Settings;
 
@@ -35,10 +36,7 @@ public sealed class SecretStore(ILogger<SecretStore> logger, string? path = null
     };
 
     /// <summary>§10: Zugangsdaten unter %LOCALAPPDATA%, nicht bei der Konfiguration.</summary>
-    public static string DefaultPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "nipp",
-        "secrets.dat");
+    public static string DefaultPath => NippPfade.Geheimnisse;
 
     /// <summary>
     /// Die Datei, mit der diese Instanz arbeitet.

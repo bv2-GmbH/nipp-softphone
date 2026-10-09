@@ -73,7 +73,7 @@
       v0.9.13 lief, und ein lokaler Build meldete im Protokoll eine Version,
       die dreizehn Releases alt aussah.
     -->
-    <VersionPrefix>0.9.14</VersionPrefix>
+    <VersionPrefix>0.9.15</VersionPrefix>
     <Product>nipp</Product>
     <Company>bv2 GmbH</Company>
     <Authors>bv2 GmbH</Authors>

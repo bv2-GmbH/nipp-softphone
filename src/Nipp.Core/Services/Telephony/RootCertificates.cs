@@ -1,7 +1,8 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Nipp.Core.Services;
 
 namespace Nipp.Core.Services.Telephony;
 
@@ -39,10 +40,7 @@ public sealed class RootCertificates(ILogger<RootCertificates> logger)
     /// §10: unter %LOCALAPPDATA%, nicht bei der Konfiguration — die Datei ist
     /// ein Abbild des Rechners, keine Einstellung des Benutzers.
     /// </summary>
-    public static string DefaultPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "nipp",
-        "rootca.pem");
+    public static string DefaultPath => NippPfade.Wurzelzertifikate;
 
     /// <summary>
     /// Liefert den Pfad zum Zertifikatsbündel und schreibt es, wenn es fehlt

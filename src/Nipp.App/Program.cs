@@ -1,4 +1,5 @@
-﻿using Nipp.Core.Services.Windows;
+﻿using Nipp.Core.Services;
+using Nipp.Core.Services.Windows;
 using Velopack;
 
 namespace Nipp.App;
@@ -72,6 +73,20 @@ public static class Program
 
             .Run();
 
+        // ADR-079: die Daten an ihren neuen Ort holen, falls sie noch am alten
+        // liegen. Das muss HIER stehen und nicht spaeter: die erste Zeile, die
+        // nipp schreibt, ist eine Protokollzeile, und die soll schon im neuen
+        // Verzeichnis landen.
+        //
+        // Nach Run() und nicht davor — ein Velopack-Hook kehrt nie zurueck,
+        // und waehrend einer laufenden Installation an den Daten zu arbeiten
+        // waere der denkbar schlechteste Zeitpunkt.
+        //
+        // Diese Methode wirft nicht (siehe DatenUebernahme), sonst stuende
+        // hier der Satz aus CLAUDE.md: nichts Wartendes und nichts
+        // Werfendes vor WinUI.
+        Uebernahme = DatenUebernahme.Ausfuehren();
+
         // Ab hier der Weg, den der XAML-Compiler sonst selbst genommen haette.
         // Der Aufruf bleibt seiner - ComWrappers, Application.Start und der
         // DispatcherQueueSynchronizationContext stehen dort in einer
@@ -105,6 +120,16 @@ public static class Program
     /// Mal.</para>
     /// </summary>
     public static StartAnlass Anlass { get; private set; } = StartAnlass.Normal;
+
+    /// <summary>
+    /// Was die Datenübernahme beim Start bewirkt hat (ADR-079).
+    ///
+    /// <para>Steht hier und nicht im Protokoll, weil sie <b>vor</b> dem
+    /// Protokoll läuft — es gibt in diesem Moment noch keine Datei, in die
+    /// man schreiben könnte. <c>App</c> liest den Wert, sobald der Logger
+    /// steht, und schreibt ihn dann hin.</para>
+    /// </summary>
+    public static UebernahmeErgebnis Uebernahme { get; private set; }
 
     /// <summary>
     /// Was nipp beim Deinstallieren hinterlässt, und zwar nichts (W1.5, E4).

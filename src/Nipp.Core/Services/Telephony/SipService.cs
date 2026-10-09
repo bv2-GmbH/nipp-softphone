@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Globalization;
 using Linphone;
 using Microsoft.Extensions.Logging;
@@ -14,6 +14,7 @@ using CallStatus = Nipp.Core.Services.Telephony.Model.CallStatus;
 //   Core        -> Nipp.Core (unser Namespace!) statt Linphone.Core
 //   CallStatus  -> mehrdeutig zwischen Linphone und unserem Modell
 using LinphoneCore = Linphone.Core;
+using Nipp.Core.Services;
 
 namespace Nipp.Core.Services.Telephony;
 
@@ -114,10 +115,7 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     private bool _disposed;
 
     /// <summary>§16.7: lokal, in P5 aus den Einstellungen.</summary>
-    public string RecordingDirectory { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "nipp",
-        "recordings");
+    public string RecordingDirectory { get; set; } = NippPfade.Aufnahmen;
 
     /// <summary>§8.2: höchstens zwei gleichzeitige Gespräche.</summary>
     private const int MaxConcurrentCalls = 2;

@@ -8,6 +8,114 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-079 — Die Daten liegen unter `%LOCALAPPDATA%\bv2\nipp`, weil das Setup sonst sein eigenes Verzeichnis vorfindet
+
+**Datum:** 09.10.2026 · **Status:** angenommen · **Bezug:** §10, ADR-038, `NippPfade`, `DatenUebernahme`, T334
+
+**Anlass:** Nach dem Veröffentlichen von 0.9.14 sollte der Arbeitsplatz von einem Build-Verzeichnis auf eine richtige Installation umgestellt werden. Das Setup brach ab.
+
+### Was gemessen wurde
+
+Aus dem Protokoll des Installationsprogramms (09.10.2026):
+
+```
+Installation Directory: "C:\Users\...\AppData\Local\nipp"
+Auto-locating app manifest...
+Overwrite/repair dialog timed out, treating as cancel.
+Directory already exists, and user cancelled overwrite.
+```
+
+Velopack packt nipp mit `packId nipp` und installiert damit nach
+`%LOCALAPPDATA%\nipp`. **Genau dort lagen die Daten** — `history.db`,
+`secrets.dat`, `rootca.pem`, `logs\`, `recordings\`, `diagnostics\`. Das Setup
+fand das Verzeichnis vor, hielt es für eine frühere Installation und fragte, ob
+es überschreiben solle; der Dialog lief unbemerkt fünf Minuten ins Zeitlimit.
+
+**Zwei Folgen, und die zweite ist die schlimmere:**
+
+1. **Eine Installation war auf jedem Rechner unmöglich, auf dem nipp schon
+   einmal gelaufen war.** Das Verzeichnis entsteht beim ersten Start, nicht
+   erst beim Installieren.
+2. **Eine Deinstallation hätte die Daten mitgenommen.** Velopack räumt sein
+   Installationsverzeichnis auf, und das war dasselbe. `docs/updates.md`
+   versprach derweil wörtlich: «Benutzerdaten liegen **ausserhalb** und
+   überleben jedes Update» — mit `%LOCALAPPDATA%\nipp\history.db` als Beispiel.
+   Für Updates stimmte das, für das Entfernen nicht. **Gemessen ist das nicht**
+   — es ist der Versuch, den man auf einem Arbeitsplatz mit echten Daten nicht
+   macht.
+
+### Warum es so weit kam
+
+Der Pfad stand an **elf Stellen** im Code, jedes Mal von Hand aus
+`LocalApplicationData` und dem Literal `"nipp"` zusammengesetzt — in
+`App.xaml.cs` dreimal, dazu `SettingsPage`, `DiagnosticsBundle` (zweimal),
+`CallHistoryStore`, `SecretStore`, `RootCertificates`, `SipService` und
+`SettingsViewModel`.
+
+**Es gab keine Stelle, die den Ort entscheidet.** Damit war er auch nicht zu
+ändern: wer eine der elf übersieht, baut nipp, das seine Anrufliste an einem
+Ort sucht und an einem anderen schreibt. Das ist dieselbe Doppelwahrheit, die
+ADR-032 für Feldnamen und ADR-044 für Zustandswörter aufgelöst haben, nur mit
+einem Pfad.
+
+### Entscheidung
+
+**Die Daten liegen unter `%LOCALAPPDATA%\bv2\nipp`**, und wo genau, entscheidet
+`NippPfade` — eine Stelle, elf Verwendungen.
+
+Der Herstellerordner ist der ganze Trick: unter `bv2` kann Velopack nichts
+anlegen, weil es nur den Paketnamen kennt. Eine Änderung der `packId` wäre der
+andere Weg gewesen und hätte die Update-Kette jedes bereits installierten
+Arbeitsplatzes gebrochen.
+
+**Die Einstellungen ziehen nicht mit.** Sie bleiben unter `%APPDATA%\nipp`
+(`settings.json`, `linphonerc`, `integrations.json`) — dorthin installiert
+Velopack nicht, es gab also nie einen Konflikt. Einen zweiten Umzug ohne Not
+anzufangen hiesse, eine zweite Migration zu schreiben, die niemand braucht.
+
+### Die Übernahme
+
+`DatenUebernahme` holt die Daten beim Start einmalig an den neuen Ort. Vier
+Entscheidungen darin, jede mit Grund:
+
+| | |
+|---|---|
+| **Sie wirft nie** | Sie läuft in `Program.Main`, vor dem Protokoll und vor WinUI. Eine Ausnahme dort hiesse: nipp startet nicht mehr, weil eine Protokolldatei offen ist. Was scheitert, bleibt liegen und wird beim nächsten Start erneut versucht |
+| **Verschoben, nicht kopiert** | Eine Kopie liesse zwei Wahrheiten zurück, und beim nächsten Start wäre nicht zu entscheiden, welche gilt |
+| **Was am Ziel liegt, gewinnt** | Sonst überschriebe ein alter Rest die Daten, mit denen gerade gearbeitet wird — genau der Datenverlust, dessen Verhinderung der Anlass war |
+| **Namentliche Liste, nicht «alles»** | Am alten Ort kann inzwischen eine Velopack-Installation liegen (`current`, `packages`, `Update.exe`). Die gehört nicht mitgenommen |
+
+**Das alte Verzeichnis wird nicht gelöscht**, auch nicht wenn es leer ist. Es
+kostet nichts, es stehen zu lassen, und ein Löschen wäre der eine Schritt, der
+im Fehlerfall Daten vernichtet.
+
+### Gemessen am laufenden Arbeitsplatz
+
+09.10.2026, 13:36:29:
+
+```
+nipp startet (Version 0.9.14.0)
+Daten uebernommen: 7 verschoben, 0 schon vorhanden, 0 nicht moeglich.
+Neuer Ort: C:\Users\db\AppData\Local\bv2\nipp
+```
+
+Liegengeblieben sind drei ältere Sicherungskopien (`history.db.…bak`,
+`secrets.dat.a16-runde`, `secrets.dat.provisionierungsrunde`) — sie stehen
+nicht in der Liste und gehören niemandem ausser dem, der sie angelegt hat.
+
+### Konsequenz
+
+- **0.9.14 ist ohne diesen Umbau veröffentlicht worden** und sucht die Daten am
+  alten Ort. Für bestehende Installationen ist das richtig; für einen
+  Arbeitsplatz, der bereits umgezogen ist, nicht. **Deshalb folgt 0.9.15
+  unmittelbar.**
+- `docs/updates.md` nennt den neuen Ort.
+- **T334** nimmt am Gerät ab, was hier nur halb geprüft ist: dass eine
+  Installation jetzt durchläuft und eine Deinstallation die Daten stehen lässt.
+
+---
+
+
 ## ADR-078 — «Kein Echo» ist ein Ergebnis, und auf dieser Maschine ist es das Ergebnis
 
 **Datum:** 09.10.2026 · **Status:** angenommen · **Bezug:** §9.4, AP5.7, ADR-006 Punkt 2, ADR-076, ADR-074, `EchoKalibrierung`, T33

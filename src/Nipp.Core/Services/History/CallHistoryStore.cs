@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using Nipp.Core.Services.Telephony.Model;
 using Nipp.Core.Diagnostics;
+using Nipp.Core.Services;
 
 namespace Nipp.Core.Services.History;
 
@@ -45,10 +46,7 @@ public sealed class CallHistoryStore
         EnsureSchemaOrPreserveBroken();
     }
 
-    public static string DefaultDatabasePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "nipp",
-        "history.db");
+    public static string DefaultDatabasePath => NippPfade.Anrufliste;
 
     /// <summary>
     /// Legt das Schema an — und wenn die Datei dabei nicht mitspielt, legt sie

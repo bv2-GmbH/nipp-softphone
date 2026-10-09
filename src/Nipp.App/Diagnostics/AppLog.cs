@@ -22,6 +22,22 @@ internal static partial class AppLog
         Message = "nipp startet (Version {Version})")]
     public static partial void Starting(ILogger logger, string version);
 
+    /// <summary>
+    /// Der einmalige Umzug der Daten (ADR-079).
+    ///
+    /// <para><b>Gescheiterte Einträge sind die wichtige Zahl.</b> Sie liegen
+    /// noch am alten Ort und werden beim nächsten Start erneut versucht —
+    /// steht hier dauerhaft etwas über null, hält sie jemand offen, und dann
+    /// arbeitet nipp mit einer leeren Anrufliste neben einer vollen.</para>
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1012,
+        Level = LogLevel.Information,
+        Message = "Daten uebernommen: {Uebernommen} verschoben, {Uebersprungen} schon vorhanden, "
+            + "{Gescheitert} nicht moeglich. Neuer Ort: {Ziel}")]
+    public static partial void DatenUebernommen(
+        ILogger logger, int uebernommen, int uebersprungen, int gescheitert, string ziel);
+
     [LoggerMessage(
         EventId = 1001,
         Level = LogLevel.Critical,

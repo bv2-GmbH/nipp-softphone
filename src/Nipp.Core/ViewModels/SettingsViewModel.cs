@@ -9,6 +9,7 @@ using Nipp.Core.Services.Telephony;
 using Nipp.Core.Services.Telephony.Model;
 using Nipp.Core.Services.Updates;
 using Nipp.Core.Services.Windows;
+using Nipp.Core.Services;
 
 namespace Nipp.Core.ViewModels;
 
@@ -581,10 +582,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
         CountryPrefix = s.Advanced.CountryPrefix;
         RecordingDirectory = s.Advanced.RecordingDirectory
-            ?? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "nipp",
-                "recordings");
+            ?? NippPfade.Aufnahmen;
         HistoryRetentionDays = s.Advanced.HistoryRetentionDays;
         GlobalHotkey = s.Advanced.GlobalHotkey;
         MuteHotkey = s.Advanced.MuteHotkey;

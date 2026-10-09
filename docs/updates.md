@@ -69,7 +69,7 @@ Fehlerklasse „startet nicht und sagt nicht warum".
 | Was | Wo |
 |---|---|
 | Einstellungen | `%APPDATA%\nipp\settings.json` |
-| Anrufliste | `%LOCALAPPDATA%\nipp\history.db` |
+| Anrufliste, Protokolle, Aufnahmen | `%LOCALAPPDATA%\bv2\nipp\` — **seit ADR-079 unter `bv2\`**, und das ist der Grund: Velopack installiert mit `packId nipp` nach `%LOCALAPPDATA%\nipp`, also genau dorthin, wo die Daten vorher lagen. Ein Setup fand dann sein eigenes Verzeichnis vor und fragte, ob es überschreiben solle |
 | Geheimnisse (SIP, Integrationen, Update-Token) | DPAPI-Ablage des Benutzers |
 | Auslieferungszustand | `%PROGRAMDATA%\bv2\nipp\nipp-factory.xml` |
 
