@@ -66,8 +66,14 @@
       meldet im Info-Bereich 0.9.1, ein Debug-Build 0.1.0 — und bei einer
       Fehlersuche ueber Protokolle weiss dann niemand mehr, welcher Stand
       gelaufen ist.
+
+      Gezogen wird sie BEIM RELEASE, zusammen mit dem Aufruf von
+      Release-Nipp.ps1 -Version. Dass dieser Kommentar hier steht, hat es
+      nicht verhindert: am 08.10.2026 stand hier 0.9.2, waehrend draussen
+      v0.9.13 lief, und ein lokaler Build meldete im Protokoll eine Version,
+      die dreizehn Releases alt aussah.
     -->
-    <VersionPrefix>0.9.2</VersionPrefix>
+    <VersionPrefix>0.9.14</VersionPrefix>
     <Product>nipp</Product>
     <Company>bv2 GmbH</Company>
     <Authors>bv2 GmbH</Authors>
