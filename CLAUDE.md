@@ -11,13 +11,13 @@ lesbar bleiben.
 | Was | Wo |
 |---|---|
 | Was nipp tun soll | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-079. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen»), **ADR-075** warum nipp das Freizeichen beim Rauswählen selbst spielt (25.09.2026), **ADR-076** warum der Echo-Canceller `MSSpeexEC` heisst und **ADR-077** warum jedes Gespräch eine Auswertungszeile hinterlässt (08.10.2026) |
+| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-079. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen»), **ADR-075** warum nipp das Freizeichen beim Rauswählen selbst spielt (25.09.2026), **ADR-076** warum der Echo-Canceller `MSSpeexEC` heisst und **ADR-077** warum jedes Gespräch eine Auswertungszeile hinterlässt (08.10.2026), **ADR-078** warum die Echounterdrückung hier trotzdem aus ist und **ADR-079** warum die Daten unter `bv2\` liegen (09.10.2026) |
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
-| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 ist am 23.09.2026 durch**: fünfzehn Messrunden, 79 Zeilen abgenommen, **24 Befunde — 22 repariert und nachgemessen**, einer ein falscher Alarm (A1-15), einer bewusst offen (A1-19, zweite Hälfte: die Prüflücke bei zehn `async void`). Die sechs Befunde, die eine Entscheidung brauchten, stehen in **ADR-072**. **Nach dem Tag an der Anlage tragen zwei Zeilen «nicht bestanden»:** T310 (der Rufton, A7 — jetzt mit einer Spur) und **T143**, dessen Eintrag am selben Tag zurückgenommen werden musste, weil er aus dem Protokoll allein entstanden war und die Zeile ausdrücklich verlangt, **zu hören**. Gezählt: **132 offen von 323**, 191 mit Ergebnis, 7 gestrichen — nachgerechnet am 08.10.2026 mit `Zaehle-Matrix.ps1`, und die Zahl 321, die hier bis dahin stand, war schon vor T332 und T333 um zwei zu niedrig. Davon nur noch **acht am Schreibtisch** — T21, T22, T25, T33, T93, T95, T128, T273. **Bei jeder dieser acht steht im Plan, was ihr fehlt**, und es ist nie Zeit: ein Windows-Neustart, Ohren, ein neues Logo, eine Beta-Fassung, Outlook mit COM oder ein echter Wählversuch. Die übrigen **120 brauchen die Anlage, ein Headset, einen frischen Rechner, Windows 10 oder x64-Hardware** — nachgesehen am 24.09.2026: Windows Sandbox ist hier nicht installiert, Hyper-V auch nicht, die Konsole läuft ohne Adminrechte, und ein x64-Gast wäre auf ARM64 ohnehin keiner. **Die Zahl ist nachrechenbar**: `Zaehle-Matrix.ps1` in den Testaufbauten trägt die Zählregel — sie zählt **geprüft gegen ungeprüft**, nicht bestanden gegen durchgefallen, und die bisher fortgeschriebenen 190 von 303 liessen sich aus der Matrix nicht herstellen. **Repariert wird gesammelt, nicht mitten in einer Messrunde** — sonst prüft die halbe Runde gegen einen anderen Build als die andere |
+| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 ist am 23.09.2026 durch**: fünfzehn Messrunden, 79 Zeilen abgenommen, **24 Befunde — 22 repariert und nachgemessen**, einer ein falscher Alarm (A1-15), einer bewusst offen (A1-19, zweite Hälfte: die Prüflücke bei zehn `async void`). Die sechs Befunde, die eine Entscheidung brauchten, stehen in **ADR-072**. **Nach dem Tag an der Anlage tragen zwei Zeilen «nicht bestanden»:** T310 (der Rufton, A7 — jetzt mit einer Spur) und **T143**, dessen Eintrag am selben Tag zurückgenommen werden musste, weil er aus dem Protokoll allein entstanden war und die Zeile ausdrücklich verlangt, **zu hören**. Gezählt: **132 offen von 324**, 192 mit Ergebnis, 7 gestrichen — nachgerechnet am 09.10.2026 mit `Zaehle-Matrix.ps1`. (Am 08.10. stand hier 321; die Zahl war schon vor T332 bis T334 um zwei zu niedrig.) Davon nur noch **acht am Schreibtisch** — T21, T22, T25, T33, T93, T95, T128, T273. **Bei jeder dieser acht steht im Plan, was ihr fehlt**, und es ist nie Zeit: ein Windows-Neustart, Ohren, ein neues Logo, eine Beta-Fassung, Outlook mit COM oder ein echter Wählversuch. Die übrigen **120 brauchen die Anlage, ein Headset, einen frischen Rechner, Windows 10 oder x64-Hardware** — nachgesehen am 24.09.2026: Windows Sandbox ist hier nicht installiert, Hyper-V auch nicht, die Konsole läuft ohne Adminrechte, und ein x64-Gast wäre auf ARM64 ohnehin keiner. **Die Zahl ist nachrechenbar**: `Zaehle-Matrix.ps1` in den Testaufbauten trägt die Zählregel — sie zählt **geprüft gegen ungeprüft**, nicht bestanden gegen durchgefallen, und die bisher fortgeschriebenen 190 von 303 liessen sich aus der Matrix nicht herstellen. **Repariert wird gesammelt, nicht mitten in einer Messrunde** — sonst prüft die halbe Runde gegen einen anderen Build als die andere |
 | Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
-| Pläne und Reviews | `docs/plans/` — dreiundzwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `ALLEINGANG-PLAN.md`. **Laufend sind sieben:** `BEWEIS-PLAN.md` (**A1 ist durch, Teil B angefangen** — B0 bis B8 sind am 24./25.09.2026 gebaut, siehe ADR-074), `ALLEINGANG-PLAN.md` (was ohne Dominic zu holen war; Runden 1 bis 4 durch, offen ist nur noch der Entscheid zu einem Befund aus B8), `ZIEHVORSCHAU-PLAN.md` (V8: **der Zug auf einen Gruppenkopf trägt**, offen bleibt nur «hell bei 150 %», eine Augenprüfung), `HEADSET-FREMDBELEGUNG-PLAN.md` (**H5 ist gebaut** — die Einstellung «Meldungen ans Headset senden», am Gerät abzunehmen mit T330; offen bleibt T300), `AUDIOQUALITAET-PLAN.md` (**A7 hat seit dem 23.09.2026 eine Spur**: jedem `Could not get buffer`-Burst geht ein Jitterpuffer-Reset voraus, über vier Messungen — und der Fremdton ist **hörbar, jedes Mal**. Nächster Schritt: T307. **Am 08.10.2026 ist eine Woche Alltag nachgemessen**: das Rauschen ist weg, die Aussetzer nicht — und sie stehen bei **null Prozent Paketverlust**, die Ursache sitzt also lokal. Seither läuft der Arbeitsplatz auf dem **Release**-Build; das ist die laufende Gegenprobe. Offen bleiben die Senderichtung und T38) und `SHELL-IM-GESPRAECH-PLAN.md` (T313 und T317 sind bestanden; T314 ist nach der Reparatur vom 23.09.2026 abgenommen; **offen: T315 und T316**), `VERMITTELN-PLAN.md` (**gebaut und am Gerät abgenommen**, ADR-073 — T321–T323 bestanden; offen: externe Ziele und die Vorschlagsliste). **`ALLTAG-PLAN-3.md`** ist seit dem 23.09.2026 **abgeschlossen** (alle drei Meldungen gebaut, T324–T329 bestanden); der Rest ebenso |
+| Pläne und Reviews | `docs/plans/` — dreiundzwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `ALLEINGANG-PLAN.md`. **Laufend sind sieben:** `BEWEIS-PLAN.md` (**A1 ist durch, Teil B angefangen** — B0 bis B8 sind am 24./25.09.2026 gebaut, siehe ADR-074), `ALLEINGANG-PLAN.md` (was ohne Dominic zu holen war; Runden 1 bis 4 durch, offen ist nur noch der Entscheid zu einem Befund aus B8), `ZIEHVORSCHAU-PLAN.md` (V8: **der Zug auf einen Gruppenkopf trägt**, offen bleibt nur «hell bei 150 %», eine Augenprüfung), `HEADSET-FREMDBELEGUNG-PLAN.md` (**H5 ist gebaut** — die Einstellung «Meldungen ans Headset senden», am Gerät abzunehmen mit T330; offen bleibt T300), `AUDIOQUALITAET-PLAN.md` (**A7 hat seit dem 23.09.2026 eine Spur**: jedem `Could not get buffer`-Burst geht ein Jitterpuffer-Reset voraus, über vier Messungen — und der Fremdton ist **hörbar, jedes Mal**. Nächster Schritt: T307. **Am 08.10.2026 ist eine Woche Alltag nachgemessen**: das Rauschen ist weg, die Aussetzer nicht — und sie stehen bei **null Prozent Paketverlust**, die Ursache sitzt also lokal. **Am 09.10.2026 kam ein falscher Verdächtiger dazu und wieder weg:** der Echo-Canceller aus ADR-076 verstärkte sie auf 5,4 je Minute und ist seither aus (ADR-078). **Die Gegenprobe läuft** — installierte 0.9.15, kein Canceller; auszuwerten mit `Zeige-Gespraeche.ps1`, sobald ein paar längere Gespräche vorliegen. Offen bleiben die Senderichtung und T38) und `SHELL-IM-GESPRAECH-PLAN.md` (T313 und T317 sind bestanden; T314 ist nach der Reparatur vom 23.09.2026 abgenommen; **offen: T315 und T316**), `VERMITTELN-PLAN.md` (**gebaut und am Gerät abgenommen**, ADR-073 — T321–T323 bestanden; offen: externe Ziele und die Vorschlagsliste). **`ALLTAG-PLAN-3.md`** ist seit dem 23.09.2026 **abgeschlossen** (alle drei Meldungen gebaut, T324–T329 bestanden); der Rest ebenso |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
 
 ## Grenzen
@@ -59,15 +59,30 @@ lesbar bleiben.
   `DatenUebernahme` holt Altbestand einmalig herüber — sie **wirft nie**
   (sie läuft in `Program.Main`, vor dem Protokoll und vor WinUI), verschiebt
   statt zu kopieren und lässt stehen, was am Ziel schon liegt.
+- **Ob die Echounterdrückung überhaupt gebraucht wird, sagt die Kalibrierung —
+  und sie kennt drei Antworten, nicht zwei** (ADR-078). Neben «Echo gemessen»
+  und «gescheitert» gibt es **`DoneNoEcho`**: durchgelaufen, kein Echo
+  gefunden. Das ist eine nützliche Auskunft und war vier Wochen lang als
+  Fehlschlag getarnt, weil der alte Code `EchoCancellationCalibration` pollte
+  und nur Werte über null als Ergebnis nahm — `DoneNoEcho` legt dort eine Null
+  ab. Gelesen wird jetzt das Ereignis `OnEcCalibrationResult`, übersetzt in
+  `EchoKalibrierung` (kein SDK-Enum nach aussen, ADR-074).
+  **Auf dieser Maschine lautet die Antwort «kein Echo», und die
+  Echounterdrückung ist deshalb AUS.** Sie kostete sonst messbar: 10,2
+  Verwürfe je Gesprächsminute gegen 0,15 bis 1,78 ohne sie, dazu 124 Mal
+  `Not enough ref samples, using zeroes` — und hörbar als «Rauschen und
+  leichte Verzerrung gegen Ende». **Die Einstellung ist eine Entscheidung je
+  Arbeitsplatz:** bei einem neuen einmal kalibrieren, und was die Messung
+  sagt, gilt. §9.4 führt «Echounterdrückung: ein» weiter als Standard für den
+  unbekannten Fall.
 - **Welcher Echo-Canceller gilt und bei welchen Raten er arbeitet, steht an
-  einer Stelle:** `EchoCancellerChoice` (ADR-076). Die Grenze stand vorher als
-  Literal im Dienst — `clockRate > 8000` —, und diese Acht war die Grenze von
-  `MSWebRTCAEC`, sah aber aus wie eine Eigenschaft der Echounterdrückung
-  überhaupt. **Der Standardfilter des SDK arbeitet bei 8 kHz nicht**, und
-  8 kHz ist hier der Normalfall: in vier gemessenen Tagen endeten **alle 29**
-  Codec-Verhandlungen bei PCMU oder PCMA. nipp wählt deshalb `MSSpeexEC`; dass
-  der bei 8 kHz läuft, ist am 08.10.2026 gemessen (Count 12 bis 14 statt null).
-  Der **Preis** steht als Test da: 48 kHz deckt Speex nicht ab.
+  einer Stelle:** `EchoCancellerChoice` (ADR-076) — und das gilt weiter, auch
+  wenn er hier abgeschaltet ist: **wer** Echo hat, bekommt seit ADR-076 einen
+  Filter, der bei 8 kHz greift, statt eines, der sich abschaltet. Die Grenze
+  stand vorher als Literal im Dienst — `clockRate > 8000` —, und diese Acht
+  war die Grenze von `MSWebRTCAEC`, sah aber aus wie eine Eigenschaft der
+  Echounterdrückung überhaupt. Der **Preis** steht als Test da: 48 kHz deckt
+  Speex nicht ab.
 - **Was ein Gespräch an Qualität hatte, steht am Ende in einer Zeile**
   (ADR-077, `GespraechsBericht`). Sie ist auf `Information` und damit
   **unabhängig von der Protokollstufe** da — Debug kostet rund 20 MB am Tag
@@ -511,14 +526,15 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   **Zustand** als über die Schreibweise.
   **Dafür gibt es ein Skript:** `..\nipp-testaufbauten\Beende-Nipp.ps1`.
   Es kennt die beiden Fallen, die hier zweimal Zeit gekostet haben.
-  **Erstens liegt das Symbol seit dem 08.10.2026 im Überlauf** — der
-  Arbeitsplatz startet den Release-Build, und ein neuer Pfad ist für Windows
-  eine neue App, deren Symbol standardmässig ausgeblendet wird; es hängt dann
-  nicht unter `Shell_TrayWnd`, sondern in einem
-  `TopLevelWindowForOverflowXamlIsland`, das es erst gibt, wenn der Überlauf
-  offen ist. **Zweitens genügt `SetCursorPos` mit `mouse_event` für den
-  Rechtsklick nicht** — der Zeiger steht danach richtig, und das Menü geht
-  trotzdem nicht auf. Es braucht `SendInput`, genau wie beim Ziehen.
+  **Erstens kann das Symbol im Überlauf liegen** — es hängt dann nicht unter
+  `Shell_TrayWnd`, sondern in einem `TopLevelWindowForOverflowXamlIsland`, das
+  es erst gibt, wenn der Überlauf offen ist. Windows 11 blendet das Symbol
+  einer App aus, die es noch nicht kennt, und ein neuer Pfad ist für Windows
+  eine neue App: am 08.10.2026 beim Wechsel aufs Build-Verzeichnis passiert,
+  am 09.10. beim Wechsel auf die Installation erneut. **Zweitens genügt
+  `SetCursorPos` mit `mouse_event` für den Rechtsklick nicht** — der Zeiger
+  steht danach richtig, und das Menü geht trotzdem nicht auf. Es braucht
+  `SendInput`, genau wie beim Ziehen.
 - **Wer ein Provisionierungsprofil einspielt, sichert die Geheimnisdatei mit**
   (Befund A1-9). Ein Profil mit `<accounts>` **ersetzt die Kontenliste und
   nimmt die gespeicherten Passwörter mit**; `settings.json` zurückzuspielen
@@ -705,14 +721,14 @@ Spezifikation stehen in docs/sdk-api-notes.md.
 
 ## Bauen auf dieser Maschine
 
-**Was ein lokaler Build als Version meldet, stimmt nicht mit dem Release
-überein** (nachgesehen am 08.10.2026). `Directory.Build.props` trägt
-`VersionPrefix` 0.9.2, draussen ist aber v0.9.13 — beim Paketieren übergibt
-`Release-Nipp.ps1` die richtige Zahl per `-p:Version`, jeder gewöhnliche Build
-nimmt die aus der Datei. **Beim Lesen von Protokollen heisst `nipp startet
-(Version 0.9.2.0)` also nicht «alte Fassung»**, sondern «lokal gebaut».
-Der Kommentar über `VersionPrefix` warnt genau davor; es ist trotzdem
-passiert, weil die Zahl beim Release nicht mitgezogen wird.
+**Die Versionsnummer wird beim Release gezogen** — `VersionPrefix` in
+`Directory.Build.props` und der Aufruf von `Release-Nipp.ps1 -Version` tragen
+dieselbe Zahl. Wer das vergisst, bekommt eine Doppelwahrheit, die genau dann
+schadet, wenn sie am teuersten ist: am 08.10.2026 stand dort 0.9.2, während
+draussen v0.9.13 lief, und ein lokaler Build meldete im Protokoll eine
+Version, die dreizehn Releases alt aussah. **Der Kommentar in der Datei warnte
+wörtlich davor** und hat es nicht verhindert, weil er nicht sagte, *wann* zu
+ziehen ist; seit dem 09.10.2026 steht es dort.
 
 **Windows steht hier auf 150 %.** Der Bildschirm ist physisch 2880 × 1800 und
 damit logisch 1920 × 1200 — und XAML rechnet in **logischen** Pixeln. Wer eine

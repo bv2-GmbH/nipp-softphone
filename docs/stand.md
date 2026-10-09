@@ -13,6 +13,85 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**Stand 09.10.2026 — der Echo-Canceller vom Vortag war falsch, und auf dem Weg
+zur Installation fiel ein Datenverlust-Risiko auf.**
+
+Ein Tag mit drei ADRs, zwei Releases und einem Befund gegen die eigene Arbeit
+vom Vortag.
+
+### ADR-078 — die Echounterdrückung ist aus, weil es kein Echo gibt
+
+Die Nachmessung zu ADR-076 zeigte das Gegenteil des Erhofften: der tags zuvor
+eingeschaltete Canceller **verschlechtert** die Sprachqualität.
+
+| | Verwürfe je Gesprächsminute |
+|---|---|
+| ohne Canceller (05.–07.10.) | 0,15 – 1,78 |
+| **erstes Gespräch mit Canceller** (08.10., 14:28) | **10,2** |
+| **09.10., 19:37 Gespräch** | **5,4** |
+
+Dazu **124 Mal** `Not enough ref samples, using zeroes` — null an allen zwölf
+Protokolltagen davor. Und hörbar, aus dem Betrieb: «gut, aber gegen Ende des
+Gesprächs war ein Rauschen und leichte Verzerrung». Die Verwürfe setzen um
+09:40:08 ein, das Gespräch lief bis 09:49:56.
+
+**Die nachgeholte Kalibrierung (T33, seit P5 offen) erklärt warum:** auf dieser
+Maschine gibt es **kein Echo** — gemessen mit den Notebook-Lautsprechern als
+Standardgerät, also im ungünstigsten Fall.
+
+**Und sie lag seit P5 in Reichweite.** Das SDK meldete `Echo calibration
+succeeded, no echo has been detected`; nipp schrieb «lieferte kein Ergebnis»,
+weil der Code `EchoCancellationCalibration` pollte und nur Werte über null als
+Ergebnis nahm — der Status `DoneNoEcho` legt dort eine Null ab. **Hätte nipp
+das gelesen, wäre ADR-076 nie entstanden.** Jetzt liest es
+`OnEcCalibrationResult`; nebenbei dauert die Messung 4 statt 25 Sekunden, weil
+das Pollen immer in die Zeitgrenze lief.
+
+**T332 und T333 sind trotzdem bestanden:** `MSSpeexEC` mit Count 117714 in
+einem 19-Minuten-Gespräch, und der Gesprächsbericht trägt 1168 Messungen bei
+1177 Sekunden. Beides funktioniert wie gebaut — es war die falsche Sache.
+
+### ADR-079 — die Daten liegen jetzt unter `bv2\nipp`
+
+Beim Umstellen vom Build-Verzeichnis auf eine richtige Installation brach das
+Setup ab:
+
+```
+Installation Directory: "C:\Users\...\AppData\Local\nipp"
+Directory already exists, and user cancelled overwrite.
+```
+
+Velopack installiert mit `packId nipp` nach `%LOCALAPPDATA%\nipp` — **genau
+dorthin, wo die Daten lagen**. Zwei Folgen: eine Installation war auf jedem
+Rechner unmöglich, auf dem nipp schon einmal gelaufen war, und **eine
+Deinstallation hätte Anrufliste und Zugangsdaten mitgenommen**.
+
+Möglich wurde das, weil der Pfad an **elf Stellen** von Hand im Code stand.
+Jetzt entscheidet ihn `NippPfade`; `DatenUebernahme` holt Altbestand einmalig
+herüber und wirft dabei nie — sie läuft vor dem Protokoll und vor WinUI.
+
+### Zwei Releases
+
+**0.9.14** ging raus, bevor der Umzug gebaut war. **0.9.15** folgte
+unmittelbar und ist die Fassung, die jetzt läuft — installiert, aus
+`%LOCALAPPDATA%\nipp\current`, Daten unter `bv2\nipp`.
+
+Dabei behoben: `VersionPrefix` stand auf 0.9.2, während draussen v0.9.13 lief.
+Ein lokaler Build meldete im Protokoll eine Version, die dreizehn Releases alt
+aussah.
+
+### Was am Gerät aussteht
+
+| Zeile | was fehlt |
+|---|---|
+| **Die Aussetzer** | Die Gegenprobe ohne Canceller. Ein paar längere Gespräche auf 0.9.15, dann `Zeige-Gespraeche.ps1` — **die Auswertung ist für die Woche ab dem 13.10.2026 verabredet** |
+| **T334** | Dass eine **Deinstallation** die Daten stehen lässt. Gehört auf einen frischen Rechner; auf einem Arbeitsplatz mit echten Zugangsdaten wird das nicht ausprobiert |
+| **T332, zweite Hälfte** | Gegenstandslos, solange der Canceller aus ist |
+
+---
+
+
+
 **Stand 08.10.2026 — eine Woche Alltag nachgemessen, und zwei Dinge gebaut,
 die den nächsten Durchgang billiger machen.**
 
