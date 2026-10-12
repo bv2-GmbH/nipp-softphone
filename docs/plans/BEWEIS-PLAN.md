@@ -1580,7 +1580,7 @@ Eingetragen und liegen gelassen, wie die Regel oben es verlangt.
   äussere Zeitgrenze muss grosszügiger sein als die innere, damit die
   spezifischere zuerst greift, und der HTTP-Zugang sollte zuerst auf seine
   **eigene** `timeoutSource` prüfen statt auf das äussere Token. Nachzumessen
-  ist mit der Attrappe im Modus `tot` (`nipp-testaufbautenttrappe`): erwartet
+  ist mit der Attrappe im Modus `tot` (`nipp-testaufbauten\attrappe`): erwartet
   werden dann die Meldung «antwortet nicht», eine Protokollzeile und ein
   zählender Fehlschlag für den Schutzschalter.
   **Warum das mehr ist als eine Formulierung:** der Schutzschalter ist genau

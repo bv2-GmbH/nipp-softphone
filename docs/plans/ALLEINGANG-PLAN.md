@@ -321,7 +321,7 @@ aus wie ein kaputtes Ziehen.
 | | |
 |---|---|
 | `tools/Test-Ui.ps1` | `Set-NippVordergrund`, `Show-NippElement` (scrollt ins Bild), `Get-NippPunkt`, `Move-NippMaus`, `Invoke-NippKlick`, `Invoke-NippRad`, `Invoke-NippZug`; `Get-NippElement` kennt jetzt `-Id` |
-| `nipp-testaufbautenttrappe` | vierte Betriebsart `/gross` (über 8 KB), drei neue erfundene Datensätze, `quelle-gross.json`, `team-schnipsel.json` |
+| `nipp-testaufbauten\attrappe` | vierte Betriebsart `/gross` (über 8 KB), drei neue erfundene Datensätze, `quelle-gross.json`, `team-schnipsel.json` |
 | `C:\dev_claude
 ipp-klon` | der frische Klon aus T174 — kann stehen bleiben oder weg, er kostet nur Platz |
 
@@ -329,6 +329,6 @@ ipp-klon` | der frische Klon aus T174 — kann stehen bleiben oder weg, er koste
 
 nipp war **zweimal für rund zwei Minuten** weg (einmal zum Einspielen, einmal
 zum Zurückspielen). Einstellungen, Quellen und die Geheimnisdatei sind
-gesichert unter `nipp-testaufbautenlleingang-sicherung-20260924-211515` und
+gesichert unter `nipp-testaufbauten\alleingang-sicherung-20260924-211515` und
 **zurückgespielt**; nipp ist danach wieder angemeldet, mit elf abonnierten
 Nebenstellen wie zuvor.

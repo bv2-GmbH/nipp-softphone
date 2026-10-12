@@ -112,7 +112,7 @@ angegeben:
 
 ```powershell
 $env:GITHUB_TOKEN = gh auth token
-.uild\Release-Nipp.ps1 -Version 0.9.5 -Channel stable -Publish `
+.\build\Release-Nipp.ps1 -Version 0.9.5 -Channel stable -Publish `
   -UploadRepo 'https://github.com/bv2-GmbH/nipp'
 ```
 

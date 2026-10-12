@@ -21,8 +21,9 @@ hat.
 **Zustand, offen gesagt.** nipp telefoniert im Alltag, seit dem 07.09.2026 auf
 echten Anlagen. Was fehlt: das Setup ist **nicht signiert** (Windows meldet
 beim ersten Start «Unbekannter Herausgeber»), ein grosser Teil der Testmatrix
-hat noch kein Ergebnis, und entwickelt wird auf ARM64 unter x64-Emulation —
-die nichtfunktionalen Ziele sind damit ungemessen (ADR-001). Wer es ernsthaft
+hat noch kein Ergebnis (**130 von 324 offen**, Stand 12.10.2026 — 92 davon
+brauchen eine Anlage oder ein Headset), und entwickelt wird auf ARM64 unter
+x64-Emulation — die nichtfunktionalen Ziele sind damit ungemessen (ADR-001). Wer es ernsthaft
 einsetzen will, sollte
 [docs/plans/REVIEW-2026-09-12.md](docs/plans/REVIEW-2026-09-12.md) lesen: 83
 Befunde, ehrlich aufgeschrieben.
@@ -37,15 +38,18 @@ cd nipp
 
 # Das Linphone SDK liegt NICHT im Repo — 299 MB, einmal herunterladen:
 Invoke-WebRequest `
-  -Uri 'https://download.linphone.org/releases/windows/sdk/linphone-sdk-win64-5.5.18.zip' `
+  # NICHT von download.linphone.org: dort lag ab dem 07.09.2026 eine ANDERE
+  # Datei unter derselben Adresse und Versionsnummer, und jeder CI-Lauf brach
+  # an der Pruefsumme ab (ADR-069). Pruefsumme: docs/sdk-setup.md
+  -Uri 'https://github.com/bv2-GmbH/nipp-build-deps/releases/download/linphone-sdk-5.5.18/linphone-sdk-win64-5.5.18.zip' `
   -OutFile 'sdk\linphone-sdk-win64-5.5.18.zip'
 Expand-Archive -Path 'sdk\linphone-sdk-win64-5.5.18.zip' -DestinationPath 'sdk\extracted'
 
-.uild.ps1 build Nipp.sln -c Debug
-.uild.ps1 test Nipp.sln
+.\build.ps1 build Nipp.sln -c Debug
+.\build.ps1 test Nipp.sln
 ```
 
-**Immer `.uild.ps1`, nie ein blankes `dotnet`** — das Skript sucht den
+**Immer `.\build.ps1`, nie ein blankes `dotnet`** — das Skript sucht den
 x64-Host, der auf einer ARM64-Maschine sonst nicht gefunden wird. Die
 ausführliche Fassung samt Prüfsummen steht unter
 [Entwicklungsmaschine einrichten](#entwicklungsmaschine-einrichten), die
@@ -445,7 +449,7 @@ statt eines freien Felds für den technischen Verweis, den man vorher im JSON
 nachlesen musste.
 
 Der Wert wird verdeckt eingegeben, nie angezeigt und nie protokolliert. Er
-landet unter DPAPI in `%LOCALAPPDATA%\nipp\secrets.dat`, verschlüsselt und an
+landet unter DPAPI in `%LOCALAPPDATA%\bv2\nipp\secrets.dat`, verschlüsselt und an
 dieses Windows-Benutzerkonto gebunden.
 
 **Das Schema gehört nicht in den Wert.** Es hat sein eigenes Feld unter
@@ -572,7 +576,10 @@ cd nipp
 ```powershell
 # 299 MB, dauert etwa eine Minute
 Invoke-WebRequest `
-  -Uri 'https://download.linphone.org/releases/windows/sdk/linphone-sdk-win64-5.5.18.zip' `
+  # NICHT von download.linphone.org: dort lag ab dem 07.09.2026 eine ANDERE
+  # Datei unter derselben Adresse und Versionsnummer, und jeder CI-Lauf brach
+  # an der Pruefsumme ab (ADR-069). Pruefsumme: docs/sdk-setup.md
+  -Uri 'https://github.com/bv2-GmbH/nipp-build-deps/releases/download/linphone-sdk-5.5.18/linphone-sdk-win64-5.5.18.zip' `
   -OutFile 'sdk\linphone-sdk-win64-5.5.18.zip'
 
 Expand-Archive -Path 'sdk\linphone-sdk-win64-5.5.18.zip' -DestinationPath 'sdk\extracted'
@@ -635,7 +642,7 @@ Start-Process "shell:appsFolder\bv2.nipp_b06ws4ca5ehbg!App"
 Die Zugangsdaten gehören in eine Datei **ausserhalb des Repos**:
 
 ```
-%LOCALAPPDATA%\nipp\test-trunk.json
+%LOCALAPPDATA%\bv2\nipp\test-trunk.json
 ```
 
 ```json
@@ -654,7 +661,7 @@ Die Zugangsdaten gehören in eine Datei **ausserhalb des Repos**:
 .\tools\Watch-NippLog.ps1
 ```
 
-Das Log liegt unter `%LOCALAPPDATA%\nipp\logs\`.
+Das Log liegt unter `%LOCALAPPDATA%\bv2\nipp\logs\`.
 
 ---
 
@@ -800,12 +807,12 @@ ein ViewModel und keine Dienstleistung:
 | Pfad | Inhalt |
 |---|---|
 | `%APPDATA%\nipp\settings.json` | Einstellungen. Klartext, **keine Passwörter** |
-| `%LOCALAPPDATA%\nipp\secrets.dat` | Passwörter, DPAPI-verschlüsselt |
+| `%LOCALAPPDATA%\bv2\nipp\secrets.dat` | Passwörter, DPAPI-verschlüsselt |
 | `%APPDATA%\nipp\linphonerc` | Konfiguration des SDK |
-| `%LOCALAPPDATA%\nipp\logs\` | Protokolle |
-| `%LOCALAPPDATA%\nipp\history.db` | Anrufliste (SQLite) |
-| `%LOCALAPPDATA%\nipp\recordings\` | Aufnahmen |
-| `%LOCALAPPDATA%\nipp\rootca.pem` | Wurzelzertifikate für TLS, aus dem Windows-Speicher erzeugt. Löschen erzwingt ein Neuschreiben |
+| `%LOCALAPPDATA%\bv2\nipp\logs\` | Protokolle |
+| `%LOCALAPPDATA%\bv2\nipp\history.db` | Anrufliste (SQLite) |
+| `%LOCALAPPDATA%\bv2\nipp\recordings\` | Aufnahmen |
+| `%LOCALAPPDATA%\bv2\nipp\rootca.pem` | Wurzelzertifikate für TLS, aus dem Windows-Speicher erzeugt. Löschen erzwingt ein Neuschreiben |
 | `%PROGRAMDATA%\bv2\nipp\nipp-factory.xml` | Auslieferungszustand |
 
 ### Im Repo
@@ -1350,6 +1357,7 @@ Mehr davon: [docs/sdk-api-notes.md](docs/sdk-api-notes.md) und der Fortschrittst
 | [docs/review-oberflaeche.md](docs/review-oberflaeche.md) | Review der Oberfläche mit Vorher/Nachher und Ergebnis |
 | [docs/blf-pruefung.md](docs/blf-pruefung.md) | Besetztlampenfeld gegen die Anlage gemessen — Verfahren und Befund |
 | `tools/Get-HidTelephony.ps1` | Welche Tasten und Lampen ein Headset über HID anbietet. Für die Frage „warum tut die Taste nichts?" |
+| `tools/Zeige-Gespraeche.ps1` | **Der Einstieg bei jeder Meldung über Sprachqualität** — zieht die Gesprächsberichte (ADR-077) aus den Protokollen und legt sie als Tabelle nebeneinander. Die Spalte `ProMin` vergleicht Gespräche miteinander; die Spalte `Hoerbar` sagt, wie viele Störungen die Flusskontrolle **nicht** in einer stillen Stelle unterbringen konnte — und nur die hat jemand gehört (ADR-080) |
 | `tools/Test-Ui.ps1` | Liest und bedient die Oberfläche über UI Automation — für die Zeilen der Testmatrix, die sich ohne Augen prüfen lassen. `Test-NippAccessibleNames` zeigt, wo eine Sprachausgabe einen Klassennamen vorläse; so wurde der Gruppenkopf gefunden (§8.4). **Seit dem 24.09.2026 auch mit echter Maus** (`Invoke-NippKlick`, `Invoke-NippZug`): über UI Automation lässt sich nicht ziehen, und ein `InvokePattern` bewegt den Fokus nicht |
 | [docs/integrations/einrichten.md](docs/integrations/einrichten.md) | Eine Integration einrichten — in sechs Schritten, seit dem 07.09.2026 über den Katalog |
 | [docs/integrations/karten.md](docs/integrations/karten.md) | Karten zusammenstellen: der Designer, die Bausteine, woher ein Wert kommt |

@@ -669,7 +669,7 @@ niemandem.
   Dasselbe beim Kontrasttest: 4,5:1 für **alles** meldete Trennlinien, also
   ordnet jetzt eine Tabelle jede Farbe ausdrücklich ein.
 - **Ein Skript, das Code schreibt, frisst Backslashes.** Beim Einsetzen eines
-  Regex-Musters wurde aus `` ein **Backspace-Zeichen** (0x08), und das Muster
+  Regex-Musters wurde aus `\b` ein **Backspace-Zeichen** (0x08), und das Muster
   stand danach buchstäblich als `@"<BS>(nonce|…)"` im Quelltext. Es passte auf
   nichts, der Build war grün, und die Tests meldeten nur «nicht maskiert».
   Gefunden hat es erst `cat -A` auf der Attributzeile. **Wer ein Muster über
