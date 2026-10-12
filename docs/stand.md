@@ -13,42 +13,55 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
-**Befund 12.10.2026 — `tel:`-Links sind auf jedem installierten Arbeitsplatz
-kaputt (T21, T22 nicht bestanden).**
+**Befund 12.10.2026 — `tel:`-Links erreichen nipp auf diesem Arbeitsplatz
+nicht (T21, T22 nicht bestanden) — und die erste Erklärung dafür war falsch.**
 
-Der Protokoll-Handler in `HKCU\Software\Classes\tel` zeigt auf den
-**Velopack-Stub** (`…\nipp\Nipp.App.exe "%1"`), und **der reicht das Argument
-nicht durch**. Damit kommt keine Nummer in nipp an — am ganzen 12.10.2026
-steht im Protokoll **kein einziges** `CallUriReceived`, und das bei einer
-Instanz, die seit dem 09.10. durchläuft.
+**Zuerst die Korrektur, weil sie die lehrreichere Hälfte ist.** Der erste
+Befund lautete: «der Velopack-Stub reicht das Argument nicht durch». Das war
+**falsch, und zwar aus einem Messfehler**: die Probe wartete nach dem Start
+vier Sekunden auf die Protokollzeile. Der Weg über den Stub muss aber erst
+einen Prozess starten, und das dauert länger. Nachgemessen mit einer Wartezeit
+von 15 Sekunden **und** mit der Kommandozeile des Kindprozesses:
 
-**Gemessen ohne einen einzigen Anruf**, mit einer nicht wählbaren Nummer:
+    "…\nipp\current\Nipp.App.exe" tel:xyztest        <- der Stub reicht durch
+    Anruf-URI empfangen, 0,6 s nach dem Aufruf       <- und nipp verarbeitet es
 
-| Aufruf | Ergebnis im Protokoll |
+**Der Stub macht seine Arbeit.** Eine zu kurze Wartezeit sah aus wie eine
+Ursache — dieselbe Klasse Fehler wie die Kommentare, die eine Ursache
+behaupten, ohne sie gemessen zu haben (CLAUDE.md, W2.7).
+
+**Was wirklich gemessen ist:**
+
+| Weg | Ergebnis |
 |---|---|
-| `…\nipp\current\Nipp.App.exe tel:xyztest` | «Anruf-URI empfangen» |
-| `…\nipp\Nipp.App.exe tel:xyztest` (Stub) | **nichts** |
+| `…\nipp\Nipp.App.exe tel:xyztest` (Stub von Hand) | **funktioniert**, 0,6 s |
+| `…\nipp\current\Nipp.App.exe tel:xyztest` (direkt) | **funktioniert** |
+| `Start-Process 'tel:xyztest'` (über die Registrierung) | **nichts nach 15 s** |
 
-Die Nummer ist dabei egal: eine nicht wählbare wird protokolliert, aber nicht
-gewählt — so lässt sich die Kette prüfen, ohne jemanden anzurufen.
+nipps eigene Kette ist also in Ordnung — Aktivierung, Entpacken der Nummer,
+Wählen. **Was nicht funktioniert, ist der Weg dorthin über Windows.**
 
-**Die Ursache ist eine Entscheidung, die an einer Stelle richtig ist und an
-der anderen nicht.** `WindowsIntegration.ResolveExecutablePath` wählt bewusst
-den Stub, und der Kommentar dort begründet es gut: ein Eintrag auf
-`current\Nipp.App.exe` zeigt während eines Updates auf eine Datei, die gerade
-ersetzt wird. **Für den Autostart stimmt das. Für Protokoll-Handler bricht es
-das Feature** (§10, AP7.2 Klick-to-Call), weil dort ein Argument übergeben
-werden muss.
+**Der Verdacht, ausdrücklich noch nicht bewiesen.** In **HKLM** steht ein
+zweiter `tel:`-Handler:
 
-**Nicht entschieden, weil es beides abwägen muss:** den Handler auf
-`current\Nipp.App.exe` zeigen zu lassen löst das Argument-Problem und holt
-sich das Update-Problem zurück. Ob der Stub Argumente durchreichen kann (ein
-Velopack-Schalter), ist **nicht geprüft** und wäre der bessere Weg.
+    "C:\Program Files (x86)\CounterPath\Bria Enterprise\BriaEnterprise.exe" -action=call?to="%1"
 
-**Und ein Verdacht, der daran hängt:** der Autostart-Eintrag trägt
-`--minimized` und zeigt auf **denselben Stub**. Kommt das Argument auch dort
-nicht an, startet nipp beim Anmelden mit sichtbarem Fenster. Das ist T25 und
-braucht einen Neustart.
+Das ist der Drittanbieter-Client, den nipp ablösen soll; er ist auf dieser
+Maschine noch installiert. nipp registriert sich in **HKCU**. Welcher der
+beiden gewinnt, entscheidet Windows — und hier gewinnt offenbar nicht nipp.
+**Bewiesen ist das nicht:** beim Aufruf startet auch Bria nicht sichtbar, es
+passiert schlicht nichts. Eine `UserChoice` für `tel:` gibt es nicht.
+
+**Was daraus folgt, und was nicht.** Für diesen Arbeitsplatz ist die
+Prüfzeile durchgefallen. Ob sie es auf einem **frischen** Rechner ohne Bria
+auch wäre, ist offen — und genau das macht sie zu einer Zeile für den
+Gerätetag mit frischem Rechner, nicht für den Schreibtisch. **Am Code von nipp
+ist vorerst nichts zu reparieren**, denn seine Kette ist nachgemessen in
+Ordnung.
+
+**Der nächste Schritt:** Bria auf diesem Arbeitsplatz deinstallieren oder
+seinen HKLM-Eintrag entfernen, dann erneut messen. Das trennt die beiden
+Erklärungen, und es ist ohnehin fällig, wenn nipp ihn ersetzen soll.
 
 ---
 
