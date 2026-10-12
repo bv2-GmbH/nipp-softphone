@@ -41,27 +41,43 @@ behaupten, ohne sie gemessen zu haben (CLAUDE.md, W2.7).
 nipps eigene Kette ist also in Ordnung — Aktivierung, Entpacken der Nummer,
 Wählen. **Was nicht funktioniert, ist der Weg dorthin über Windows.**
 
-**Der Verdacht, ausdrücklich noch nicht bewiesen.** In **HKLM** steht ein
-zweiter `tel:`-Handler:
+**Ein Verdacht kam dazu und ist wieder weg.** In **HKLM** steht ein zweiter
+`tel:`-Handler — **Bria Enterprise**, der Drittanbieter-Client, den nipp
+ablösen soll, auf dieser Maschine noch installiert. nipp registriert sich in
+HKCU, und es lag nahe, dass HKLM gewinnt.
 
-    "C:\Program Files (x86)\CounterPath\Bria Enterprise\BriaEnterprise.exe" -action=call?to="%1"
+**Der Trenntest widerlegt das.** nipp registriert vier Protokolle, Bria nur
+drei: `sips:` beansprucht **nur nipp**, ohne jeden Konkurrenten. Es scheitert
+**genauso**. Damit ist Bria entlastet.
 
-Das ist der Drittanbieter-Client, den nipp ablösen soll; er ist auf dieser
-Maschine noch installiert. nipp registriert sich in **HKCU**. Welcher der
-beiden gewinnt, entscheidet Windows — und hier gewinnt offenbar nicht nipp.
-**Bewiesen ist das nicht:** beim Aufruf startet auch Bria nicht sichtbar, es
-passiert schlicht nichts. Eine `UserChoice` für `tel:` gibt es nicht.
+| Protokoll | HKLM (Bria) | HKCU (nipp) | über ShellExecute |
+|---|---|---|---|
+| `tel:` | ja | ja | scheitert |
+| `sips:` | **nein** | ja | **scheitert auch** |
 
-**Was daraus folgt, und was nicht.** Für diesen Arbeitsplatz ist die
-Prüfzeile durchgefallen. Ob sie es auf einem **frischen** Rechner ohne Bria
-auch wäre, ist offen — und genau das macht sie zu einer Zeile für den
-Gerätetag mit frischem Rechner, nicht für den Schreibtisch. **Am Code von nipp
-ist vorerst nichts zu reparieren**, denn seine Kette ist nachgemessen in
-Ordnung.
+**Und das Messwerkzeug ist es auch nicht.** Drei verschiedene Wege zu
+ShellExecute — `Start-Process`, `explorer.exe`, `cmd /c start` — bleiben alle
+folgenlos. Es erscheint **kein Auswahldialog**, es steht **nichts im
+Ereignisprotokoll**, und es wird **kein Prozess gestartet**. Es passiert
+stumm nichts.
 
-**Der nächste Schritt:** Bria auf diesem Arbeitsplatz deinstallieren oder
-seinen HKLM-Eintrag entfernen, dann erneut messen. Das trennt die beiden
-Erklärungen, und es ist ohnehin fällig, wenn nipp ihn ersetzen soll.
+**Damit ist der Stand:** nipps Kette ist nachweislich in Ordnung, der Weg über
+Windows erreicht sie nicht, und **die Ursache ist offen**. Die Registrierung
+sieht vollständig aus (`URL:tel`, `URL Protocol`, `shell\open\command` auf den
+Stub); eine `UserChoice` für `tel:` gibt es nicht.
+
+**Der nächste Schritt** ist ein Werkzeug, kein Rateschritt: Process Monitor
+(Sysinternals) zeigt, welchen Registrierungsschlüssel ShellExecute liest und
+wo es aufgibt. Alternativ sagt ein **frischer Rechner**, ob es an dieser
+Maschine liegt — und deshalb gehören T21 und T22 dorthin und nicht an den
+Schreibtisch.
+
+**Zwei Dinge, die dieser Abend gekostet hat und die hier stehen bleiben
+sollen:** eine zu kurze Wartezeit sah aus wie eine Ursache, und ein
+naheliegender Verdächtiger (Bria) sah aus wie eine Erklärung. **Beide waren
+falsch, und beide hätten als Befund im Repo gestanden**, wenn nicht
+nachgemessen worden wäre. Der Trenntest über `sips:` hat dreissig Sekunden
+gekostet.
 
 ---
 
