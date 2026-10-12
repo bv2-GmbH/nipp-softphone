@@ -121,6 +121,12 @@ public sealed class GespraechsBericht
         }
 
         t.Add($"Verwuerfe {Anzahl(StoerungsArt.Verwurf)} (max {Hoechstwert(StoerungsArt.Verwurf)} ms)");
+
+        // Steht direkt neben den Verwuerfen, und zwar immer — auch bei null.
+        // Eine Zahl, die nur im schlechten Fall dasteht, laesst den guten Fall
+        // wie ein fehlendes Feld aussehen, und niemand weiss dann, ob gemessen
+        // oder nur nichts gefunden wurde.
+        t.Add($"davon hoerbar {Anzahl(StoerungsArt.VerwurfHoerbar)}");
         t.Add($"Ticker spaet {Anzahl(StoerungsArt.TickerZuSpaet)} (max {Hoechstwert(StoerungsArt.TickerZuSpaet)} ms)");
         t.Add($"Pufferfehler {Anzahl(StoerungsArt.Pufferfehler)}");
         t.Add($"Messungen {_messungen.Count}");

@@ -13,6 +13,58 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**Stand 12.10.2026 — die Gegenprobe zu ADR-078 hält, und die Zahl, an der sie
+gemessen wurde, mass das Falsche.**
+
+Ein Arbeitstag mit vier Gesprächen, ausgewertet statt nacherzählt.
+
+### Die Gegenprobe ist durch — ADR-078 bestätigt
+
+Zwei lange Gespräche ohne Echo-Canceller (24:24 und 12:52) liegen bei **0,86
+und 0,47 Verwürfen je Minute** gegen **5,40** mit Canceller am 09.10. Das ist
+das erwartete Band (0,15 bis 1,78), und die Entscheidung, die Echounterdrückung
+auf dieser Maschine aus zu lassen, steht.
+
+### ADR-080 — ein verworfener Puffer ist noch keine hörbare Störung
+
+Beim Nachmessen fiel auf, dass die Flusskontrolle mit
+`strategy=[1]` (`soft`) läuft: sie **sucht sich zum Wegwerfen eine leise
+Stelle**. An diesem Tag stand bei **45 Verwürfen 45-mal** eine zur Verfügung —
+die Meldung «too many samples to drop, dropping entire frame» kam **kein
+einziges Mal**. Die 45 Verwürfe waren damit mit grosser Wahrscheinlichkeit
+**nicht hörbar**, und der Bericht meldete sie trotzdem als Störungen; bei
+einem Gespräch von 2:55 ergab das 4,46 je Minute.
+
+Gebaut: `StoerungsArt.VerwurfHoerbar`, der Bericht trägt `davon hoerbar`
+**immer** mit (auch bei null), zwei neue Tests in `SdkStoerungTests`, und der
+Satz in `CLAUDE.md` («1,4/Min ist hörbar gestört») ist gestrichen — er war
+eine Annahme. **ADR-078 wird davon nicht schwächer:** dort war die Hörbarkeit
+gehört, nicht aus der Zahl erschlossen.
+
+### Das Werkzeug zeigte die Spalte nicht, auf die es ankommt
+
+`Zeige-Gespraeche.ps1` rechnet `ProMinute` seit dem 08.10. aus und stellte sie
+als vorletzte Spalte in ein `Format-Table -AutoSize` — womit sie an der
+Konsolenbreite **als erste abgeschnitten** wurde. `MOS min` und `Verlust max`
+standen in der Berichtszeile und wurden gar nicht gelesen. Beides ist
+nachgezogen; dazu `-AlsObjekte` für die Weiterverarbeitung, denn das Skript
+formatierte selbst und gab nichts an die Pipeline. Nebenbei sichtbar
+geworden: `ProMinute` und `MOS min` laufen sauber gegenläufig.
+
+### Neue Spur für A7, nicht entschieden
+
+**`Could not get buffer` — die bisherige Signatur — kam in keinem der vier
+Gespräche vor.** Stattdessen steht dort ein Ausgabepuffer von **200 ms** bei
+10 ms Geräteperiode, der dauerhaft zu **90 %** voll läuft, und ein Gerät, das
+8 kHz mono ablehnt (1:6 hochgerechnet, auf Stereo verdoppelt). Der Überlauf
+entspricht **0,4 % Taktunterschied**. nipp stellt an dieser Kette heute
+nichts ein. **Was fehlt, ist ein Hörtest** — nach ADR-080 taugt die
+Verwurfzahl nicht mehr als Beleg. Einzelheiten in
+`docs/plans/AUDIOQUALITAET-PLAN.md`.
+
+---
+
+
 **Stand 09.10.2026 — der Echo-Canceller vom Vortag war falsch, und auf dem Weg
 zur Installation fiel ein Datenverlust-Risiko auf.**
 

@@ -11,7 +11,7 @@ lesbar bleiben.
 | Was | Wo |
 |---|---|
 | Was nipp tun soll | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-079. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen»), **ADR-075** warum nipp das Freizeichen beim Rauswählen selbst spielt (25.09.2026), **ADR-076** warum der Echo-Canceller `MSSpeexEC` heisst und **ADR-077** warum jedes Gespräch eine Auswertungszeile hinterlässt (08.10.2026), **ADR-078** warum die Echounterdrückung hier trotzdem aus ist und **ADR-079** warum die Daten unter `bv2\` liegen (09.10.2026) |
+| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-080. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen»), **ADR-075** warum nipp das Freizeichen beim Rauswählen selbst spielt (25.09.2026), **ADR-076** warum der Echo-Canceller `MSSpeexEC` heisst und **ADR-077** warum jedes Gespräch eine Auswertungszeile hinterlässt (08.10.2026), **ADR-078** warum die Echounterdrückung hier trotzdem aus ist und **ADR-079** warum die Daten unter `bv2\` liegen (09.10.2026), **ADR-080** warum ein verworfener Puffer noch keine hörbare Störung ist (12.10.2026) |
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
@@ -91,8 +91,16 @@ lesbar bleiben.
   nicht ins Rohprotokoll: die Zahlen sind sonst von Hand aus Zeitfenstern
   zusammenzusuchen, und das hat am 08.10.2026 eine Stunde gekostet.
   **Verglichen werden Verwürfe je Minute**, nie die absolute Zahl — ein langes
-  Gespräch sammelt mehr. Referenz aus dem Alltag: 0,04/Min ist gut, 1,4/Min ist
-  hörbar gestört.
+  Gespräch sammelt mehr.
+  **Aber ein Verwurf ist keine hörbare Störung** (ADR-080, 12.10.2026). Die
+  Flusskontrolle läuft auf `strategy=soft` und sucht sich eine leise Stelle;
+  an einem Tag mit 45 Verwürfen hat sie **45-mal** eine gefunden. Was sie
+  nicht konnte, sagt sie selbst, und **das** steht als Spalte `Hoerbar` im
+  Bericht — die Zahl, auf die es bei einer Meldung ankommt. `ProMinute`
+  vergleicht Gespräche miteinander und misst **nicht** Hörbarkeit; der
+  frühere Satz «1,4/Min ist hörbar gestört» war eine Annahme und ist
+  gestrichen. Steht in der Spalte `?`, stammt das Protokoll von vor dem
+  12.10.2026 und die Frage wurde dort nicht gemessen.
 - **Die Störungszählung liest SDK-Protokolltexte im Wortlaut** (ADR-077,
   `SdkStoerung`). Das ist kein Umweg, sondern der einzige Weg: Verwürfe,
   Ticker-Verspätungen, Pufferfehler und die Selbstabschaltung des
@@ -849,7 +857,7 @@ erfüllt. Details: docs/environment.md.
 | Frage | Dokument |
 |---|---|
 | Was soll nipp tun? | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-079 |
+| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-080 |
 | Wo steht das Projekt insgesamt? | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmenplan in Wellen. **`docs/plans/WELLE-0-PLAN.md`** — die fünf Schritte davor, alle umgesetzt |
 | Wo hakt die Bedienung? | **`docs/plans/UX-REVIEW-2.md`** — 20 Befunde (12.09.2026), davor **`docs/plans/UX-REVIEW.md`** — 25 Befunde. Umsetzungsstand jeweils ganz vorn |
 | Was passiert auf einem breiten Fenster? | **`docs/plans/BREITBILD-PLAN.md`** — zwei Spalten, Kacheln, der Detailbereich in der Zeile |

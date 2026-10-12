@@ -18,6 +18,80 @@ Geräte».
 
 ---
 
+## Nachmessung ohne Echo-Canceller (12.10.2026) — die Gegenprobe hält, **und die Zahl mass das Falsche**
+
+Vier Gespräche eines Arbeitstages, alle ohne Echounterdrückung (ADR-078).
+Ausgewertet mit `.\tools\Zeige-Gespraeche.ps1`.
+
+| Gespräch | Dauer | Echo | ProMinute | MOS min |
+|---|---|---|---|---|
+| 09.10. `edd5c9b7` | 19:37 | **an** | **5,40** | 1,7 |
+| 12.10. `2767bec0` | 2:55 | aus | 4,46 | 2,8 |
+| 12.10. `989a60ce` | 0:35 | aus | 0,00 | 5,0 |
+| 12.10. `05bba132` | **24:24** | aus | **0,86** | 3,9 |
+| 12.10. `7789e21e` | **12:52** | aus | **0,47** | 4,9 |
+
+**Die Gegenprobe zu ADR-078 ist damit durch.** Die beiden langen Gespräche
+liegen bei 0,47 und 0,86 je Minute gegen 5,40 mit Canceller — im erwarteten
+Band (0,15 bis 1,78). Die Entscheidung, die Echounterdrückung auf dieser
+Maschine aus zu lassen, ist bestätigt.
+
+**Nebenbei zeigt die Tabelle etwas, das vorher niemand sehen konnte:**
+`ProMinute` und `MOS min` laufen sauber gegenläufig (5,40 → 1,7; 4,46 → 2,8;
+0,86 → 3,9; 0,47 → 4,9). Die beiden Spalten standen bis zum 12.10.2026 nicht
+nebeneinander — `ProMinute` wurde vom Werkzeug berechnet und von
+`Format-Table -AutoSize` an der Konsolenbreite abgeschnitten, `MOS min` gar
+nicht erst gelesen.
+
+### Und dann die Einschränkung, die alles davon relativiert
+
+Das SDK protokolliert beim Einrichten der Flusskontrolle:
+
+    MSAudioFlowControl: configured with strategy=[1] and silent_threshold=[0.020000].
+
+`strategy=[1]` ist `soft`: die Strategie **sucht sich zum Wegwerfen eine
+leise Stelle** und meldet es, wenn sie keine findet. An diesem Tag stand bei
+**45 Verwürfen 45-mal** eine zur Verfügung — «too many samples to drop,
+dropping entire frame» kam **kein einziges Mal**.
+
+**Die 45 Verwürfe waren also mit grosser Wahrscheinlichkeit nicht hörbar.**
+Das ist in **ADR-080** entschieden: beide Fälle werden ab sofort getrennt
+gezählt, und der Bericht trägt `davon hoerbar` immer mit. Für diesen Plan
+heisst es: **jede Aussage über Hörbarkeit, die allein auf der Verwurfzahl
+steht, ist ab hier mit Vorsicht zu lesen.** Die Aussagen aus A4/A6 sind
+davon nicht betroffen — dort wurde gehört und gegengeprüft.
+
+### Was A7 dadurch an neuer Spur bekommt
+
+**`Could not get buffer` — die bisherige Signatur von A7 — kam am 12.10.2026
+in keinem der vier Gespräche vor.** Das Bild hat gewechselt. Was stattdessen
+dasteht, gemessen:
+
+| Messung | Wert |
+|---|---|
+| Ausgabepuffer | **9600 Samples = 200 ms**, Geräteperiode 10 ms |
+| Füllstand beim Überlauf | `not enough space [960=9600-8640]` → rund **180 ms** |
+| Geforderte Ausgaberate | *changing output rate to 8000 Hz is not supported. Keep 48000 Hz* |
+| Geforderte Kanäle | *trying to change output channel to 1 is not supported. Keep 2 channels* |
+| Überlauf je Fenster | rund **20 ms je 5 s** = **0,4 % Taktunterschied** |
+| Muster je Gespräch | erster Wert hoch (70, 60, 45 ms), dann Dauerzustand 20–30 ms |
+| Beginn | teils **vor** dem Verbinden (14:46:35 bei Gesprächsbeginn 14:46:52) |
+
+Der Ausgabepuffer steht also dauerhaft zu 90 % voll, und die Flusskontrolle
+hält ihn nur davon ab, überzulaufen. Das sind rund 180 ms lokale Latenz
+zusätzlich zum Jitterpuffer. **nipp stellt an dieser Kette heute nichts ein:**
+`flow_control_strategy`, `flow_control_silence_threshold`, `audio_jitt_comp`
+und die Puffergrösse stehen alle auf SDK-Standard (geprüft über den ganzen
+`src/`-Baum).
+
+**Der nächste Schritt ist deshalb nicht «etwas verstellen».** Die Stellschrauben
+existieren (`Core.Config.SetInt`/`SetString`, Schlüssel aus `liblinphone.dll`
+gezogen), aber nach ADR-080 taugt die Verwurfzahl nicht mehr als Beleg, dass
+eine Änderung etwas verbessert hat. **Was fehlt, ist ein Hörtest** — und eine
+Messung, die sagt, ob die 180 ms Ausgabelatenz im Gespräch stören.
+
+---
+
 ## Nachmessung im Alltag (08.10.2026) — das Rauschen ist weg, die Aussetzer sind es nicht
 
 **Anlass, aus dem Betrieb:** «Ich hatte ein paar Mal Probleme mit der

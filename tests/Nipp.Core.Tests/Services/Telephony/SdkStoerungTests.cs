@@ -46,6 +46,55 @@ public class SdkStoerungTests
     }
 
     /// <summary>
+    /// <b>Der Fall, den man hört</b> — und der bis zum 12.10.2026 als Verwurf
+    /// mitgezählt wurde, obwohl er etwas anderes ist.
+    ///
+    /// <para>Der Wortlaut stammt aus <c>mediastreamer2.dll</c> der Fassung
+    /// 5.5.18; am 12.10.2026 stand er in keinem Protokoll, weil die sanfte
+    /// Strategie an diesem Tag jedes Mal eine stille Stelle fand. <b>Dass ein
+    /// Muster nie auslöst, ist kein Grund, es nicht zu prüfen</b>: tut es das
+    /// eines Tages doch, ist es die einzige Zahl im Bericht, die zählt.</para>
+    /// </summary>
+    [Fact]
+    public void Verwurf_ohne_stille_Stelle_ist_der_hoerbare()
+    {
+        var s = SdkStoerung.Lies(
+            "MSAudioFlowControl: too many samples to drop, dropping entire frame.");
+
+        Assert.NotNull(s);
+        Assert.Equal(StoerungsArt.VerwurfHoerbar, s!.Value.Art);
+    }
+
+    /// <summary>
+    /// Beide Texte enthalten «to drop», und die Reihenfolge der Prüfungen
+    /// entscheidet. Verwechselt sie sich, meldet der Bericht jeden harmlosen
+    /// Verwurf als hörbar — oder, schlimmer, umgekehrt.
+    /// </summary>
+    [Fact]
+    public void Die_beiden_Verwurfarten_werden_nicht_verwechselt()
+    {
+        var harmlos = SdkStoerung.Lies(
+            "mswasapi: output buffer was filled with at least 23 ms in the last 5000 ms, asking to drop.");
+        var hoerbar = SdkStoerung.Lies(
+            "MSAudioFlowControl: too many samples to drop, dropping entire frame.");
+
+        Assert.Equal(StoerungsArt.Verwurf, harmlos!.Value.Art);
+        Assert.Equal(StoerungsArt.VerwurfHoerbar, hoerbar!.Value.Art);
+    }
+
+    /// <summary>
+    /// Die Anfrage der Flusskontrolle auf Debug-Stufe ist <b>dieselbe
+    /// Störung</b> wie die Warnung von mswasapi, nur von der anderen Seite
+    /// gemeldet — gezählt wird sie nicht, sonst stünde jeder Verwurf auf
+    /// Debug doppelt im Bericht und die Protokollstufe veränderte die Zahl.
+    /// </summary>
+    [Fact]
+    public void Die_Debug_Anfrage_wird_nicht_mitgezaehlt()
+    {
+        Assert.Null(SdkStoerung.Lies("MSAudioFlowControl: requested to drop 23 ms "));
+    }
+
+    /// <summary>
     /// Der höchste Wert, der am 08.10.2026 gemessen wurde — auf einem Ticker,
     /// der alle 10 ms läuft.
     /// </summary>

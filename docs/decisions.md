@@ -8,6 +8,76 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-080 — Ein verworfener Puffer ist noch keine hörbare Störung
+
+**Datum:** 12.10.2026 · **Status:** angenommen · **Bezug:** ADR-077, ADR-078, `SdkStoerung`, `GespraechsBericht`, A7
+
+**Kontext.** Der Gesprächsbericht aus ADR-077 zählt Verwürfe der
+Ausgabe-Flusskontrolle und nennt sie seit dem ersten Tag «hörbar als Lücke
+oder Knacken». Das stand als Kommentar an `StoerungsArt.Verwurf`, es stand
+in `CLAUDE.md` als Referenzwert («0,04/Min ist gut, 1,4/Min ist hörbar
+gestört»), und es war die Zahl, an der ADR-078 den Echo-Canceller gemessen
+hat. **Gemessen hatte die Hörbarkeit niemand.**
+
+Am 12.10.2026 ist sie gemessen worden, an vier Gesprächen eines
+Arbeitstages (2:55, 0:35, 24:24, 12:52). Das SDK protokolliert beim
+Einrichten der Flusskontrolle, wie sie arbeitet:
+
+    MSAudioFlowControl: configured with strategy=[1] and silent_threshold=[0.020000].
+
+`strategy=[1]` ist `soft` — die Strategie sucht sich zum Wegwerfen eine
+**leise Stelle** und meldet es, wenn sie keine findet («too many samples to
+drop, dropping entire frame»). An diesem Tag stand sie bei **45 Verwürfen
+45-mal** zur Verfügung: die Meldung kam **kein einziges Mal**.
+
+Die 45 Verwürfe waren damit mit grosser Wahrscheinlichkeit **nicht hörbar**.
+Der Bericht meldete sie trotzdem als Störungen, und bei einem Gespräch von
+2:55 ergab das 4,46 je Minute — nach der bisherigen Skala «hörbar gestört».
+
+**Entscheidung.** Die beiden Fälle werden getrennt gezählt.
+`StoerungsArt.VerwurfHoerbar` erkennt den Text, mit dem die Flusskontrolle
+das Aufgeben meldet; der Bericht trägt die Zahl als `davon hoerbar` **immer**
+mit, auch bei null. Eine Zahl, die nur im schlechten Fall dasteht, lässt den
+guten Fall wie ein fehlendes Feld aussehen.
+
+**Was ausdrücklich nicht entschieden wird.** Die Verwürfe werden **nicht**
+aufgehört zu zählen. Sie sind der Beleg dafür, dass der Ausgabepuffer
+dauerhaft überläuft, und das ist ein echter Befund (siehe unten). Sie sind
+nur keine Aussage darüber, was jemand gehört hat.
+
+**Konsequenz.**
+- `ProMinute` bleibt die Spalte für den Vergleich zwischen Gesprächen, ist
+  aber **kein Mass für Hörbarkeit**. Die Referenzwerte in `CLAUDE.md` sind
+  entsprechend eingeschränkt.
+- **ADR-078 bleibt gültig, und seine Begründung wird dadurch stärker, nicht
+  schwächer:** dort war die Hörbarkeit nicht aus der Verwurfzahl erschlossen,
+  sondern **gehört** («Rauschen und leichte Verzerrung gegen Ende»). Die
+  Gegenprobe vom 12.10.2026 bestätigt ihn an den Zahlen — 0,47 und 0,86 je
+  Minute bei den beiden langen Gesprächen gegen 5,40 mit Canceller.
+- `SdkStoerungTests` hält beide Wortlaute fest. **Dass das neue Muster an
+  seinem ersten Tag nie auslöste, ist kein Grund, es nicht zu prüfen** —
+  löst es eines Tages aus, ist es die einzige Zahl im Bericht, die zählt.
+
+**Was dabei offen aufgefallen ist (nicht entschieden, A7).** Der
+Ausgabepuffer wird mit **9600 Samples = 200 ms** angelegt, bei einer
+Geräteperiode von 10 ms, und läuft bei rund 180 ms (`cannot write output
+buffer of 960 samples, not enough space [960=9600-8640]`). Dazu kommt, dass
+das Gerät die Wunschparameter des Streams ablehnt: *changing output rate to
+8000 Hz is not supported by the device. Keep 48000 Hz* und *trying to change
+output channel to 1 is not supported. Keep 2 channels* — es wird also 1:6
+hochgerechnet und auf Stereo verdoppelt. Der Überlauf von rund 20 ms je 5
+Sekunden entspricht **0,4 % Taktunterschied** zwischen der Anlage und der
+lokalen Soundkarte. nipp stellt an dieser Kette heute **nichts** ein
+(`flow_control_strategy`, `audio_jitt_comp` und die Puffergrösse stehen alle
+auf SDK-Standard). Ob davon etwas verstellt werden sollte, ist **nicht
+entschieden** und braucht einen Hörtest — die blosse Verwurfzahl taugt nach
+diesem ADR nicht mehr als Beleg.
+
+**Nebenbefund zu A7:** `Could not get buffer` — bisher die Signatur des
+Problems — kam am 12.10.2026 **in keinem Gespräch** vor.
+
+---
+
 ## ADR-079 — Die Daten liegen unter `%LOCALAPPDATA%\bv2\nipp`, weil das Setup sonst sein eigenes Verzeichnis vorfindet
 
 **Datum:** 09.10.2026 · **Status:** angenommen · **Bezug:** §10, ADR-038, `NippPfade`, `DatenUebernahme`, T334

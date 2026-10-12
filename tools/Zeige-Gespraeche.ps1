@@ -22,6 +22,11 @@ param(
     # Nur Gespraeche mit Stoerungen zeigen.
     [switch]$NurAuffaellige,
 
+    # Gibt die Zeilen als Objekte zurueck statt als Tabelle — zum Sortieren,
+    # Filtern und Exportieren. Ohne den Schalter formatiert das Skript selbst,
+    # und dann ist in der Pipeline nichts mehr zu holen.
+    [switch]$AlsObjekte,
+
     [string]$Verzeichnis = "$env:LOCALAPPDATA\bv2\nipp\logs"
 )
 
@@ -73,10 +78,36 @@ $zeilen = foreach ($d in $dateien) {
         $pufferfehler = 0
         if ($rest -match 'Pufferfehler (\d+)') { $pufferfehler = [int]$Matches[1] }
 
+        # Das SDK schreibt mit Punkt als Dezimaltrenner. Auf einer de-CH
+        # Maschine macht [double]'2.8' daraus 28 — die Zahl waere nicht
+        # falsch gerundet, sondern zehnmal zu gross, und ein stilles
+        # Zehnfaches sieht aus wie ein Messwert.
+        $alsZahl = {
+            param($text)
+            $wert = 0.0
+            if ([double]::TryParse($text, [Globalization.NumberStyles]::Float,
+                    [Globalization.CultureInfo]::InvariantCulture, [ref]$wert)) { $wert } else { 0.0 }
+        }
+
+        # $null und nicht 0: Protokolle vor dem 12.10.2026 tragen das Feld
+        # nicht, und «nicht gemessen» ist etwas anderes als «nichts gefunden».
+        # Als 0 saehe jedes alte Gespraech aus, als waere es geprueft worden.
+        $hoerbar = $null
+        if ($rest -match 'davon hoerbar (\d+)') { $hoerbar = [int]$Matches[1] }
+
+        $mosMin = 0.0
+        if ($rest -match 'MOS [\d.]+ \(min ([\d.]+)\)') { $mosMin = & $alsZahl $Matches[1] }
+        $verlustMax = 0.0
+        if ($rest -match 'Verlust max ([\d.]+)%') { $verlustMax = & $alsZahl $Matches[1] }
+
         [pscustomobject]@{
             Zeit        = $m.Groups['zeit'].Value
             Id          = $m.Groups['id'].Value
             Dauer       = $dauerText
+            ProMinute   = if ($minuten -gt 0) { [math]::Round($verwuerfe / $minuten, 2) } else { 0 }
+            Hoerbar     = $hoerbar
+            MosMin      = $mosMin
+            VerlustMax  = $verlustMax
             Codec       = Feld 'Codec' $rest
             Echo        = Feld 'Echo' $rest
             Verwuerfe   = $verwuerfe
@@ -84,7 +115,6 @@ $zeilen = foreach ($d in $dateien) {
             Spaet       = $spaet
             MaxSpaet    = $maxSpaet
             Pufferfehl  = $pufferfehler
-            ProMinute   = if ($minuten -gt 0) { [math]::Round($verwuerfe / $minuten, 2) } else { 0 }
             Stufe       = Feld 'SDK-Stufe' $rest
         }
     }
@@ -107,7 +137,23 @@ if ($NurAuffaellige) {
     $zeilen = $zeilen | Where-Object { $_.Verwuerfe -gt 0 -or $_.Spaet -gt 0 -or $_.Pufferfehl -gt 0 }
 }
 
-$zeilen | Format-Table -AutoSize
+if ($AlsObjekte) {
+    return $zeilen
+}
+
+# Die Spalten stehen hier ausgeschrieben, und das ist der Punkt:
+# -AutoSize allein waehlt alle Eigenschaften und schneidet ab, was nicht mehr
+# in die Konsole passt — ProMinute stand als vorletzte und fiel damit als
+# erste heraus. Ausgerechnet die Spalte, auf die es ankommt, war unsichtbar.
+$zeilen | Format-Table -AutoSize -Property Zeit, Id, Dauer,
+    @{ Name = 'ProMin'; Expression = { $_.ProMinute }; FormatString = '0.00' },
+    @{ Name = 'MOSmin'; Expression = { $_.MosMin }; FormatString = '0.0' },
+    @{ Name = 'Verlust%'; Expression = { $_.VerlustMax }; FormatString = '0.0' },
+    Codec, Echo, Verwuerfe,
+    @{ Name = 'Hoerbar'; Expression = { if ($null -eq $_.Hoerbar) { '?' } else { $_.Hoerbar } } },
+    @{ Name = 'MaxMs'; Expression = { $_.MaxVerwurf } },
+    @{ Name = 'Spaet'; Expression = { $_.Spaet } },
+    @{ Name = 'PufFhl'; Expression = { $_.Pufferfehl } }
 
 $mitDauer = $zeilen | Where-Object { $_.ProMinute -gt 0 }
 

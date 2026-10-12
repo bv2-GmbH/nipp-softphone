@@ -7,9 +7,31 @@ public enum StoerungsArt
 {
     /// <summary>
     /// Der Ausgabepuffer ist vollgelaufen, und die Flusskontrolle wirft Ton
-    /// weg (<c>MSAudioFlowControl</c>). Hörbar als Lücke oder Knacken.
+    /// weg (<c>MSAudioFlowControl</c>).
+    ///
+    /// <para><b>Das heisst nicht, dass es jemand gehört hat</b>, und bis zum
+    /// 12.10.2026 stand hier «Hörbar als Lücke oder Knacken». Das war eine
+    /// Annahme, und sie war falsch: das SDK läuft mit
+    /// <c>flow_control_strategy=soft</c> (gemessen, <c>strategy=[1]</c> im
+    /// Protokoll), und die sucht sich zum Wegwerfen eine leise Stelle. An
+    /// einem Tag mit 45 Verwürfen über vier Gespräche hat sie <b>45-mal</b>
+    /// eine gefunden. Wo sie keine findet, sagt sie es selbst — und das ist
+    /// <see cref="VerwurfHoerbar"/>.</para>
     /// </summary>
     Verwurf,
+
+    /// <summary>
+    /// Dasselbe, aber die Flusskontrolle fand <b>keine stille Stelle</b> und
+    /// hat einen ganzen Frame weggeworfen (<c>too many samples to drop,
+    /// dropping entire frame</c>). <b>Das ist der Fall, den man hört.</b>
+    ///
+    /// <para>Gezählt wird er getrennt, weil er sonst in den Verwürfen
+    /// untergeht: eine Zahl, die beides zusammenfasst, kann richtig sein und
+    /// beantwortet trotzdem die falsche Frage (CLAUDE.md, 16.09.2026). Am
+    /// 12.10.2026 wäre die Antwort «45 Störungen» gewesen, die hörbare Zahl
+    /// war <b>null</b>.</para>
+    /// </summary>
+    VerwurfHoerbar,
 
     /// <summary>
     /// Der Audio-Ticker ist zu spät gekommen. Er läuft auf 10 ms; alles
@@ -44,7 +66,7 @@ public readonly record struct Stoerung(StoerungsArt Art, int Wert);
 /// (W2.1, ADR-077).
 ///
 /// <para><b>Warum nipp seine eigenen Protokollzeilen liest.</b> Das sieht nach
-/// einem Umweg aus, ist aber der kurze Weg: diese vier Ereignisse meldet das
+/// einem Umweg aus, ist aber der kurze Weg: diese fünf Ereignisse meldet das
 /// SDK <b>ausschliesslich</b> über das Protokoll — es gibt keine Zählung, kein
 /// Ereignis und keinen Statistikwert dafür. Die Filterstatistik mit den
 /// Spitzenlasten erscheint erst beim Streamende und nur auf Debug-Stufe, und
@@ -83,6 +105,14 @@ public static class SdkStoerung
         if (zeile.Contains("asking to drop", StringComparison.Ordinal))
         {
             return new Stoerung(StoerungsArt.Verwurf, ZahlVor(zeile, " ms in the last"));
+        }
+
+        // Steht vor keiner der anderen Prüfungen zufällig: beide Texte
+        // enthalten «to drop», und dieser hier trägt keine Millisekundenzahl,
+        // die sich greifen liesse — der Frame ist weg, nicht ein Stück davon.
+        if (zeile.Contains("too many samples to drop", StringComparison.Ordinal))
+        {
+            return new Stoerung(StoerungsArt.VerwurfHoerbar, 0);
         }
 
         if (zeile.Contains("We are late of", StringComparison.Ordinal))
