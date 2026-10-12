@@ -13,6 +13,46 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**Befund 12.10.2026 — `tel:`-Links sind auf jedem installierten Arbeitsplatz
+kaputt (T21, T22 nicht bestanden).**
+
+Der Protokoll-Handler in `HKCU\Software\Classes\tel` zeigt auf den
+**Velopack-Stub** (`…\nipp\Nipp.App.exe "%1"`), und **der reicht das Argument
+nicht durch**. Damit kommt keine Nummer in nipp an — am ganzen 12.10.2026
+steht im Protokoll **kein einziges** `CallUriReceived`, und das bei einer
+Instanz, die seit dem 09.10. durchläuft.
+
+**Gemessen ohne einen einzigen Anruf**, mit einer nicht wählbaren Nummer:
+
+| Aufruf | Ergebnis im Protokoll |
+|---|---|
+| `…\nipp\current\Nipp.App.exe tel:xyztest` | «Anruf-URI empfangen» |
+| `…\nipp\Nipp.App.exe tel:xyztest` (Stub) | **nichts** |
+
+Die Nummer ist dabei egal: eine nicht wählbare wird protokolliert, aber nicht
+gewählt — so lässt sich die Kette prüfen, ohne jemanden anzurufen.
+
+**Die Ursache ist eine Entscheidung, die an einer Stelle richtig ist und an
+der anderen nicht.** `WindowsIntegration.ResolveExecutablePath` wählt bewusst
+den Stub, und der Kommentar dort begründet es gut: ein Eintrag auf
+`current\Nipp.App.exe` zeigt während eines Updates auf eine Datei, die gerade
+ersetzt wird. **Für den Autostart stimmt das. Für Protokoll-Handler bricht es
+das Feature** (§10, AP7.2 Klick-to-Call), weil dort ein Argument übergeben
+werden muss.
+
+**Nicht entschieden, weil es beides abwägen muss:** den Handler auf
+`current\Nipp.App.exe` zeigen zu lassen löst das Argument-Problem und holt
+sich das Update-Problem zurück. Ob der Stub Argumente durchreichen kann (ein
+Velopack-Schalter), ist **nicht geprüft** und wäre der bessere Weg.
+
+**Und ein Verdacht, der daran hängt:** der Autostart-Eintrag trägt
+`--minimized` und zeigt auf **denselben Stub**. Kommt das Argument auch dort
+nicht an, startet nipp beim Anmelden mit sichtbarem Fenster. Das ist T25 und
+braucht einen Neustart.
+
+---
+
+
 **Stand 12.10.2026 — die Gegenprobe zu ADR-078 hält, und die Zahl, an der sie
 gemessen wurde, mass das Falsche.**
 

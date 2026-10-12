@@ -18,7 +18,7 @@ damit sich danach sortieren lässt.
 
 | Code | Was es braucht | offen | gesamt | Runde |
 |---|---|---|---|---|
-| **S** | nur einen Arbeitsplatz: kein Anruf, kein Gerät | **7** | 153 | A1 |
+| **S** | nur einen Arbeitsplatz: kein Anruf, kein Gerät | **5** | 153 | A1 |
 | **P** | die Anlage (Test-Trunk), ein echter Anruf | **71** | 107 | A2 |
 | **S+P** | im Kern ein Schreibtischfall, die Gegenprobe braucht ein Gespräch | 1 | 1 | A2 |
 | **S+F** | Schreibtischfall, dessen Gegenprobe einen frischen Rechner braucht | 1 | 1 | A4 |
@@ -31,7 +31,7 @@ damit sich danach sortieren lässt.
 | **W** | einen Windows-10-Arbeitsplatz | 4 | 4 | A5 |
 | **X** | echte x64-Hardware (ADR-001) | 1 | 1 | A6 |
 | **—** | überholt, gestrichen — nicht mehr zu prüfen | — | (7) | — |
-| | | **132** | **324** | |
+| | | **130** | **324** | |
 
 **Die Zahlen stehen nicht von Hand da** (seit 22.09.2026): `Zaehle-Matrix.ps1`
 in `nipp-testaufbauten` trägt die Zählregel und rechnet sie aus. Offen heisst:
@@ -239,11 +239,11 @@ das sich nur am Geraet abnehmen laesst — mehrere davon standen vorher auf
 | T18 | P | Aufnahme | abspielbares WAV, **sichtbarer Indikator** | **bestanden** — 110'400 Bytes, RIFF/WAVE, 8 kHz mono 16 Bit, 6,9 s Audio, Namensschema korrekt. Zwei Anläufe nötig (Call.Params sind read-only) | 04.09.2026 | M3 |
 | T19 | P | Codec-Reihenfolge geändert | **im SIP-Log** nachweisbar geändert | | | |
 | T20 | P | SRTP erzwungen gegen Gegenstelle ohne SRTP | Abbruch **mit verständlicher Begründung** | **dringend** — ohne Erzwingen fiel der erste Testanruf still auf None zurück (ADR-006 Punkt 1) | | |
-| T21 | S | tel-Link aus Outlook | wählt direkt, ohne Rückfrage | **offen** — am 12.10.2026 am Schreibtisch vorbereitet: der `tel:`-Handler steht in `HKCU\Software\Classes\tel` auf dem Velopack-Stub (`…\nipp\Nipp.App.exe "%1"`, 0.9.15, existiert) und `WaehleAusAktivierung` ruft `DialCommand` ohne Rückfrage. **Es fehlt der echte Wählversuch** — und eine Nummer, die man gefahrlos wählen darf | | |
-| T22 | S | tel-Link aus dem Browser | wählt direkt | **offen** — wie T21 vorbereitet (derselbe Handler, derselbe Weg). **Es fehlt der Klick auf einen `tel:`-Link im Browser und damit ein echter Wählversuch** | | |
+| T21 | S | tel-Link aus Outlook | wählt direkt, ohne Rückfrage | **nicht bestanden** (12.10.2026) — der Handler in `HKCU\Software\Classes\tel` zeigt auf den **Velopack-Stub** (`…\nipp\Nipp.App.exe "%1"`), und **der reicht das Argument nicht durch**. Gemessen ohne Anruf mit einer nicht wählbaren Nummer: `…\current\Nipp.App.exe tel:xyztest` schreibt «Anruf-URI empfangen», derselbe Aufruf über den Stub schreibt **nichts**. Am ganzen 12.10. kam kein einziges `CallUriReceived` an. Ursache: `WindowsIntegration.ResolveExecutablePath` wählt bewusst den Stub (er überlebt Updates) — **richtig für den Autostart, falsch für Protokoll-Handler** | 12.10.2026 | |
+| T22 | S | tel-Link aus dem Browser | wählt direkt | **nicht bestanden** (12.10.2026) — dieselbe Ursache wie T21: der registrierte Handler verschluckt die Nummer, **kein Browser-Link kann damit funktionieren**. Der Klick im Browser selbst ist dabei nicht der Beweis (das Chrome-Fenster stand nicht im Vordergrund); der Beweis ist der Stub-Aufruf von Hand, siehe T21 | 12.10.2026 | |
 | T23 | P | Toast bei geschlossenem Fenster | erscheint, Buttons funktionieren | **bestanden** — Fenster war versteckt, Toast erschien, „Annehmen" darauf hat das Gespraech aufgebaut | 07.09.2026 | review-umsetzung |
 | T24 | S | Zweiter Programmstart | aktiviert die erste Instanz | **bestanden** — der zweite Start beendete sich sofort (nur die alte Prozesskennung blieb) und holte das Fenster der laufenden Instanz zurück, auch als es unsichtbar war | 13.09.2026 | review-umsetzung (Debug 20:01) |
-| T25 | S | Autostart nach Neustart | nipp läuft, registriert, im Infobereich | **offen** — am 12.10.2026 geprüft, was ohne Neustart geht: der Autostart-Eintrag `HKCU\…\Run\nipp` steht auf `"…\nipp\Nipp.App.exe" --minimized`, zeigt auf den Stub (überlebt also ein Update) und die Datei ist da (0.9.15). **Es fehlt der Neustart selbst** | | |
+| T25 | S | Autostart nach Neustart | nipp läuft, registriert, im Infobereich | **offen** — am 12.10.2026 geprüft, was ohne Neustart geht: der Autostart-Eintrag `HKCU\…\Run\nipp` steht auf `"…\nipp\Nipp.App.exe" --minimized`, zeigt auf den Stub (überlebt also ein Update) und die Datei ist da (0.9.15). **Es fehlt der Neustart selbst** — und er ist jetzt wichtiger: der Eintrag zeigt auf denselben Stub, der bei T21/T22 das Argument verschluckt hat. **Ob `--minimized` ankommt, ist damit offen**; kommt es nicht an, startet nipp beim Anmelden mit sichtbarem Fenster | | |
 | T26 | P | Globaler Hotkey | nimmt an und legt auf | | | |
 | T27 | P | BLF-Zustandswechsel | Nebenstelle telefoniert, sichtbar farblich **und** als Text | | | |
 | T28 | P | CLIP-Auflösung | Name in Toast, Gespräch und Verlauf | **bestanden fuer Toast und Anrufliste** — „Dominic Brunner" in beiden. **Nicht** in der Gespraechsansicht: dort stand „151" (Befund, siehe unten) | 07.09.2026 | review-umsetzung |
