@@ -1,4 +1,4 @@
-# Was vierzehn Tage Protokoll zeigen — und was davon zu reparieren ist
+﻿# Was vierzehn Tage Protokoll zeigen — und was davon zu reparieren ist
 
 **Stand: 30.10.2026.** Gelesen wurden die Protokolle vom **17. bis 30.10.2026**
 (224 MB, vierzehn Dateien) sowie `crash.txt` und `settings.json` desselben
@@ -8,6 +8,52 @@ gruppierte Fehlerzeilen.
 **Jede Zahl hier ist gezählt, nicht geschätzt** (W2.7, Befund A8). Wo eine
 Ursache nur wahrscheinlich ist, steht „vermutlich" — und die Messung, die sie
 belegen oder widerlegen würde, steht daneben.
+
+---
+
+## Umsetzungsstand (30.10.2026, abends)
+
+**Runde 1 und Runde 2 sind durch, Runde 3 zur Hälfte.** Gebaut in einem Zug,
+zentral getestet (1 492 Tests grün), als **0.9.16** ausgeliefert und auf dem
+Arbeitsplatz installiert.
+
+| Schritt | Stand |
+|---|---|
+| **R1.0** Anklopfton (L12) | **gebaut** — `Core.SetTone(ToneID.CallWaiting, …)` mit eigener Datei, ADR-081. **Der Hörtest T341 steht aus**, und mit ihm die eigentliche Frage: bleibt die zweite Ausgabekette? |
+| **R1.1** Kontenabgleich (L1) | **gebaut und gemessen** — T335 am Schreibtisch bestanden: das Geisterkonto ist weg, `No listening point matching` von 108 auf null, das echte Konto angemeldet |
+| **R1.2** Thread-Wechsel (L2) | **gebaut** — zwölf Empfänger über `Threading/UiDispatch.cs`. T336 braucht das Gerät |
+| **R1.3** Zwei Störungsarten (L4) | **gebaut** — neue Arten, Tests im Wortlaut, zwei Spalten im Werkzeug. T338 braucht ein Gespräch |
+| **R1.4** Aufnahmepfad (L8) | **gebaut, T340 halb** — der Pfad steht jetzt auf `bv2\`; dass eine **Aufnahme** dort landet, ist ungeprüft |
+| **R1.5** Tastenkürzel (L11) | **gebaut** — die Anzeige gab es längst, es fehlte die Bindung im XAML |
+| **R2.1–R2.3** Release (L3) | **0.9.16 ist draussen und installiert.** `Hoerbar` liefert erst das nächste Gespräch — **T337 steht aus** |
+| **R3.1/R3.2** Anmeldelücken (L5) | **gemessen**, siehe unten |
+| **R3.3** Entprellung | **nicht geändert** — die Messung spricht dagegen, siehe unten |
+| **R3.4** L6 in den Audioplan | **eingetragen**, ohne Deutung |
+| **L9** Provisionierungsadresse | **geleert** auf diesem Arbeitsplatz (Entscheid vom 30.10.2026). Die zweite Hälfte — dass nipp bei 404 deutlicher wird — ist **nicht** gebaut |
+| **L7** Toasts | **eigener Befund**, neue Prüfzeile **T342**. Nicht untersucht |
+| **L10** Debug | **bleibt** — die A7-Jagd läuft (Entscheid vom 30.10.2026) |
+
+### Was R3.1 ergeben hat, und warum R3.3 damit vorerst erledigt ist
+
+`tools/Zeige-Anmeldeluecken.ps1` misst die Minuten ohne `Registered`, je Tag
+und Konto. Über die vierzehn Tage, für das echte Konto:
+
+- **197 vollständig beobachtete Lücken, zusammen 726 Minuten**, längste 225
+  Minuten (23.10.).
+- **Der Median liegt bei 0,08 Sekunden.** 150 der Lücken sind kürzer als fünf
+  Sekunden, 177 kürzer als dreissig; **nur elf sind länger als zehn Minuten.**
+
+**Damit beantwortet die Messung die Frage, die R3.3 gestellt hat, und die
+Antwort lautet «Sekunden».** Die Salven aus L5 kosten im Normalfall
+Augenblicke; die Gesamtminuten kommen fast vollständig aus den wenigen langen
+Lücken, und die sehen nach ausgeschaltetem Rechner aus — **gemessen ist das
+aber nicht**, und wer die Entprellung doch anfassen will, misst das zuerst.
+Die Entprellung bleibt bei zwei Sekunden.
+
+**Die Zahlen des zweiten Kontos gehören nicht hierher:** «Beispiel
+Arbeitsplatz» zeigt Lücken von über 500 Minuten am Tag, aber das ist L1 — das
+Geisterkonto, das sich gar nicht anmelden konnte. Seit R1.1 gibt es es nicht
+mehr.
 
 ---
 

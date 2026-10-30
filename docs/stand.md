@@ -13,6 +13,66 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**30.10.2026, abends — Runde 1 und 2 des Logbefunde-Plans gebaut, 0.9.16 ist
+draussen.** Sechs Reparaturen in einem Zug, zentral getestet (1 492 Tests),
+als Release ausgeliefert und auf dem Arbeitsplatz installiert. Umgesetzt mit
+fünf parallelen Subagenten, je einer pro Dateikreis; gebaut und geprüft
+wurde zentral.
+
+**Was jetzt anders ist:**
+
+- **Der Anklopfton gehört nipp** (R1.0, L12, **ADR-081**).
+  `Core.SetTone(ToneID.CallWaiting, …)` mit einer eigenen Datei aus
+  `Build-Sounds.py` — ein kurzer absteigender Doppelton bei −18 dBFS statt
+  Vollaussteuerung alle zwei Sekunden. **Die Zahlen sind gewählt, nicht
+  gehört**, und das steht im Skript, im ADR und in T341 genau so da.
+- **Das Geisterkonto ist weg** (R1.1, L1) — und zwar nachgemessen, nicht nur
+  gebaut: der Arbeitsplatz hatte den Zustand aus T335 tatsächlich, nach dem
+  Start steht die Entfernung auf `[INF]` im Protokoll, `linphonerc` führt nur
+  noch das echte Konto, **`No listening point matching` von 108 auf null**.
+  **T335 ist damit am Schreibtisch bestanden.**
+- **Dienstereignisse laufen über eine Stelle auf den UI-Thread** (R1.2, L2):
+  `Nipp.App/Threading/UiDispatch.cs`, zwölf Empfänger umgestellt. Nicht der
+  eine Zugriff abgesichert, der am 20.10. abgestürzt ist — *die Regel ist der
+  Thread, nicht die Zeile*. T336 braucht das Gerät.
+- **Zwei Störungsarten werden gezählt** (R1.3, L4): `cannot write output
+  buffer` und `MSTicker: late wakeup by`, als **eigene** Arten und mit zwei
+  eigenen Spalten im Werkzeug. Die Deutung bleibt offen, und sie steht auch so
+  im Code.
+- **Der Aufnahmeordner zieht nach** (R1.4, L8) — die Vermutung im Plan trug,
+  der Mechanismus war ein anderer: `settings.json` zieht bei ADR-079 bewusst
+  nicht um, aber das Ansichtsmodell löst den Pfad beim Laden auf und schreibt
+  ihn bei **jeder** Änderung zurück; der alte Standard fror als Literal ein.
+- **Die Einstellungsseite zeigt ein belegtes Tastenkürzel** (R1.5, L11). Die
+  Anzeige existierte längst — es fehlte die Bindung im XAML, der berechnete
+  Text ging ins Leere.
+
+**0.9.16 ist installiert und angemeldet.** Damit ist **L3 erledigt**: ADR-080
+war seit dem 12.10. gebaut und nie ausgeliefert, weshalb alle 60 Gespräche
+`Hoerbar = ?` meldeten. **Die Zahl selbst liefert erst das nächste Gespräch —
+T337 steht aus.**
+
+**Gemessen statt entschieden, und das ist das zweitwichtigste Ergebnis des
+Tages:** `tools/Zeige-Anmeldeluecken.ps1` beantwortet die Frage aus L5, die
+bisher niemand gestellt hatte. Über vierzehn Tage **197 Lücken, 726 Minuten,
+Median 0,08 Sekunden** — 150 kürzer als fünf Sekunden, nur elf länger als zehn
+Minuten. **Die Entprellung bleibt deshalb, wie sie ist.** Die Gesamtminuten
+kommen aus den wenigen langen Lücken, und die sehen nach ausgeschaltetem
+Rechner aus; *gemessen ist das nicht*, und wer die Entprellung doch anfasst,
+misst es zuerst.
+
+**Drei Entscheide von Dominic** (30.10.): Debug bleibt an, solange die
+A7-Jagd läuft; die Provisionierungsadresse auf diesem Arbeitsplatz ist
+geleert; die fehlenden Toasts sind **ein eigener Befund** und nicht länger
+ein Anhängsel von T110 — neue Prüfzeile **T342**.
+
+**Was offen bleibt und eine Person braucht:** **T341** (der Hörtest zum
+Anklopfton, und mit ihm die unsichere Hälfte — bleibt die zweite
+Ausgabekette?), **T337** (ein Gespräch für die Spalte `Hoerbar`), **T338**
+(die neuen Störungsarten im Bericht), **T336** (Gerätewechsel über das
+Infobereich-Menü), die zweite Hälfte von **T340** (wo eine Aufnahme wirklich
+landet), und **T342**.
+
 **30.10.2026 — Vierzehn Tage Protokoll ausgewertet: zwölf Befunde, ein Plan,
 sieben neue Prüfzeilen.** Gelesen wurden die Protokolle vom 17. bis 30.10.
 (224 MB), `crash.txt` und `settings.json` des laufenden Arbeitsplatzes. Alles
