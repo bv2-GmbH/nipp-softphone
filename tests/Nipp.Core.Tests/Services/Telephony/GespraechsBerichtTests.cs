@@ -55,6 +55,44 @@ public class GespraechsBerichtTests
     }
 
     /// <summary>
+    /// Die beiden am 30.10.2026 ergänzten Störungsarten (L4,
+    /// <c>LOGBEFUNDE-PLAN.md</c>) stehen <b>getrennt</b> von den Verwürfen und
+    /// der Ticker-Verspätung — nie darin einsortiert, sonst liessen sie sich
+    /// nicht mehr trennen. Der Wert beim vollen Ausgabepuffer sind
+    /// Abtastwerte, keine Millisekunden.
+    /// </summary>
+    [Fact]
+    public void Ausgabepuffer_voll_und_Ticker_Aufwachen_stehen_getrennt()
+    {
+        var b = Bericht();
+        b.Erfasse(new Stoerung(StoerungsArt.Verwurf, 46));
+        b.Erfasse(new Stoerung(StoerungsArt.AusgabepufferVoll, 480));
+        b.Erfasse(new Stoerung(StoerungsArt.AusgabepufferVoll, 240));
+        b.Erfasse(new Stoerung(StoerungsArt.TickerAufwachenSpaet, 20));
+
+        var zeile = b.AlsZeile(Null.AddMinutes(1), stufeIstDebug: false);
+
+        Assert.Contains("Verwuerfe 1 (max 46 ms)", zeile, StringComparison.Ordinal);
+        Assert.Contains("Ausgabepuffer voll 2 (max 480 Abtastwerte)", zeile, StringComparison.Ordinal);
+        Assert.Contains("Ticker Aufwachen spaet 1 (max 20 ms)", zeile, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>Eine fehlende Angabe und eine Null sind nicht dasselbe</b> — und
+    /// beide neuen Angaben stehen deshalb auch dann in der Zeile, wenn keine
+    /// einzige solche Störung aufgetreten ist. Das ist dieselbe Regel wie bei
+    /// «davon hoerbar».
+    /// </summary>
+    [Fact]
+    public void Ausgabepuffer_voll_und_Ticker_Aufwachen_stehen_auch_bei_null()
+    {
+        var zeile = Bericht().AlsZeile(Null.AddMinutes(1), stufeIstDebug: false);
+
+        Assert.Contains("Ausgabepuffer voll 0 (max 0 Abtastwerte)", zeile, StringComparison.Ordinal);
+        Assert.Contains("Ticker Aufwachen spaet 0 (max 0 ms)", zeile, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// <b>Mittlerer Wert und Maximum stehen beide da</b>, und zwar weil sie nie
     /// dasselbe beantworten (CLAUDE.md, 16.09.2026 — der Rauschfilter stand
     /// bei 0,7 ms im Mittel und 77 ms im Maximum, und nur die zweite Zahl war

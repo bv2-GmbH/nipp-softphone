@@ -127,7 +127,20 @@ public sealed class GespraechsBericht
         // wie ein fehlendes Feld aussehen, und niemand weiss dann, ob gemessen
         // oder nur nichts gefunden wurde.
         t.Add($"davon hoerbar {Anzahl(StoerungsArt.VerwurfHoerbar)}");
+
+        // Eigene Angabe und nicht Teil von "Verwuerfe": ein voller
+        // Ausgabepuffer beim Schreiben ist nicht derselbe Vorgang wie ein
+        // verworfener Verwurf, auch wenn beides nach "Puffer" klingt
+        // (LOGBEFUNDE-PLAN.md, L4). Der Wert ist die Zahl der Abtastwerte,
+        // nicht Millisekunden — deshalb "Abtastwerte" statt "ms" daneben.
+        t.Add($"Ausgabepuffer voll {Anzahl(StoerungsArt.AusgabepufferVoll)} (max {Hoechstwert(StoerungsArt.AusgabepufferVoll)} Abtastwerte)");
+
         t.Add($"Ticker spaet {Anzahl(StoerungsArt.TickerZuSpaet)} (max {Hoechstwert(StoerungsArt.TickerZuSpaet)} ms)");
+
+        // Ebenfalls eigene Angabe, aus demselben Grund: andere Zeile im SDK,
+        // nicht in "Ticker spaet" einzusortieren.
+        t.Add($"Ticker Aufwachen spaet {Anzahl(StoerungsArt.TickerAufwachenSpaet)} (max {Hoechstwert(StoerungsArt.TickerAufwachenSpaet)} ms)");
+
         t.Add($"Pufferfehler {Anzahl(StoerungsArt.Pufferfehler)}");
         t.Add($"Messungen {_messungen.Count}");
         t.Add($"SDK-Stufe {(stufeIstDebug ? "Debug" : "normal")}");

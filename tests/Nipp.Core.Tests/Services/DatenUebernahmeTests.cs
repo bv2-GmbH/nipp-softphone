@@ -160,6 +160,128 @@ public class DatenUebernahmeTests : IDisposable
         Assert.Equal("anrufe", File.ReadAllText(Path.Combine(Alt, "history.db")));
     }
 
+    private string Einstellungen => Path.Combine(_wurzel, "settings.json");
+
+    private const string AlterStandard = @"C:\Users\jemand\AppData\Local\nipp\recordings";
+
+    private const string NeuerStandard = @"C:\Users\jemand\AppData\Local\bv2\nipp\recordings";
+
+    private void SchreibeEinstellungen(string recordingDirectoryJson)
+    {
+        Directory.CreateDirectory(_wurzel);
+        File.WriteAllText(
+            Einstellungen,
+            $$"""
+            {
+              "Accounts": [],
+              "Advanced": {
+                "RecordingDirectory": {{recordingDirectoryJson}},
+                "CountryPrefix": "+41"
+              }
+            }
+            """);
+    }
+
+    /// <summary>
+    /// <b>Der Normalfall des Befunds (L8):</b> der alte, eingefrorene Standard
+    /// wird auf den neuen gezogen.
+    /// </summary>
+    [Fact]
+    public void Eingefrorener_alter_Standard_wird_korrigiert()
+    {
+        SchreibeEinstellungen($"\"{AlterStandard.Replace(@"\", @"\\")}\"");
+
+        DatenUebernahme.KorrigiereRecordingDirectory(Einstellungen, AlterStandard, NeuerStandard);
+
+        var inhalt = File.ReadAllText(Einstellungen);
+        Assert.Contains(NeuerStandard.Replace(@"\", @"\\"), inhalt);
+        Assert.DoesNotContain(AlterStandard.Replace(@"\", @"\\"), inhalt);
+
+        // Der Rest der Datei bleibt erhalten — geprüft am Inhalt, nicht am
+        // Text: System.Text.Json schreibt das Plus mit dem Standard-Encoder
+        // als «+», und genau so steht es auch in der echten
+        // settings.json (nachgesehen am 30.10.2026). Ein Assert auf «+41»
+        // misst den Encoder, nicht den erhaltenen Wert.
+        var gelesen = System.Text.Json.Nodes.JsonNode.Parse(inhalt);
+        Assert.Equal(
+            "+41",
+            gelesen?["Advanced"]?["CountryPrefix"]?.GetValue<string>());
+    }
+
+    /// <summary>
+    /// <b>Die wichtigere Hälfte (ADR-054):</b> ein Pfad, der nicht exakt dem
+    /// alten Standard entspricht, ist eine Entscheidung und bleibt stehen —
+    /// auch ohne eigenen Eintrag im <c>ProvisioningCatalog</c>, der diesen
+    /// Pfad gar nicht kennt.
+    /// </summary>
+    [Fact]
+    public void Ein_eigener_Aufnahmeordner_bleibt_unangetastet()
+    {
+        const string eigen = @"D:\Aufnahmen";
+        SchreibeEinstellungen($"\"{eigen.Replace(@"\", @"\\")}\"");
+
+        DatenUebernahme.KorrigiereRecordingDirectory(Einstellungen, AlterStandard, NeuerStandard);
+
+        var inhalt = File.ReadAllText(Einstellungen);
+        Assert.Contains(eigen.Replace(@"\", @"\\"), inhalt);
+    }
+
+    /// <summary>Kein Wert gesetzt (<c>null</c>) — nichts zu korrigieren.</summary>
+    [Fact]
+    public void Kein_gesetzter_Wert_bleibt_null()
+    {
+        SchreibeEinstellungen("null");
+
+        DatenUebernahme.KorrigiereRecordingDirectory(Einstellungen, AlterStandard, NeuerStandard);
+
+        var inhalt = File.ReadAllText(Einstellungen);
+        Assert.Contains("\"RecordingDirectory\": null", inhalt);
+    }
+
+    /// <summary>Fehlt die Datei ganz, geschieht nichts — und es wird nicht geworfen.</summary>
+    [Fact]
+    public void Fehlende_Einstellungsdatei_wird_ignoriert()
+    {
+        var exception = Record.Exception(() =>
+            DatenUebernahme.KorrigiereRecordingDirectory(Einstellungen, AlterStandard, NeuerStandard));
+
+        Assert.Null(exception);
+        Assert.False(File.Exists(Einstellungen));
+    }
+
+    /// <summary>
+    /// Eine beschädigte Datei darf den Start nicht verhindern — dieselbe
+    /// Garantie wie bei <see cref="DatenUebernahme.Ausfuehren(string, string)"/>.
+    /// </summary>
+    [Fact]
+    public void Beschaedigte_Einstellungsdatei_wird_nicht_angefasst()
+    {
+        Directory.CreateDirectory(_wurzel);
+        File.WriteAllText(Einstellungen, "{ das ist kein json");
+
+        var exception = Record.Exception(() =>
+            DatenUebernahme.KorrigiereRecordingDirectory(Einstellungen, AlterStandard, NeuerStandard));
+
+        Assert.Null(exception);
+        Assert.Equal("{ das ist kein json", File.ReadAllText(Einstellungen));
+    }
+
+    /// <summary>
+    /// Zweiter Lauf nach der Korrektur ist folgenlos — derselbe Grundsatz wie
+    /// bei der übrigen Übernahme.
+    /// </summary>
+    [Fact]
+    public void Ein_zweiter_Lauf_der_Korrektur_ist_folgenlos()
+    {
+        SchreibeEinstellungen($"\"{AlterStandard.Replace(@"\", @"\\")}\"");
+
+        DatenUebernahme.KorrigiereRecordingDirectory(Einstellungen, AlterStandard, NeuerStandard);
+        DatenUebernahme.KorrigiereRecordingDirectory(Einstellungen, AlterStandard, NeuerStandard);
+
+        var inhalt = File.ReadAllText(Einstellungen);
+        Assert.Contains(NeuerStandard.Replace(@"\", @"\\"), inhalt);
+    }
+
     /// <summary>
     /// <b>Eine gesperrte Datei hält die übrigen nicht auf</b> — und wirft
     /// nicht. Diese Methode läuft vor WinUI; eine Ausnahme dort hiesse, dass

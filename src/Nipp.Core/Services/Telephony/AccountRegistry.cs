@@ -1,4 +1,4 @@
-﻿using Nipp.Core.Services.Telephony.Model;
+using Nipp.Core.Services.Telephony.Model;
 
 namespace Nipp.Core.Services.Telephony;
 
@@ -150,6 +150,58 @@ public sealed class AccountRegistry
 
         return _settings.Keys.FirstOrDefault(k =>
             string.Equals(k, candidate, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Welche SDK-Konten beim Start überzählig sind (L1, R1.1,
+    /// <c>LOGBEFUNDE-PLAN.md</c>).
+    ///
+    /// <para><b>Der Anlass.</b> Das SDK führt seine eigene Kontenliste in
+    /// <c>linphonerc</c> fort und stellt sie beim Start selbst wieder her —
+    /// unabhängig davon, was in den Einstellungen steht. Ein über ein
+    /// Provisionierungsprofil ersetztes Konto geht nie durch
+    /// <see cref="SipService.RemoveAccountAsync"/> (das ruft nur die
+    /// Einstellungsseite) und bleibt deshalb im SDK stehen und registriert
+    /// sich weiter — gemessen: 211 Fehlerzeilen und 132
+    /// Registrierungsversuche in vierzehn Tagen für ein einziges solches
+    /// Konto.</para>
+    ///
+    /// <para><b>Reine Funktion, keine Seitenwirkung</b> (ADR-074): sie sagt
+    /// nur, welche Identitäten überzählig sind — wer sie tatsächlich
+    /// entfernt, bleibt <see cref="SipService"/>, über denselben Weg wie
+    /// <see cref="SipService.RemoveAccountAsync"/>.</para>
+    ///
+    /// <para><b>Die Gegenprobe ist die wichtigere Hälfte</b> (T335): eine
+    /// Identität, die in <paramref name="bekannteIdentitaeten"/> steht, landet
+    /// nie in der Rückgabe — auch nicht, wenn sie im SDK unter leicht anderer
+    /// Schreibung auftaucht, deshalb der Vergleich ohne Gross-/Kleinschreibung,
+    /// wie überall sonst beim Vergleich gegen <c>AccountList</c>
+    /// (<see cref="SipService.FindSdkAccount"/>).</para>
+    /// </summary>
+    /// <param name="sdkIdentitaeten">
+    /// Die Identitäten aus <c>Core.AccountList</c> — <c>AsStringUriOnly()</c>,
+    /// ohne Anzeigenamen.
+    /// </param>
+    /// <param name="bekannteIdentitaeten">
+    /// Die Identitäten, die aus den Einstellungen eingetragen sind
+    /// (<see cref="Identities"/>).
+    /// </param>
+    public static IReadOnlyList<string> IdentitaetenOhneEinstellung(
+        IEnumerable<string> sdkIdentitaeten,
+        IEnumerable<string> bekannteIdentitaeten)
+    {
+        ArgumentNullException.ThrowIfNull(sdkIdentitaeten);
+        ArgumentNullException.ThrowIfNull(bekannteIdentitaeten);
+
+        var bekannt = new HashSet<string>(bekannteIdentitaeten, StringComparer.OrdinalIgnoreCase);
+
+        return
+        [
+            .. sdkIdentitaeten
+                .Where(identity => !string.IsNullOrWhiteSpace(identity))
+                .Where(identity => !bekannt.Contains(identity))
+                .Distinct(StringComparer.OrdinalIgnoreCase),
+        ];
     }
 
     /// <summary>

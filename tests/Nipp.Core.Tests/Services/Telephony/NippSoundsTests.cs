@@ -134,6 +134,28 @@ public class NippSoundsTests : IDisposable
         Assert.Null(NippSounds.Ringback(_basis));
     }
 
+    // ---- Anklopfton (R1.0, LOGBEFUNDE-PLAN.md L12) ----
+
+    [Fact]
+    public void Der_eigene_Anklopfton_gilt_wenn_er_da_ist()
+    {
+        var eigen = Anlegen(NippSounds.OwnCallWaiting);
+
+        Assert.Equal(eigen, NippSounds.CallWaiting(_basis));
+    }
+
+    /// <summary>
+    /// Anders als beim Rufton gibt es hier keinen Rückfall auf eine Datei des
+    /// SDK — das SDK erzeugt seinen Anklopfton ohne eine, und genau das ist
+    /// der Befund aus L12. Fehlt die eigene Datei, bleibt der Aufrufer dafür
+    /// verantwortlich, <c>SetTone</c> nicht zu rufen.
+    /// </summary>
+    [Fact]
+    public void Ohne_eigenen_Anklopfton_gibt_es_keinen()
+    {
+        Assert.Null(NippSounds.CallWaiting(_basis));
+    }
+
     // ---- Auswahlliste ----
 
     /// <summary>

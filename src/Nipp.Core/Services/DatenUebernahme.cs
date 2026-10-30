@@ -1,3 +1,7 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Nipp.Core.Services.Settings;
+
 namespace Nipp.Core.Services;
 
 /// <summary>Was eine Übernahme bewirkt hat — zum Protokollieren und Prüfen.</summary>
@@ -128,7 +132,101 @@ public static class DatenUebernahme
         return new UebernahmeErgebnis(uebernommen, uebersprungen, gescheitert);
     }
 
-    /// <summary>Der übliche Aufruf, mit den Pfaden aus <see cref="NippPfade"/>.</summary>
-    public static UebernahmeErgebnis Ausfuehren() =>
-        Ausfuehren(NippPfade.DatenAlt, NippPfade.Daten);
+    /// <summary>
+    /// Der übliche Aufruf, mit den Pfaden aus <see cref="NippPfade"/>. Zieht
+    /// im selben Zug auch <see cref="KorrigiereRecordingDirectory()"/> nach
+    /// (L8/R1.4) — <c>Program.Main</c> ruft nur diese eine Methode, und beide
+    /// Korrekturen gehören demselben einmaligen Anlass (ADR-079).
+    /// </summary>
+    public static UebernahmeErgebnis Ausfuehren()
+    {
+        var ergebnis = Ausfuehren(NippPfade.DatenAlt, NippPfade.Daten);
+        KorrigiereRecordingDirectory();
+        return ergebnis;
+    }
+
+    /// <summary>
+    /// Korrigiert <c>Advanced.RecordingDirectory</c> in den Einstellungen,
+    /// falls dort noch der Standardpfad von vor ADR-079 steht (L8, R1.4).
+    ///
+    /// <para><b>Warum das hier und nicht mit den übrigen Daten passiert.</b>
+    /// <c>settings.json</c> liegt unter <c>%APPDATA%\nipp</c> und zieht bei
+    /// ADR-079 bewusst <b>nicht</b> um (siehe Klassenkommentar von
+    /// <see cref="NippPfade"/>) — dort gab es nie einen Konflikt mit Velopack.
+    /// Der gespeicherte Aufnahmeordner ist aber trotzdem betroffen: er wird
+    /// nie als <c>null</c> persistiert, sobald die Einstellungsseite einmal
+    /// gespeichert hat, denn das Ansichtsmodell löst <c>null</c> schon beim
+    /// Laden zu einem konkreten Pfad auf und schreibt diesen bei jeder
+    /// Änderung zurück — auch wenn der Aufnahmeordner selbst nie angefasst
+    /// wurde. Vor dem 09.10.2026 ergab diese Auflösung den alten Standard
+    /// ohne <c>bv2</c>; dieser Wert friert seither als Literal ein.</para>
+    ///
+    /// <para><b>ADR-054 trägt diesen Pfad nicht</b> — er steht nicht im
+    /// <see cref="ProvisioningCatalog"/> und damit auch nicht in
+    /// <c>NippSettings.UserOverrides</c>; es gibt also keine Markierung, die
+    /// «Benutzer hat selbst gewählt» von «das ist der eingefrorene Standard»
+    /// unterscheidet. Deshalb die enge Regel an dieser Stelle: korrigiert wird
+    /// nur, wenn der gespeicherte Wert <b>exakt</b> dem alten Standard
+    /// entspricht. Jeder andere Wert — auch einer, der nur ähnlich aussieht —
+    /// gilt als bewusste Entscheidung und bleibt stehen.</para>
+    ///
+    /// <para>Wirft nie, aus demselben Grund wie <see cref="Ausfuehren()"/>:
+    /// das läuft in <c>Program.Main</c>, vor dem Protokoll und vor WinUI.</para>
+    /// </summary>
+    /// <param name="einstellungen">Der Pfad zu <c>settings.json</c>.</param>
+    /// <param name="alterStandard">
+    /// Der Pfad, den eine Auflösung vor ADR-079 ergeben hätte.
+    /// </param>
+    /// <param name="neuerStandard">Der heutige Standard aus <see cref="NippPfade"/>.</param>
+    public static void KorrigiereRecordingDirectory(
+        string einstellungen, string alterStandard, string neuerStandard)
+    {
+        try
+        {
+            if (!File.Exists(einstellungen))
+            {
+                return;
+            }
+
+            if (JsonNode.Parse(File.ReadAllText(einstellungen)) is not JsonObject wurzel)
+            {
+                return;
+            }
+
+            if (wurzel["Advanced"] is not JsonObject advanced)
+            {
+                return;
+            }
+
+            var wert = advanced["RecordingDirectory"]?.GetValue<string>();
+
+            if (wert is null
+                || !string.Equals(
+                    Path.TrimEndingDirectorySeparator(wert),
+                    Path.TrimEndingDirectorySeparator(alterStandard),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                // Kein Wert, oder einer, der nicht dem alten Standard
+                // entspricht — und damit eine Entscheidung, die stehen bleibt.
+                return;
+            }
+
+            advanced["RecordingDirectory"] = neuerStandard;
+
+            File.WriteAllText(
+                einstellungen,
+                wurzel.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception)
+        {
+            // Siehe Klassenkommentar: auch diese Korrektur wirft nicht.
+        }
+    }
+
+    /// <summary>Der übliche Aufruf, mit den Pfaden aus <see cref="NippPfade"/> und <see cref="SettingsService"/>.</summary>
+    public static void KorrigiereRecordingDirectory() =>
+        KorrigiereRecordingDirectory(
+            SettingsService.DefaultPath,
+            Path.Combine(NippPfade.DatenAlt, "recordings"),
+            NippPfade.Aufnahmen);
 }

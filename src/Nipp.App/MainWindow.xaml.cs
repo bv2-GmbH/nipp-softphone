@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Nipp.App.Diagnostics;
 using Nipp.App.Theming;
+using Nipp.App.Threading;
 using Nipp.App.Views;
 using Nipp.App.Windows;
 using Nipp.Core.Services.Settings;
@@ -93,7 +94,12 @@ public sealed partial class MainWindow : Window
         AppTitleBar.IconSource = new ImageIconSource { ImageSource = image };
     }
 
-    private void OnEffectiveThemeChanged(object? sender, ElementTheme e) => ApplyTitleBarIcon();
+    /// <summary>
+    /// Über die <c>DispatcherQueue</c>, wie jeder Dienstereignis-Empfänger
+    /// hier (R1.2, Befund L2) — siehe <see cref="Nipp.App.Threading.UiDispatch"/>.
+    /// </summary>
+    private void OnEffectiveThemeChanged(object? sender, ElementTheme e) =>
+        DispatcherQueue.Post(Log, "Erscheinungsbild geaendert (MainWindow)", ApplyTitleBarIcon);
 
     /// <summary>
     /// Fenstergrösse, Symbol und „immer im Vordergrund" (§20.1, §20.4, §20.5).
@@ -156,11 +162,25 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void OnSettingsChanged(object? sender, NippSettings settings)
-    {
-        ApplyAlwaysOnTop(AppWindowRef, settings.Advanced.AlwaysOnTop);
-        _theme.SetPreference(settings.Advanced.Theme);
-    }
+    /// <summary>
+    /// §20.4/§20.5: ein geändertes Fenster-Erscheinungsbild und „immer im
+    /// Vordergrund" nachziehen.
+    ///
+    /// <b>Über die <c>DispatcherQueue</c>, nicht direkt</b> (R1.2, Befund L2).
+    /// <c>SettingsService.Changed</c> feuert nicht nur vom UI-Thread: ein
+    /// Wechsel des Wiedergabegeräts im Infobereich-Menü
+    /// (<see cref="Nipp.App.Windows.TrayIconHost.UsePlaybackDevice"/>) löst es
+    /// vom Nachrichtenfenster von H.NotifyIcon aus. Genau dieser Weg hat
+    /// <c>AppWindowRef</c> am 20.10.2026 mit <c>COMException 0x80070580</c>
+    /// («Unzulässiges Fenster. Es gehört zu einem anderen Thread.») abstürzen
+    /// lassen — siehe <see cref="Nipp.App.Threading.UiDispatch"/>.
+    /// </summary>
+    private void OnSettingsChanged(object? sender, NippSettings settings) =>
+        DispatcherQueue.Post(Log, "Einstellungen geaendert (MainWindow)", () =>
+        {
+            ApplyAlwaysOnTop(AppWindowRef, settings.Advanced.AlwaysOnTop);
+            _theme.SetPreference(settings.Advanced.Theme);
+        });
 
     /// <summary>
     /// Welche Anrufe die Gesprächsansicht schon einmal geholt haben.
@@ -184,8 +204,20 @@ public sealed partial class MainWindow : Window
     /// <summary>
     /// Bei einem Gespräch in die Gesprächsansicht wechseln und danach zurück.
     /// §8.2 gilt inhaltlich weiter, nur ohne Navigationsleiste (§20.1).
+    ///
+    /// <b>Über die <c>DispatcherQueue</c></b> (R1.2, Befund L2): <c>ISipService</c>
+    /// meldet seine Ereignisse zwar im Regelfall aus <c>Core.Iterate()</c> auf
+    /// dem UI-Thread, aber „im Regelfall" ist genau die Annahme, die beim
+    /// Infobereich-Absturz vom 20.10.2026 nicht mehr galt — siehe
+    /// <see cref="Nipp.App.Threading.UiDispatch"/>. Ein Dienstereignis, das
+    /// den Thread nicht selbst garantiert, wird hier nicht stillschweigend
+    /// vorausgesetzt.
     /// </summary>
-    private void OnCallStateChanged(object? sender, CallStateEventArgs e)
+    private void OnCallStateChanged(object? sender, CallStateEventArgs e) =>
+        DispatcherQueue.Post(Log, "Anrufzustand (MainWindow)",
+            () => OnCallStateChangedCore(e));
+
+    private void OnCallStateChangedCore(CallStateEventArgs e)
     {
         var hasCall = _sip.ActiveCalls.Count > 0;
 

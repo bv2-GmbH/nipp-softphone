@@ -1,7 +1,8 @@
-﻿using H.NotifyIcon.Core;
+using H.NotifyIcon.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Nipp.App.Theming;
+using Nipp.App.Threading;
 using Nipp.Core.Services.Integrations.Context;
 using Nipp.Core.Services.Settings;
 using Nipp.Core.Services.Telephony;
@@ -389,10 +390,16 @@ public sealed class TrayIconHost : IDisposable
     /// «Nicht stören» hat sich geändert — das Menü trägt die verbleibende
     /// Zeit und gehört neu gebaut (ADR-055).
     ///
-    /// <para>Ohne Marshalling, wie die Nachbarn: gesetzt wird es vom
-    /// Kontextmenü oder vom Pump, und beide laufen auf dem UI-Thread.</para>
+    /// <para><b>Mit Marshalling, anders als hier bis zum 30.10.2026 stand</b>
+    /// (R1.2, Befund L2). Der Kommentar behauptete, Kontextmenü und Pump
+    /// liefen „beide auf dem UI-Thread" — ungemessen, und falsch: «Nicht
+    /// stören» lässt sich genau über <b>dieses</b> Menü auslösen, und das läuft
+    /// im Nachrichtenfenster von H.NotifyIcon (derselbe Weg wie beim Absturz
+    /// vom 20.10.2026). Jetzt über <see cref="Nipp.App.Threading.UiDispatch"/>,
+    /// wie jeder Dienstereignis-Empfänger hier.</para>
     /// </summary>
-    private void OnDoNotDisturbChanged(object? sender, DoNotDisturb zustand) => BuildMenu();
+    private void OnDoNotDisturbChanged(object? sender, DoNotDisturb zustand) =>
+        _dispatcher?.Post(_logger, "Nicht stoeren geaendert (Infobereich)", BuildMenu);
 
     private void BuildMenu()
     {
@@ -528,21 +535,29 @@ public sealed class TrayIconHost : IDisposable
         }
     }
 
+    /// <summary>
+    /// Über die <c>DispatcherQueue</c> (R1.2, Befund L2) — wie jeder
+    /// Dienstereignis-Empfänger in <c>Nipp.App</c>, siehe
+    /// <see cref="Nipp.App.Threading.UiDispatch"/>. <c>UpdateToolTip</c> und
+    /// <c>_icon</c> werden sonst sowohl vom UI-Thread (SDK-Ereignisse) als
+    /// auch vom Nachrichtenfenster des Infobereich-Symbols angefasst.
+    /// </summary>
     private void OnRegistrationChanged(object? sender, RegistrationChangedEventArgs e) =>
-        UpdateToolTip();
+        _dispatcher?.Post(_logger, "Registrierung geaendert (Infobereich)", UpdateToolTip);
 
-    private void OnCallStateChanged(object? sender, CallStateEventArgs e)
-    {
-        UpdateToolTip();
+    private void OnCallStateChanged(object? sender, CallStateEventArgs e) =>
+        _dispatcher?.Post(_logger, "Anrufzustand (Infobereich)", () =>
+        {
+            UpdateToolTip();
 
-        // Und das Menü: «Stumm schalten» hängt am laufenden Gespräch (C10).
-        // Ein Menü, das beim Start gebaut wird und danach nie wieder, zeigt
-        // den Zustand von damals.
-        BuildMenu();
-    }
+            // Und das Menü: «Stumm schalten» hängt am laufenden Gespräch (C10).
+            // Ein Menü, das beim Start gebaut wird und danach nie wieder, zeigt
+            // den Zustand von damals.
+            BuildMenu();
+        });
 
     private void OnPartyChanged(object? sender, CallHandle handle) =>
-        UpdateToolTip();
+        _dispatcher?.Post(_logger, "Gegenseite (Infobereich)", UpdateToolTip);
 
     private void UpdateToolTip()
     {
@@ -567,32 +582,38 @@ public sealed class TrayIconHost : IDisposable
                 : "nicht angemeldet");
     }
 
-    /// <summary>§20.4: das Symbol folgt dem Erscheinungsbild.</summary>
-    private void OnThemeChanged(object? sender, Microsoft.UI.Xaml.ElementTheme e)
-    {
-        if (_icon is null)
+    /// <summary>
+    /// §20.4: das Symbol folgt dem Erscheinungsbild.
+    ///
+    /// Über die <c>DispatcherQueue</c>, wie jeder Dienstereignis-Empfänger
+    /// hier (R1.2, Befund L2) — siehe <see cref="Nipp.App.Threading.UiDispatch"/>.
+    /// </summary>
+    private void OnThemeChanged(object? sender, Microsoft.UI.Xaml.ElementTheme e) =>
+        _dispatcher?.Post(_logger, "Erscheinungsbild geaendert (Infobereich)", () =>
         {
-            return;
-        }
+            if (_icon is null)
+            {
+                return;
+            }
 
-        try
-        {
-            var neu = LoadIcon();
-            var vorher = _iconResource;
+            try
+            {
+                var neu = LoadIcon();
+                var vorher = _iconResource;
 
-            _iconResource = neu;
-            _icon.UpdateIcon(neu.Handle);
+                _iconResource = neu;
+                _icon.UpdateIcon(neu.Handle);
 
-            // Erst jetzt: bis UpdateIcon zurückkommt, zeichnet der
-            // Infobereich noch das bisherige Handle. Andersherum wäre es
-            // derselbe Fehler wie vorher, nur für einen kürzeren Moment.
-            vorher?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            TrayLog.IconFailed(_logger, ex.Message);
-        }
-    }
+                // Erst jetzt: bis UpdateIcon zurückkommt, zeichnet der
+                // Infobereich noch das bisherige Handle. Andersherum wäre es
+                // derselbe Fehler wie vorher, nur für einen kürzeren Moment.
+                vorher?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                TrayLog.IconFailed(_logger, ex.Message);
+            }
+        });
 
     /// <summary>
     /// Lädt die Fassung, die auf der aktuellen Taskleiste lesbar ist.

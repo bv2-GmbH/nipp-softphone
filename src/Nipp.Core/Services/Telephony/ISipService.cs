@@ -211,6 +211,21 @@ public interface ISipService
     /// </summary>
     Task RemoveAccountAsync(string identity, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Gleicht die SDK-Kontenliste gegen die Einstellungen ab und entfernt
+    /// jedes SDK-Konto, dessen Identität in den Einstellungen nicht (mehr)
+    /// vorkommt — samt <c>AuthInfo</c> (L1, R1.1, <c>LOGBEFUNDE-PLAN.md</c>).
+    ///
+    /// <para><b>Vom Aufrufer genau einmal zu rufen: am Start, nach dem ersten
+    /// vollständigen Anlegen der Kontenliste</b> (alle <c>settings.Accounts</c>
+    /// über <see cref="RegisterAccountAsync"/> angelegt) — <b>ausdrücklich
+    /// nicht</b> bei jeder Einstellungsänderung. Ein Konto, dessen Eintrag in
+    /// den Einstellungen noch nicht geschrieben ist, sähe sonst wie ein
+    /// überzähliges aus und würde sofort wieder entfernt (T335, die
+    /// Gegenprobe).</para>
+    /// </summary>
+    Task ReconcileAccountsAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Höchstzahl gleichzeitiger Konten (§20.2).</summary>
     static int MaxAccounts => 10;
 

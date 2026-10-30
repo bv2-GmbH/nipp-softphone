@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Nipp.Core.Services.Contacts;
 using Nipp.Core.Services.Telephony;
 
@@ -463,7 +463,11 @@ public sealed record AdvancedSettings
 
     /// <summary>
     /// §16.7, entschieden am 04.09.2026: lokal, konfigurierbar.
-    /// <c>null</c> heisst <c>%LOCALAPPDATA%\nipp\recordings</c>.
+    /// <c>null</c> heisst <see cref="Nipp.Core.Services.NippPfade.Aufnahmen"/>
+    /// (<c>%LOCALAPPDATA%\bv2\nipp\recordings</c>, ADR-079). Bis zum
+    /// 09.10.2026 stand hier <c>%LOCALAPPDATA%\nipp\recordings</c> — ein
+    /// einmal gespeicherter Wert mit diesem alten Pfad wird beim Start
+    /// korrigiert (<see cref="Nipp.Core.Services.DatenUebernahme.KorrigiereRecordingDirectory()"/>, L8/R1.4).
     /// </summary>
     public string? RecordingDirectory { get; init; }
 

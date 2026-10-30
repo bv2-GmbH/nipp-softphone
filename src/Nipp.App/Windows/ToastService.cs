@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppNotifications;
 using Microsoft.Windows.AppNotifications.Builder;
+using Nipp.App.Threading;
 using Nipp.Core.Services.Integrations.Cards;
 using Nipp.Core.Services.Integrations.Context;
 using Nipp.Core.Services.Settings;
@@ -134,36 +135,42 @@ public sealed class ToastService : IDisposable
             ? $"COMException 0x{com.HResult:X8} ({com.Message})"
             : $"{ex.GetType().Name}: {ex.Message}";
 
-    private void OnCallStateChanged(object? sender, CallStateEventArgs e)
-    {
-        if (!_registered)
+    /// <summary>
+    /// Über die <c>DispatcherQueue</c>, wie jeder Dienstereignis-Empfänger in
+    /// <c>Nipp.App</c> (R1.2, Befund L2) — siehe
+    /// <see cref="Nipp.App.Threading.UiDispatch"/>.
+    /// </summary>
+    private void OnCallStateChanged(object? sender, CallStateEventArgs e) =>
+        _dispatcher.Post(_logger, "Anrufzustand (Toast)", () =>
         {
-            return;
-        }
-
-        // Nur beim Übergang, nicht bei jeder Zustandsmeldung — sonst blinkt
-        // der Toast im Sekundentakt neu auf.
-        // Die Regel steht an CallStateEventArgs. Hier ausgeschrieben war sie
-        // nie wahr — der Toast erschien nie, und damit fiel §8.6 aus ("Der
-        // Toast erscheint, auch wenn das Fenster geschlossen ist"): der einzige
-        // Hinweis, solange nipp im Infobereich lebt.
-        if (e.IsNewIncoming)
-        {
-            // §8.6: „Auto-Annahme überspringt den Toast, spielt aber einen
-            // kurzen Hinweiston." Den Ton spielt der Telefoniedienst beim
-            // Annehmen; hier bleibt der Toast weg.
-            if (_settings.Current.Advanced.AutoAnswer)
+            if (!_registered)
             {
                 return;
             }
 
-            Show(e.Call);
-        }
-        else if (e.Call.Status is not CallStatus.Incoming)
-        {
-            Hide(e.Call.Handle);
-        }
-    }
+            // Nur beim Übergang, nicht bei jeder Zustandsmeldung — sonst
+            // blinkt der Toast im Sekundentakt neu auf.
+            // Die Regel steht an CallStateEventArgs. Hier ausgeschrieben war
+            // sie nie wahr — der Toast erschien nie, und damit fiel §8.6 aus
+            // ("Der Toast erscheint, auch wenn das Fenster geschlossen ist"):
+            // der einzige Hinweis, solange nipp im Infobereich lebt.
+            if (e.IsNewIncoming)
+            {
+                // §8.6: „Auto-Annahme überspringt den Toast, spielt aber
+                // einen kurzen Hinweiston." Den Ton spielt der
+                // Telefoniedienst beim Annehmen; hier bleibt der Toast weg.
+                if (_settings.Current.Advanced.AutoAnswer)
+                {
+                    return;
+                }
+
+                Show(e.Call);
+            }
+            else if (e.Call.Status is not CallStatus.Incoming)
+            {
+                Hide(e.Call.Handle);
+            }
+        });
 
     /// <summary>
     /// Das automatische Annehmen ist gescheitert — der Toast wird nachgeholt.
@@ -173,7 +180,7 @@ public sealed class ToastService : IDisposable
     /// und der Anruf klingelt bis zur Zeitüberschreitung ins Leere.
     /// </summary>
     private void OnAutoAnswerFailed(object? sender, CallInfo call) =>
-        _dispatcher.TryEnqueue(() =>
+        _dispatcher.Post(_logger, "Automatisches Annehmen gescheitert (Toast)", () =>
         {
             if (_registered && call.Status == CallStatus.Incoming)
             {
@@ -190,7 +197,7 @@ public sealed class ToastService : IDisposable
     /// Adressbuch wären das drei Auftritte für denselben Inhalt.</para>
     /// </summary>
     private void OnContextChanged(object? sender, ContextSnapshot snapshot) =>
-        _dispatcher.TryEnqueue(() =>
+        _dispatcher.Post(_logger, "Anruferkontext geaendert (Toast)", () =>
         {
             var tag = snapshot.Call.ToString();
 
@@ -384,8 +391,9 @@ public sealed class ToastService : IDisposable
     private void OnNotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args)
     {
         // Kommt nicht auf dem UI-Thread — und der Telefonie-Dienst erwartet
-        // genau den (§6).
-        _dispatcher.TryEnqueue(async () =>
+        // genau den (§6). Über dieselbe Stelle wie jeder andere
+        // Dienstereignis-Empfänger (R1.2, Befund L2).
+        _dispatcher.Post(_logger, "Toast-Aktion", async () =>
         {
             if (!args.Arguments.TryGetValue(ArgumentKey, out var action)
                 || !args.Arguments.TryGetValue(CallKey, out var tag)

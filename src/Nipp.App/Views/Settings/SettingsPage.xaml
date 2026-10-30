@@ -795,6 +795,7 @@
                                 VerticalAlignment="Center"
                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                 Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="{x:Bind ViewModel.HotkeyStatus, Mode=OneWay}"
                                 TextWrapping="Wrap" />
                         </Grid>
 
@@ -828,6 +829,7 @@
                                 VerticalAlignment="Center"
                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                 Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="{x:Bind ViewModel.MuteHotkeyStatus, Mode=OneWay}"
                                 TextWrapping="Wrap" />
                         </Grid>
 

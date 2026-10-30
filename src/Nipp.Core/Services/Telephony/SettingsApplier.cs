@@ -1,4 +1,4 @@
-﻿using Linphone;
+using Linphone;
 using Microsoft.Extensions.Logging;
 using Nipp.Core.Services.Settings;
 
@@ -160,6 +160,7 @@ public sealed class SettingsApplier(ILogger<SettingsApplier> logger, RootCertifi
 
         ApplyRingtone(core, audio);
         ApplyRingback(core);
+        ApplyCallWaiting(core);
 
         // Geräte nur setzen, wenn eine Wahl getroffen wurde. §9.4: ohne Wahl
         // „dem Windows-Standard folgen" — und den kennt das SDK selbst besser.
@@ -351,6 +352,39 @@ public sealed class SettingsApplier(ILogger<SettingsApplier> logger, RootCertifi
 
         core.Ringback = ringback;
         SettingsApplierLog.RingbackApplied(logger, ringback);
+    }
+
+    /// <summary>
+    /// Setzt den Anklopfton — den Ton, den das SDK beim zweiten eingehenden
+    /// Anruf in den Audioweg des <b>laufenden</b> Gesprächs spielt (R1.0,
+    /// <c>LOGBEFUNDE-PLAN.md</c> L12).
+    ///
+    /// <para><b>Der Befund.</b> Ohne diesen Aufruf erzeugt das SDK selbst einen
+    /// 440-Hz-Ton mit <c>amplitude=1.000000</c>, alle zwei Sekunden,
+    /// unbegrenzt — Vollaussteuerung, solange der zweite Anruf klingelt.
+    /// Gemessen am 23.10.2026, sieben Fälle in vierzehn Tagen.</para>
+    ///
+    /// <para><b>Nicht <c>CallToneIndicationsEnabled = false</c></b> — das nähme
+    /// auch den Besetztton und den Ton bei abgerissener Verbindung mit, beide
+    /// nützlich. Stattdessen <c>SetTone(ToneID.CallWaiting, …)</c>: ersetzt nur
+    /// diesen einen Ton.</para>
+    ///
+    /// <para><b>Fehlt die eigene Datei, bleibt der Ton ungesetzt</b> — dann
+    /// gilt unverändert das SDK-Standardverhalten aus dem Befund, und das
+    /// gehört ins Protokoll, nicht in eine stille Rückkehr.</para>
+    /// </summary>
+    private void ApplyCallWaiting(LinphoneCore core)
+    {
+        var callWaiting = NippSounds.CallWaiting();
+
+        if (callWaiting is null)
+        {
+            SettingsApplierLog.CallWaitingToneMissing(logger);
+            return;
+        }
+
+        core.SetTone(ToneID.CallWaiting, callWaiting);
+        SettingsApplierLog.CallWaitingToneApplied(logger, callWaiting);
     }
 
     /// <summary>

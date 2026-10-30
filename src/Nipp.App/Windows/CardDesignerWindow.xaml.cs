@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Nipp.App.Diagnostics;
 using Nipp.App.Theming;
+using Nipp.App.Threading;
 using Nipp.Core.Services.Integrations.Cards;
 using Nipp.Core.Services.Integrations.Catalog;
 using Nipp.Core.Services.Integrations.Config;
@@ -260,8 +261,14 @@ public sealed partial class CardDesignerWindow : Window
     private void FocusPalette() =>
         RootGrid.Loaded += (_, _) => _ = PaletteList.Focus(FocusState.Programmatic);
 
+    /// <summary>
+    /// Über die <c>DispatcherQueue</c>, wie jeder Dienstereignis-Empfänger in
+    /// <c>Nipp.App</c> (R1.2, Befund L2) — siehe
+    /// <see cref="Nipp.App.Threading.UiDispatch"/>.
+    /// </summary>
     private void OnThemeChanged(object? sender, ElementTheme theme) =>
-        DispatcherQueue.TryEnqueue(() => RootGrid.RequestedTheme = theme);
+        DispatcherQueue.Post(_log, "Erscheinungsbild geaendert (Karten-Designer)",
+            () => RootGrid.RequestedTheme = theme);
 
     /// <summary>
     /// Fragt nach, bevor eine halbe Stunde Kartenarbeit verlorengeht (C1).

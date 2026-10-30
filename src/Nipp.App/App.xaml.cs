@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -7,8 +7,10 @@ using Microsoft.Windows.AppLifecycle;
 using Nipp.App.Diagnostics;
 using Nipp.App.Telephony;
 using Nipp.App.Theming;
+using Nipp.App.Threading;
 using Nipp.App.Windows;
 using Nipp.Core.Diagnostics;
+using Nipp.Core.Services;
 using Nipp.Core.Services.Contacts;
 using Nipp.Core.Services.History;
 using Nipp.Core.Services.Integrations.Cards;
@@ -25,7 +27,6 @@ using Nipp.Core.Services.Updates;
 using Nipp.Core.Services.Windows;
 using Nipp.Core.ViewModels;
 using Serilog;
-
 // Namensfalle, die gleiche wie bei Nipp.Core und Linphone.Core: innerhalb von
 // Nipp.App loest ein blankes "Windows" auf den eigenen Namespace
 // Nipp.App.Windows auf, nicht auf die Windows-Runtime. Ein Alias macht die
@@ -34,7 +35,6 @@ using Serilog;
 // existiert.
 using LaunchActivation = global::Windows.ApplicationModel.Activation.ILaunchActivatedEventArgs;
 using ProtocolActivation = global::Windows.ApplicationModel.Activation.IProtocolActivatedEventArgs;
-using Nipp.Core.Services;
 
 namespace Nipp.App;
 
@@ -370,7 +370,7 @@ public partial class App : Application, IDisposable
     private SingleInstanceGuard? _singleInstance;
 
     private void OnRedirectedActivation(object? sender, AppActivationArguments args) =>
-        _window?.DispatcherQueue.TryEnqueue(() =>
+        Eingereiht("Aktivierung einer weitergereichten Instanz", () =>
         {
             BringToFront();
 
@@ -544,6 +544,14 @@ public partial class App : Application, IDisposable
                 sip.RegisterAccountAsync(account).GetAwaiter().GetResult();
             }
 
+            // R1.1 (L1): Was im SDK steht und in den Einstellungen fehlt, bleibt
+            // sonst stehen und meldet sich weiter an — auf diesem Arbeitsplatz
+            // waren das 211 Fehlerzeilen und 132 Registrierungsversuche in
+            // vierzehn Tagen. Hier und nicht an SettingsService.Changed: ein
+            // Konto, dessen Eintrag noch nicht geschrieben ist, darf der
+            // Abgleich nicht wegräumen.
+            sip.ReconcileAccountsAsync().GetAwaiter().GetResult();
+
             if (settings.Advanced.DefaultAccountIdentity is { Length: > 0 } preferred
                 && settings.Accounts.Exists(a => a.Identity == preferred))
             {
@@ -631,8 +639,29 @@ public partial class App : Application, IDisposable
     /// Was einen Neustart braucht, sagt die Einstellungsseite dem Benutzer
     /// selbst (<c>SettingsApplier.RequiresRestart</c>); hier wird nur
     /// übertragen, was sofort wirkt.
+    ///
+    /// <b>Über die <c>DispatcherQueue</c> des Fensters</b> (R1.2, Befund L2):
+    /// <c>SettingsService.Changed</c> feuert auch vom Nachrichtenfenster des
+    /// Infobereich-Symbols aus (ein Gerätewechsel im Tray-Menü,
+    /// <see cref="Nipp.App.Windows.TrayIconHost.UsePlaybackDevice"/>), und
+    /// <c>ApplySettingsAsync</c> ruft ins SDK — das braucht den UI-Thread wie
+    /// jeder SDK-Aufruf (§6). Siehe <see cref="Nipp.App.Threading.UiDispatch"/>.
+    /// Vor der Fenstererzeugung gibt es noch keine fremde Thread-Quelle; dann
+    /// läuft der Aufruf direkt auf dem Startthread.
     /// </summary>
     private void OnSettingsChanged(object? sender, NippSettings settings)
+    {
+        if (_window is { } fenster)
+        {
+            fenster.DispatcherQueue.Post(
+                _logger, "Einstellungen geaendert (App)", () => OnSettingsChangedCore(settings));
+            return;
+        }
+
+        OnSettingsChangedCore(settings);
+    }
+
+    private void OnSettingsChangedCore(NippSettings settings)
     {
         ApplyLogVerbosity(settings.Advanced.Logging);
 
@@ -950,7 +979,9 @@ public partial class App : Application, IDisposable
 
     /// <summary>
     /// Reicht eine Aktion an den UI-Thread und meldet, wenn das nicht geht
-    /// (W1.7, Befund B16).
+    /// (W1.7, Befund B16) — über <see cref="Nipp.App.Threading.UiDispatch"/>,
+    /// die eine Stelle für jeden Dienstereignis-Empfänger in <c>Nipp.App</c>
+    /// (R1.2, Befund L2).
     ///
     /// <para><b>Warum die Prüfung zählt.</b> <c>TryEnqueue</c> gibt
     /// <c>false</c> zurück, sobald die Warteschlange geschlossen ist — beim
@@ -965,12 +996,13 @@ public partial class App : Application, IDisposable
     /// </summary>
     private void Eingereiht(string was, Action aktion)
     {
-        if (_window?.DispatcherQueue.TryEnqueue(() => aktion()) == true)
+        if (_window is not { } fenster)
         {
+            AppLog.DispatcherRejected(_logger, was);
             return;
         }
 
-        AppLog.DispatcherRejected(_logger, was);
+        fenster.DispatcherQueue.Post(_logger, was, aktion);
     }
 
     private void BringToFront() => (_window as MainWindow)?.ShowFromTray();

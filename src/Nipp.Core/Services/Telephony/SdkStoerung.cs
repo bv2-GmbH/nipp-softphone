@@ -50,13 +50,51 @@ public enum StoerungsArt
     /// Gesprächs nicht beherrscht. Der Wert ist die Rate in Hertz.
     /// </summary>
     EchoAbgeschaltet,
+
+    /// <summary>
+    /// Der Ausgabepuffer ist beim Schreiben voll (<c>cannot write output
+    /// buffer of N samples, not enough space</c>), gemeldet von
+    /// <c>mswasapi</c> als <c>[ERR]</c> — kommt also auch ohne Debug-Stufe
+    /// durch. Gemessen vom 17. bis 30.10.2026: 149 Vorkommen in vierzehn
+    /// Tagen, davon 80 allein am 30.10. innerhalb einer Minute.
+    ///
+    /// <para><b>Die Deutung ist offen, und das ist Absicht</b>
+    /// (`LOGBEFUNDE-PLAN.md`, L4). Das sieht nach dem Gegenstück zu
+    /// <see cref="Pufferfehler"/> aus der anderen Richtung aus — ein voller
+    /// Ausgabepuffer statt eines leeren —, und das ist <b>vermutlich</b> so,
+    /// aber <b>ungemessen</b>. Ob es hörbar ist, sagt die Zeile nicht. Genau
+    /// deshalb wird sie gezählt, bevor jemand daraus eine Ursache macht, und
+    /// genau deshalb ist es eine eigene Art: wer sie mit
+    /// <see cref="Pufferfehler"/> oder <see cref="Verwurf"/> zusammenzählt,
+    /// kann sie nie wieder trennen.</para>
+    ///
+    /// <para>Der Wert ist die Zahl der <b>Abtastwerte</b>, die nicht mehr
+    /// hineinpassten (z. B. <c>480</c>) — <b>keine Millisekunden</b>. Wer sie
+    /// mit den Verwurf-Millisekunden vergleicht, vergleicht zwei verschiedene
+    /// Einheiten.</para>
+    /// </summary>
+    AusgabepufferVoll,
+
+    /// <summary>
+    /// Der Audio-Ticker ist beim Aufwachen zu spät dran
+    /// (<c>MSTicker: late wakeup by N ms</c>), als <c>[ERR]</c> gemeldet.
+    /// Gemessen vom 17. bis 30.10.2026: 8 Vorkommen in vierzehn Tagen.
+    ///
+    /// <para>Das ist <b>nicht dieselbe Zeile</b> wie
+    /// <see cref="TickerZuSpaet"/> (<c>We are late of N miliseconds</c>) —
+    /// unterschiedlicher Wortlaut, und beide werden getrennt gezählt, statt
+    /// die zweite in die erste einzusortieren.</para>
+    /// </summary>
+    TickerAufwachenSpaet,
 }
 
 /// <summary>Eine erkannte Störung: die Art und die Zahl, die dabei stand.</summary>
 /// <param name="Art">Worum es geht.</param>
 /// <param name="Wert">
-/// Millisekunden bei <see cref="StoerungsArt.Verwurf"/> und
-/// <see cref="StoerungsArt.TickerZuSpaet"/>, Hertz bei
+/// Millisekunden bei <see cref="StoerungsArt.Verwurf"/>,
+/// <see cref="StoerungsArt.TickerZuSpaet"/> und
+/// <see cref="StoerungsArt.TickerAufwachenSpaet"/>, Abtastwerte bei
+/// <see cref="StoerungsArt.AusgabepufferVoll"/>, Hertz bei
 /// <see cref="StoerungsArt.EchoAbgeschaltet"/>, sonst <c>0</c>.
 /// </param>
 public readonly record struct Stoerung(StoerungsArt Art, int Wert);
@@ -66,7 +104,7 @@ public readonly record struct Stoerung(StoerungsArt Art, int Wert);
 /// (W2.1, ADR-077).
 ///
 /// <para><b>Warum nipp seine eigenen Protokollzeilen liest.</b> Das sieht nach
-/// einem Umweg aus, ist aber der kurze Weg: diese fünf Ereignisse meldet das
+/// einem Umweg aus, ist aber der kurze Weg: diese sieben Ereignisse meldet das
 /// SDK <b>ausschliesslich</b> über das Protokoll — es gibt keine Zählung, kein
 /// Ereignis und keinen Statistikwert dafür. Die Filterstatistik mit den
 /// Spitzenlasten erscheint erst beim Streamende und nur auf Debug-Stufe, und
@@ -78,7 +116,10 @@ public readonly record struct Stoerung(StoerungsArt Art, int Wert);
 /// <c>mswasapi: output buffer was filled with at least 46 ms in the last 5000
 /// ms, asking to drop.</c> und <c>MSAudio MSTicker: We are late of 144
 /// miliseconds.</c> — die Schreibweise «miliseconds» mit einem l ist die des
-/// SDK und <b>kein Tippfehler hier</b>.</para>
+/// SDK und <b>kein Tippfehler hier</b>. Zwei weitere kamen am 30.10.2026 aus
+/// den Protokollen vom 17. bis 30.10.2026 dazu (`LOGBEFUNDE-PLAN.md`, L4):
+/// <c>mswasapi: cannot write output buffer of 480 samples, not enough space
+/// [480=9600-9120]</c> und <c>MSTicker: late wakeup by 20 ms</c>.</para>
 ///
 /// <para><b>Was passiert, wenn das SDK seine Texte ändert:</b> die Zählung
 /// geht auf null, und der Gesprächsbericht meldet «keine Störungen». Das ist
@@ -115,9 +156,33 @@ public static class SdkStoerung
             return new Stoerung(StoerungsArt.VerwurfHoerbar, 0);
         }
 
+        // Das Gegenstück zu "asking to drop" aus der anderen Richtung: dort
+        // ist der Puffer leer gelaufen, hier läuft er beim Schreiben voll.
+        // Kollidiert mit keinem der Texte oben oder unten — «cannot write
+        // output buffer» kommt in keiner der anderen Zeilen vor, und
+        // «Could not get buffer» unten ist ein eigener, kürzerer Text ohne
+        // «write» und ohne «samples».
+        if (zeile.Contains("cannot write output buffer of", StringComparison.Ordinal))
+        {
+            return new Stoerung(
+                StoerungsArt.AusgabepufferVoll,
+                ZahlNach(zeile, "cannot write output buffer of "));
+        }
+
         if (zeile.Contains("We are late of", StringComparison.Ordinal))
         {
             return new Stoerung(StoerungsArt.TickerZuSpaet, ZahlNach(zeile, "We are late of "));
+        }
+
+        // Eine andere Meldung desselben Tickers, mit anderem Wortlaut — «late
+        // wakeup by» kommt nicht in «We are late of … miliseconds» vor und
+        // umgekehrt, die beiden Prüfungen können also in beliebiger
+        // Reihenfolge stehen. Getrennt gezählt, weil die Zeilen getrennt sind.
+        if (zeile.Contains("late wakeup by", StringComparison.Ordinal))
+        {
+            return new Stoerung(
+                StoerungsArt.TickerAufwachenSpaet,
+                ZahlNach(zeile, "late wakeup by "));
         }
 
         if (zeile.Contains("Could not get buffer", StringComparison.Ordinal))

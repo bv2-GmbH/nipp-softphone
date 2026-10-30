@@ -1,15 +1,15 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using Nipp.Core.Services;
 using Nipp.Core.Services.Contacts;
 using Nipp.Core.Services.Settings;
 using Nipp.Core.Services.Telephony;
 using Nipp.Core.Services.Telephony.Model;
 using Nipp.Core.Services.Updates;
 using Nipp.Core.Services.Windows;
-using Nipp.Core.Services;
 
 namespace Nipp.Core.ViewModels;
 
@@ -78,7 +78,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         nameof(NewTeamName), nameof(NewTeamNumber), nameof(NewTeamSip), nameof(NewTeamMobile),
         nameof(NewTeamGroup), nameof(SelectedGroup), nameof(GroupName),
         nameof(EditingTeamIndex), nameof(EditingIdentity),
-        nameof(IsCalibrating), nameof(HotkeyStatus),
+        nameof(IsCalibrating), nameof(HotkeyStatus), nameof(MuteHotkeyStatus),
         nameof(Message), nameof(Error), nameof(RestartHint),
     };
 
@@ -904,12 +904,25 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
                         + "mindestens ein Modifikator und eine Taste.";
     }
 
+    /// <summary>
+    /// Der Text neben einem Tastenkürzel — auch direkt nach dem Start, ohne
+    /// dass jemand «Übernehmen» gedrückt hat (R1.5, L11 in
+    /// <c>LOGBEFUNDE-PLAN.md</c>).
+    ///
+    /// <para><b>Gemessen:</b> sechsmal in vierzehn Tagen, bei jedem Start,
+    /// <c>Ctrl+Shift+A ... ist bereits von einer anderen Anwendung belegt
+    /// (Windows-Fehler 1408)</c> im Protokoll — und in der Oberfläche stand
+    /// nichts davon, weil dieser Text zwar berechnet, aber nirgends
+    /// angezeigt wurde. Jetzt steht er neben dem Feld (<c>SettingsPage.xaml</c>,
+    /// <c>HotkeyStatusText</c>/<c>MuteHotkeyStatusText</c>).</para>
+    /// </summary>
     private static string DescribeHotkey(string? active, string configured) =>
         string.Equals(active, configured, StringComparison.OrdinalIgnoreCase)
             ? $"{configured} ist aktiv."
             : string.IsNullOrWhiteSpace(configured)
                 ? "Kein Tastenkürzel eingerichtet."
-                : $"{configured} ist nicht aktiv — vermutlich hat es eine andere Anwendung.";
+                : $"{configured} ist nicht aktiv — vermutlich hat es eine andere Anwendung. "
+                    + "Ein anderes Kürzel wählen.";
 
     partial void OnNewTeamNameChanged(string value) => AddTeamMemberCommand.NotifyCanExecuteChanged();
 

@@ -39,6 +39,9 @@ public static class NippSounds
     /// <summary>Der eigene Rufton beim Wählen.</summary>
     public const string OwnRingback = "Assets/Sounds/nipp-ringback.wav";
 
+    /// <summary>Der eigene Anklopfton (R1.0, L12/LOGBEFUNDE-PLAN.md).</summary>
+    public const string OwnCallWaiting = "Assets/Sounds/nipp-callwaiting.wav";
+
     /// <summary>Die alte Telefonglocke aus dem SDK-Paket — der Ton bis 07.09.2026.</summary>
     public const string SdkOldPhone = "share/sounds/linphone/rings/oldphone-mono.wav";
 
@@ -87,6 +90,36 @@ public static class NippSounds
         var basis = baseDirectory ?? AppContext.BaseDirectory;
 
         return FirstExisting(basis, null, OwnRingback, SdkRingback);
+    }
+
+    /// <summary>
+    /// Der Anklopfton — leise, kurz, und nur der eigene (R1.0,
+    /// <c>LOGBEFUNDE-PLAN.md</c> L12).
+    ///
+    /// <para><b>Der Befund.</b> Ohne gesetzten Ton spielt das SDK beim zweiten
+    /// eingehenden Anruf seinen eigenen, generierten 440-Hz-Ton mit
+    /// <c>amplitude=1.000000</c>, alle zwei Sekunden, unbegrenzt — und zwar in
+    /// den Audioweg des <b>laufenden</b> Gesprächs. Gemessen am 23.10.2026,
+    /// sieben Fälle in vierzehn Tagen.</para>
+    ///
+    /// <para><b>Es gibt dafür keinen Rückfall auf eine Datei des SDK</b> —
+    /// anders als beim Klingelton und beim Rufton hat das SDK keine mitgelieferte
+    /// Anklopfton-Datei, sondern erzeugt den Ton ohne eine. Fehlt der eigene
+    /// Klang, liefert diese Methode <c>null</c>, und der Aufrufer darf
+    /// <c>SetTone</c> dann nicht rufen — sonst bliebe unklar, ob «nichts
+    /// gesetzt» oder «eigene Datei gesetzt» gilt, und das SDK-Verhalten aus dem
+    /// Befund bleibt unverändert bestehen.</para>
+    ///
+    /// <para><b>Ungemessen:</b> ob das SDK eine per <c>SetTone</c> gesetzte
+    /// Datei ebenfalls im Zwei-Sekunden-Takt wiederholt oder nur einmal
+    /// abspielt. Weder der Wrapper noch die SDK-Doku sagen das; <c>ToneManager</c>
+    /// liegt nicht als Quelle vor. Entscheidet der Hörtest aus T341.</para>
+    /// </summary>
+    public static string? CallWaiting(string? baseDirectory = null)
+    {
+        var basis = baseDirectory ?? AppContext.BaseDirectory;
+
+        return FirstExisting(basis, null, OwnCallWaiting);
     }
 
     /// <summary>

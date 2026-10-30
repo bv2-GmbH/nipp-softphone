@@ -95,6 +95,41 @@ public class SdkStoerungTests
     }
 
     /// <summary>
+    /// Der volle Ausgabepuffer beim Schreiben (ADR-077 Nachtrag, L4 in
+    /// <c>LOGBEFUNDE-PLAN.md</c>) — 149 Vorkommen in vierzehn Tagen, davon 80
+    /// allein am 30.10.2026 innerhalb einer Minute. Der Wert sind
+    /// <b>Abtastwerte</b>, keine Millisekunden — die 9600 und die 9120 in der
+    /// Klammer sind Teil der Zeile und dürfen nicht gegriffen werden.
+    /// </summary>
+    [Fact]
+    public void Ausgabepuffer_voll_mit_Abtastwerten()
+    {
+        var s = SdkStoerung.Lies(
+            "mswasapi: cannot write output buffer of 480 samples, not enough space [480=9600-9120]");
+
+        Assert.NotNull(s);
+        Assert.Equal(StoerungsArt.AusgabepufferVoll, s!.Value.Art);
+        Assert.Equal(480, s.Value.Wert);
+    }
+
+    /// <summary>
+    /// <b>Nicht dasselbe wie <see cref="StoerungsArt.Pufferfehler"/>.</b> Ein
+    /// Gespräch kann beide Zeilen gleichzeitig enthalten, und wer sie
+    /// zusammenzählt, kann sie nie wieder trennen (L4).
+    /// </summary>
+    [Fact]
+    public void Ausgabepuffer_voll_und_Pufferfehler_werden_nicht_verwechselt()
+    {
+        var voll = SdkStoerung.Lies(
+            "mswasapi: cannot write output buffer of 480 samples, not enough space [480=9600-9120]");
+        var fehlt = SdkStoerung.Lies(
+            "mswasapi: Could not get buffer from the MSWASAPI audio output interface 960 [0x88890006]");
+
+        Assert.Equal(StoerungsArt.AusgabepufferVoll, voll!.Value.Art);
+        Assert.Equal(StoerungsArt.Pufferfehler, fehlt!.Value.Art);
+    }
+
+    /// <summary>
     /// Der höchste Wert, der am 08.10.2026 gemessen wurde — auf einem Ticker,
     /// der alle 10 ms läuft.
     /// </summary>
@@ -106,6 +141,34 @@ public class SdkStoerungTests
         Assert.NotNull(s);
         Assert.Equal(StoerungsArt.TickerZuSpaet, s!.Value.Art);
         Assert.Equal(144, s.Value.Wert);
+    }
+
+    /// <summary>
+    /// Die zweite, später gefundene Ticker-Meldung (L4) — anderer Wortlaut als
+    /// <see cref="StoerungsArt.TickerZuSpaet"/>, deshalb eine eigene Art und
+    /// keine Verwechslung der beiden Prüfungen.
+    /// </summary>
+    [Fact]
+    public void Ticker_Aufwachen_zu_spaet_mit_Millisekunden()
+    {
+        var s = SdkStoerung.Lies("MSTicker: late wakeup by 20 ms");
+
+        Assert.NotNull(s);
+        Assert.Equal(StoerungsArt.TickerAufwachenSpaet, s!.Value.Art);
+        Assert.Equal(20, s.Value.Wert);
+    }
+
+    /// <summary>
+    /// Beide Ticker-Zeilen in einem Gespräch: keine erschlägt die andere.
+    /// </summary>
+    [Fact]
+    public void Die_beiden_Tickerarten_werden_nicht_verwechselt()
+    {
+        var spaet = SdkStoerung.Lies("MSAudio MSTicker: We are late of 144 miliseconds.");
+        var aufwachen = SdkStoerung.Lies("MSTicker: late wakeup by 20 ms");
+
+        Assert.Equal(StoerungsArt.TickerZuSpaet, spaet!.Value.Art);
+        Assert.Equal(StoerungsArt.TickerAufwachenSpaet, aufwachen!.Value.Art);
     }
 
     /// <summary>

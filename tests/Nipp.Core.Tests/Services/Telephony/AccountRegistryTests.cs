@@ -1,4 +1,4 @@
-﻿using Nipp.Core.Services.Telephony;
+using Nipp.Core.Services.Telephony;
 using Nipp.Core.Services.Telephony.Model;
 
 namespace Nipp.Core.Tests.Services.Telephony;
@@ -325,5 +325,87 @@ public class AccountRegistryTests
 
         Assert.Equal(RegistrationStatus.InProgress, registry.StatusOf("sip:101@example.test"));
         Assert.Equal(1, registry.Count);
+    }
+
+    // --- Der Abgleich gegen die SDK-Kontenliste (L1, R1.1) -----------------
+
+    /// <summary>
+    /// <b>Das Kernszenario aus T335:</b> ein Konto, das nur noch das SDK
+    /// kennt (aus <c>linphonerc</c> wiederhergestellt, in den Einstellungen
+    /// nicht mehr eingetragen), ist überzählig.
+    /// </summary>
+    [Fact]
+    public void Ein_Konto_nur_im_SDK_ist_ueberzaehlig()
+    {
+        var bekannt = new[] { "sip:101@example.test" };
+        var sdk = new[] { "sip:101@example.test", "sip:151@pbx.example.test" };
+
+        var ueberzaehlig = AccountRegistry.IdentitaetenOhneEinstellung(sdk, bekannt);
+
+        Assert.Equal(["sip:151@pbx.example.test"], ueberzaehlig);
+    }
+
+    /// <summary>
+    /// <b>Die Gegenprobe, und sie ist die wichtigere Hälfte</b> (T335): ein
+    /// Konto, das in den Einstellungen steht, landet nie in der
+    /// Entfernungsliste — auch dann nicht, wenn es im SDK das einzige Konto
+    /// ist.
+    /// </summary>
+    [Fact]
+    public void Ein_Konto_in_den_Einstellungen_bleibt_unangetastet()
+    {
+        var bekannt = new[] { "sip:101@example.test" };
+        var sdk = new[] { "sip:101@example.test" };
+
+        var ueberzaehlig = AccountRegistry.IdentitaetenOhneEinstellung(sdk, bekannt);
+
+        Assert.Empty(ueberzaehlig);
+    }
+
+    /// <summary>
+    /// Der Vergleich läuft ohne Gross-/Kleinschreibung — wie überall sonst
+    /// gegen <c>AccountList</c> (<c>FindSdkAccount</c>,
+    /// <c>RemoveExistingAccount</c>).
+    /// </summary>
+    [Fact]
+    public void Der_Vergleich_ignoriert_Gross_und_Kleinschreibung()
+    {
+        var bekannt = new[] { "sip:101@EXAMPLE.test" };
+        var sdk = new[] { "SIP:101@example.TEST" };
+
+        var ueberzaehlig = AccountRegistry.IdentitaetenOhneEinstellung(sdk, bekannt);
+
+        Assert.Empty(ueberzaehlig);
+    }
+
+    /// <summary>Keine SDK-Konten, keine Überzähligen — das leere Haus ist kein Befund.</summary>
+    [Fact]
+    public void Ohne_SDK_Konten_gibt_es_nichts_zu_entfernen()
+    {
+        var ueberzaehlig = AccountRegistry.IdentitaetenOhneEinstellung([], ["sip:101@example.test"]);
+
+        Assert.Empty(ueberzaehlig);
+    }
+
+    /// <summary>
+    /// Zwei überzählige Konten werden beide gemeldet, und keines doppelt.
+    /// </summary>
+    [Fact]
+    public void Mehrere_ueberzaehlige_Konten_werden_alle_gemeldet()
+    {
+        var bekannt = new[] { "sip:101@example.test" };
+        var sdk = new[]
+        {
+            "sip:101@example.test",
+            "sip:151@pbx.example.test",
+            "sip:151@pbx.example.test",
+            "sip:201@alt.example.test",
+        };
+
+        var ueberzaehlig = AccountRegistry.IdentitaetenOhneEinstellung(sdk, bekannt);
+
+        Assert.Equal(
+            ["sip:151@pbx.example.test", "sip:201@alt.example.test"],
+            ueberzaehlig);
     }
 }

@@ -78,6 +78,24 @@ $zeilen = foreach ($d in $dateien) {
         $pufferfehler = 0
         if ($rest -match 'Pufferfehler (\d+)') { $pufferfehler = [int]$Matches[1] }
 
+        # $null und nicht 0, genau wie bei $hoerbar weiter unten: Protokolle
+        # von vor dem 30.10.2026 (vor R1.3, LOGBEFUNDE-PLAN.md L4) tragen diese
+        # beiden Felder nicht, und "nicht gemessen" ist etwas anderes als
+        # "nichts gefunden" — als 0 saehe ein altes Gespraech aus, als waere
+        # es schon geprueft worden.
+        $pufferVoll = $null
+        if ($rest -match 'Ausgabepuffer voll (\d+)') { $pufferVoll = [int]$Matches[1] }
+        $maxPufferVoll = 0
+        if ($rest -match 'Ausgabepuffer voll \d+ \(max (\d+) Abtastwerte\)') { $maxPufferVoll = [int]$Matches[1] }
+
+        # "Ticker spaet" ist kein Praefix von "Ticker Aufwachen spaet" (das
+        # Wort "Aufwachen" steht dazwischen) — die beiden Muster koennen sich
+        # also nicht gegenseitig treffen.
+        $tickerAufwachen = $null
+        if ($rest -match 'Ticker Aufwachen spaet (\d+)') { $tickerAufwachen = [int]$Matches[1] }
+        $maxTickerAufwachen = 0
+        if ($rest -match 'Ticker Aufwachen spaet \d+ \(max (\d+) ms\)') { $maxTickerAufwachen = [int]$Matches[1] }
+
         # Das SDK schreibt mit Punkt als Dezimaltrenner. Auf einer de-CH
         # Maschine macht [double]'2.8' daraus 28 — die Zahl waere nicht
         # falsch gerundet, sondern zehnmal zu gross, und ein stilles
@@ -112,8 +130,12 @@ $zeilen = foreach ($d in $dateien) {
             Echo        = Feld 'Echo' $rest
             Verwuerfe   = $verwuerfe
             MaxVerwurf  = $maxVerwurf
+            PufferVoll      = $pufferVoll
+            MaxPufferVoll   = $maxPufferVoll
             Spaet       = $spaet
             MaxSpaet    = $maxSpaet
+            TickerAufwachen    = $tickerAufwachen
+            MaxTickerAufwachen = $maxTickerAufwachen
             Pufferfehl  = $pufferfehler
             Stufe       = Feld 'SDK-Stufe' $rest
         }
@@ -152,7 +174,9 @@ $zeilen | Format-Table -AutoSize -Property Zeit, Id, Dauer,
     Codec, Echo, Verwuerfe,
     @{ Name = 'Hoerbar'; Expression = { if ($null -eq $_.Hoerbar) { '?' } else { $_.Hoerbar } } },
     @{ Name = 'MaxMs'; Expression = { $_.MaxVerwurf } },
+    @{ Name = 'PufVoll'; Expression = { if ($null -eq $_.PufferVoll) { '?' } else { $_.PufferVoll } } },
     @{ Name = 'Spaet'; Expression = { $_.Spaet } },
+    @{ Name = 'TickAufw'; Expression = { if ($null -eq $_.TickerAufwachen) { '?' } else { $_.TickerAufwachen } } },
     @{ Name = 'PufFhl'; Expression = { $_.Pufferfehl } }
 
 $mitDauer = $zeilen | Where-Object { $_.ProMinute -gt 0 }

@@ -18,6 +18,41 @@ Geräte».
 
 ---
 
+## Nachtrag vom 30.10.2026 — die Audiokette wird je Gespräch mehrfach aufgebaut (L6)
+
+**Aus `LOGBEFUNDE-PLAN.md`, Befund L6. Hier steht ausdrücklich keine
+Ursache** — die Zahlen gehören zu A7, und sie sind gezählt, nicht gedeutet.
+
+Gemessen über vierzehn Tage Protokoll (17. bis 30.10.2026), **60 Gespräche**:
+
+| Zeile im Protokoll | Vorkommen |
+|---|---|
+| `output initialized for [...]` | **304** (130 Default Playback, 104 interner Lautsprecher, 70 Jabra) |
+| `trying to change output channel to N is not supported by the device` | 282 |
+| `changing output rate to N Hz is not supported by the device` | 191 |
+| `input initialized` | **69** |
+
+**Fünf Ausgabe-Initialisierungen je Gespräch bei einer
+Eingabe-Initialisierung.** Das passt nicht zusammen, und eine Erklärung dafür
+steht hier nicht. Denkbar ist der eigene Rufton (ADR-075 baut eine zweite Kette
+auf), denkbar sind die sieben `Audiogeraet verschwunden`-Meldungen desselben
+Zeitraums, denkbar ist ein Gerätewechsel bei jedem Zustandswechsel. **Keine
+dieser drei ist gemessen.**
+
+**Eine Teilerklärung ist seit dem 30.10.2026 belegt, und sie deckt nicht
+alles.** Beim Anklopfen (Befund L12) steht in der Abschlussstatistik eine
+**zweite `MSWASAPIWrite`-Kette** mit 1 091 Durchläufen neben einem
+`MSFilePlayer` — zwei Schreiber auf demselben Ausgabegerät. Der Fall trat in
+vierzehn Tagen **siebenmal** ein; er erklärt also höchstens einen kleinen
+Teil der 304. **Ob er mit dem ersetzten Anklopfton verschwindet, ist die
+Messung an Prüfzeile T341** — und sie gehört vor jede weitere Deutung dieser
+Zahlen.
+
+**Die zweite offene Frage dazu:** ob die 191 abgelehnten Abtastraten ein
+zusätzliches Resampling erzwingen. Auch das ist ungemessen.
+
+---
+
 ## Nachmessung ohne Echo-Canceller (12.10.2026) — die Gegenprobe hält, **und die Zahl mass das Falsche**
 
 Vier Gespräche eines Arbeitstages, alle ohne Echounterdrückung (ADR-078).

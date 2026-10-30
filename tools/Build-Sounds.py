@@ -162,16 +162,73 @@ def freizeichen():
     return normalisiert(zyklus * 2, spitze_dbfs=-18.0)
 
 
+#: Spitzenpegel des Anklopftons, in dBFS gegen Vollaussteuerung (0 dBFS).
+#: Richtwert aus LOGBEFUNDE-PLAN.md R1.0: deutlich leiser als der Gespraechs-
+#: pegel, damit er auffaellt, ohne das Gespraech zu uebertoenen. UNGEHOERT —
+#: dieser Wert ist nicht an der Anlage geprueft, siehe T341.
+ANKLOPFTON_PEGEL_DBFS = -18.0
+
+#: Dauer der beiden Toene des Doppeltons, in Sekunden. Kurz genug, dass er
+#: wie ein Hinweis klingt und nicht wie ein zweites Klingeln. UNGEHOERT.
+ANKLOPFTON_TONDAUER = 0.12
+
+#: Abstand zwischen den beiden Toenen des Doppeltons, in Sekunden. UNGEHOERT.
+ANKLOPFTON_TONABSTAND = 0.16
+
+#: Abklingzeit (e-Funktion) der beiden Toene, in Sekunden — weich statt
+#: abgeschnitten, wie bei anschlag() sonst auch. UNGEHOERT.
+ANKLOPFTON_ABKLINGEN = 0.09
+
+#: Die beiden Frequenzen des Doppeltons, in Hz. Eine kleine Terz abwaerts
+#: (880 -> 740 Hz) statt aufwaerts, damit er sich vom aufsteigenden
+#: Klingelton (klingelton()) unterscheidet und nicht wie ein zweiter Anruf
+#: klingt, sondern wie ein kurzer Hinweis daneben. UNGEHOERT.
+ANKLOPFTON_FREQUENZEN = (880.00, 739.99)
+
+
+def anklopfton():
+    """Ein leiser, kurzer Doppelton fuer den zweiten eingehenden Anruf (R1.0).
+
+    Ersetzt den generierten Ton des SDK (440 Hz, amplitude=1.000000, alle
+    zwei Sekunden unbegrenzt, in den Audioweg des laufenden Gespraechs
+    gespielt — LOGBEFUNDE-PLAN.md L12). Diese Datei wird ueber
+    Core.SetTone(ToneID.CallWaiting, ...) gesetzt und ersetzt nur die
+    Lautstaerke und den Klang; ob und wie oft das SDK sie wiederholt, ist
+    nicht Teil dieser Datei und beim Build nicht geprueft (siehe T341).
+
+    Die Zahlen hier sind ein Anfang, keine Abnahme: benannt, damit sie sich
+    aendern lassen, ohne ein Wellenbild lesen zu muessen — aber UNGEHOERT.
+    Was leise genug ist, um nicht zu stoeren, und auffaellig genug, um nicht
+    uebergangen zu werden, entscheidet der Hoertest aus T341, nicht diese
+    Datei.
+    """
+    hoch, tief = ANKLOPFTON_FREQUENZEN
+
+    proben = ueberlagert(
+        [
+            (0.00, anschlag(hoch, ANKLOPFTON_TONDAUER, ANKLOPFTON_ABKLINGEN)),
+            (ANKLOPFTON_TONABSTAND, anschlag(tief, ANKLOPFTON_TONDAUER, ANKLOPFTON_ABKLINGEN)),
+        ],
+        laenge=ANKLOPFTON_TONABSTAND + ANKLOPFTON_TONDAUER + 0.2,
+    )
+
+    return normalisiert(proben, spitze_dbfs=ANKLOPFTON_PEGEL_DBFS)
+
+
 def main():
     os.makedirs(KLAENGE, exist_ok=True)
     print(f"Klaenge nach {KLAENGE}")
 
     schreibe_wav(os.path.join(KLAENGE, "nipp-ring.wav"), klingelton())
     schreibe_wav(os.path.join(KLAENGE, "nipp-ringback.wav"), freizeichen())
+    schreibe_wav(os.path.join(KLAENGE, "nipp-callwaiting.wav"), anklopfton())
 
     print()
     print("Fertig. Die Dateien gehen ueber den Content-Eintrag im csproj ins")
     print("Ausgabeverzeichnis und ueber AppxPackagePayload ins MSIX.")
+    print()
+    print("nipp-callwaiting.wav ist UNGEHOERT (R1.0, LOGBEFUNDE-PLAN.md) —")
+    print("vor dem Ausliefern an der Anlage abhoeren (T341).")
     return 0
 
 

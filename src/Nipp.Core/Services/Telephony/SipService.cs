@@ -1,8 +1,9 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Globalization;
 using Linphone;
 using Microsoft.Extensions.Logging;
 using Nipp.Core.Diagnostics;
+using Nipp.Core.Services;
 using Nipp.Core.Services.Contacts;
 using Nipp.Core.Services.Settings;
 using Nipp.Core.Services.Telephony.Model;
@@ -14,7 +15,6 @@ using CallStatus = Nipp.Core.Services.Telephony.Model.CallStatus;
 //   Core        -> Nipp.Core (unser Namespace!) statt Linphone.Core
 //   CallStatus  -> mehrdeutig zwischen Linphone und unserem Modell
 using LinphoneCore = Linphone.Core;
-using Nipp.Core.Services;
 
 namespace Nipp.Core.Services.Telephony;
 
@@ -599,8 +599,31 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
     /// <c>AuthInfo</c> mitgeht — „sonst bleiben Zugangsdaten verwaist liegen".
     /// Dasselbe gilt hier: ein ersetztes Konto darf seine alten Zugangsdaten
     /// nicht zurücklassen.
+    ///
+    /// <para>Die eigentliche Entfernung steht in
+    /// <see cref="RemoveMatchingSdkAccounts"/> — wiederverwendet von
+    /// <see cref="ReconcileAccountsAsync"/> (R1.1), die ein anderes Konto aus
+    /// einem anderen Grund entfernt und deshalb eine andere Protokollzeile
+    /// braucht. Eine zweite Entfernungslogik wäre genau die Doppelwahrheit,
+    /// die dieses Projekt überall vermeidet.</para>
     /// </summary>
     private void RemoveExistingAccount(LinphoneCore core, string identity)
+    {
+        var removed = RemoveMatchingSdkAccounts(core, identity);
+
+        foreach (var _ in removed)
+        {
+            TelephonyLog.AccountReplaced(_logger, identity);
+        }
+    }
+
+    /// <summary>
+    /// Der Kern des Entfernens: passende SDK-Konten samt <c>AuthInfo</c> weg —
+    /// ohne eine Protokollzeile, denn die hängt davon ab, <b>warum</b> entfernt
+    /// wird (ersetzt gegen überzählig), und das weiss nur der Aufrufer.
+    /// </summary>
+    /// <returns>Die SDK-Konten, die tatsächlich entfernt wurden.</returns>
+    private List<Account> RemoveMatchingSdkAccounts(LinphoneCore core, string identity)
     {
         var existing = core.AccountList
             .Where(a => string.Equals(
@@ -648,9 +671,68 @@ public sealed class SipService : ISipService, ISipEventPump, IDisposable
                     }
                 }
             }
-
-            TelephonyLog.AccountReplaced(_logger, identity);
         }
+
+        return existing;
+    }
+
+    /// <summary>
+    /// Gleicht die SDK-Kontenliste gegen die Einstellungen ab (L1, R1.1,
+    /// <c>LOGBEFUNDE-PLAN.md</c>).
+    ///
+    /// <para><b>Der Anlass.</b> Das SDK führt seine eigene Kontenliste in
+    /// <c>linphonerc</c> fort und stellt sie beim Start selbst wieder her.
+    /// nipp gleicht bisher nur in eine Richtung ab: was in den Einstellungen
+    /// steht, wird angelegt (<see cref="RegisterAccountAsync"/>) — was im SDK
+    /// steht und in den Einstellungen fehlt, blieb stehen und registrierte
+    /// sich weiter. Auf einem Arbeitsplatz erzeugte ein solches Konto 211
+    /// Fehlerzeilen und 132 Registrierungsversuche in vierzehn Tagen.</para>
+    ///
+    /// <para><b>Gehört an den Start, nach dem ersten vollständigen Anwenden
+    /// der Kontenliste — ausdrücklich NICHT an <c>SettingsService.Changed</c>
+    /// </b> (T335, die Gegenprobe): ein Konto, das gerade erst angelegt wurde
+    /// und dessen Eintrag in den Einstellungen noch nicht geschrieben ist,
+    /// darf dieser Abgleich nicht wegräumen. Der Aufrufer ruft diese Methode
+    /// deshalb genau einmal, nachdem alle Konten aus <c>settings.Accounts</c>
+    /// über <see cref="RegisterAccountAsync"/> angelegt sind — nicht bei jeder
+    /// Einstellungsänderung und nicht wiederholt im Betrieb.</para>
+    ///
+    /// <para><b>Was entfernt wird, entscheidet eine reine Funktion</b>
+    /// (ADR-074): <see cref="AccountRegistry.IdentitaetenOhneEinstellung"/>
+    /// kennt weder den Core noch das SDK. Entfernt wird über denselben Weg wie
+    /// <see cref="RemoveAccountAsync"/> (samt <c>AuthInfo</c>, §9.1) — keine
+    /// zweite Entfernungslogik.</para>
+    /// </summary>
+    public Task ReconcileAccountsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_core is not { } core)
+        {
+            return Task.CompletedTask;
+        }
+
+        var sdkIdentities = core.AccountList
+            .Select(a => a.Params?.IdentityAddress?.AsStringUriOnly())
+            .Where(identity => identity is { Length: > 0 })
+            .Select(identity => identity!)
+            .ToList();
+
+        var overzaehlig = AccountRegistry.IdentitaetenOhneEinstellung(sdkIdentities, _accounts.Identities);
+
+        foreach (var identity in overzaehlig)
+        {
+            var removed = RemoveMatchingSdkAccounts(core, identity);
+
+            // Eine Protokollzeile je tatsächlich entferntem Konto, auf
+            // Information: «sonst verschwindet hier still eine Anmeldung, und
+            // das ist genau die Sorte Stille, die dieses Projekt zweimal
+            // bezahlt hat» (LOGBEFUNDE-PLAN.md).
+            foreach (var _ in removed)
+            {
+                TelephonyLog.GhostAccountRemoved(_logger, identity);
+            }
+        }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>

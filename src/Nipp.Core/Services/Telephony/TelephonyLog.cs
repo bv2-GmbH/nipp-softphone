@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Nipp.Core.Services.Telephony;
 
@@ -471,4 +471,28 @@ internal static partial class TelephonyLog
         Message = "Echo-Kalibrierung: {Ergebnis}, {Milliseconds} ms")]
     public static partial void EchoCalibrationResult(
         ILogger logger, string ergebnis, int milliseconds);
+
+    /// <summary>
+    /// Ein Konto, das nur noch das SDK kannte, ist beim Start-Abgleich
+    /// entfernt worden (L1, R1.1, <c>LOGBEFUNDE-PLAN.md</c>).
+    ///
+    /// <para><b>Auf <c>Information</c>, nicht auf <c>Debug</c>.</b> Das SDK
+    /// führt seine Kontenliste in <c>linphonerc</c> selbst fort; ohne diesen
+    /// Abgleich blieb ein über ein Provisionierungsprofil entferntes Konto
+    /// dort stehen und erzeugte in vierzehn Tagen 211 Fehlerzeilen und 132
+    /// Registrierungsversuche — unbemerkt, weil nichts davon ins Protokoll
+    /// schrieb, dass hier aufgeräumt wurde. «Sonst verschwindet hier still
+    /// eine Anmeldung, und das ist genau die Sorte Stille, die dieses Projekt
+    /// zweimal bezahlt hat.»</para>
+    ///
+    /// <para><b><c>Identity</c> steht unmaskiert</b>, wie bei
+    /// <see cref="AccountReplaced"/> und <see cref="RegistrationChanged"/>:
+    /// eine SIP-Identität ist die eigene Nebenstelle, keine fremde Person
+    /// (<c>PrivacyLogTests</c> nimmt <c>Identity</c>/<c>Account</c> davon
+    /// ausdrücklich aus).</para>
+    /// </summary>
+    [LoggerMessage(EventId = 2117, Level = LogLevel.Information,
+        Message = "Konto {Identity} war nur noch im SDK eingetragen und steht in den "
+            + "Einstellungen nicht mehr — beim Start entfernt, samt Zugangsdaten")]
+    public static partial void GhostAccountRemoved(ILogger logger, string identity);
 }

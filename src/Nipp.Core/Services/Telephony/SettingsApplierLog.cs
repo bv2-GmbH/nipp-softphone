@@ -101,4 +101,19 @@ internal static partial class SettingsApplierLog
             + "tools/Build-Sounds.py), als Rueckfall share/sounds/linphone/ringback.wav "
             + "aus dem SDK-Paket.")]
     public static partial void RingbackMissing(ILogger logger);
+
+    [LoggerMessage(EventId = 2617, Level = LogLevel.Information,
+        Message = "Anklopfton: {Path}")]
+    public static partial void CallWaitingToneApplied(ILogger logger, string path);
+
+    // Kein Rueckfall auf eine SDK-Datei moeglich (anders als bei 2616): ohne
+    // eigene Datei erzeugt das SDK seinen Ton selbst, mit Vollaussteuerung und
+    // ohne Wiederholungsgrenze (R1.0, LOGBEFUNDE-PLAN.md L12) — genau das
+    // Verhalten, das dieser Aufruf ersetzen soll.
+    [LoggerMessage(EventId = 2618, Level = LogLevel.Warning,
+        Message = "Kein eigener Anklopfton gefunden — das SDK spielt beim zweiten "
+            + "eingehenden Anruf seinen eigenen, lauten Ton in das laufende Gespraech. "
+            + "Erwartet wird Assets/Sounds/nipp-callwaiting.wav im Ausgabeverzeichnis "
+            + "(erzeugt von tools/Build-Sounds.py).")]
+    public static partial void CallWaitingToneMissing(ILogger logger);
 }

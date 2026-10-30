@@ -8,6 +8,88 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-081 — Der Anklopfton gehört nipp, nicht dem SDK
+
+**Datum:** 30.10.2026 · **Status:** angenommen · **Bezug:** §8.2, §9.4, ADR-075, `NippSounds`, `SettingsApplier`, Befund L12 in `docs/plans/LOGBEFUNDE-PLAN.md`, T341
+
+**Gemeldet aus dem Betrieb, am 30.10.2026:** «wenn ich mit nipp in einem call
+bin und ein zweiter rein kommt erscheint die Makeln-Funktion aber ich höre den
+aktuellen Anruf nicht mehr.»
+
+**Kontext.** Der Fall ist in vierzehn Tagen Protokoll **siebenmal** eingetreten,
+und er erzeugt **keine einzige Fehlerzeile** — gefunden wurde er nur, weil
+jemand ihn gemeldet hat. Was das SDK dabei tut, steht am 23.10.2026 um 16:00:02
+im Protokoll, mitten in einem Gespräch, das seit 15:53 lief:
+
+    [ToneManager] startNamedTone
+    [ToneManager] using audio from current call.
+    Playing tones of frequencies 440,0 Hz, duration=300,
+                  amplitude=1.000000 interval=2000, repeat_count=0
+
+Drei Eigenschaften, und jede einzelne genügt: **Vollaussteuerung**
+(`amplitude=1.000000`), **alle zwei Sekunden unbegrenzt**
+(`interval=2000, repeat_count=0` — an jenem Tag elf Sekunden lang, bis der
+Anrufer aufgab), und **in den Audioweg des laufenden Gesprächs**
+(`using audio from current call`), nicht auf das Klingelgerät. Daneben steht in
+der Abschlussstatistik eine **zweite `MSWASAPIWrite`-Kette** mit 1 091
+Durchläufen — zwei Schreiber auf demselben Ausgabegerät.
+
+**nipp hat das nie entschieden.** `SetTone`, `ToneID` und
+`CallToneIndicationsEnabled` kamen im ganzen Code nicht vor; es war das
+unveränderte Standardverhalten des SDK. Ein Anklopfton steht in
+`NIPP-BUILD.md` nicht — weder dass es ihn gibt noch wie er klingt. Dass das
+aktive Gespräch Vorrang hat, ist die nächstliegende Lesart von §8.2.
+
+**Entscheidung.** nipp bringt einen eigenen Anklopfton mit und setzt ihn über
+`Core.SetTone(ToneID.CallWaiting, …)` — derselbe Weg, den ADR-075 für das
+Freizeichen gebahnt hat. Die Datei entsteht wie die anderen beiden in
+`tools/Build-Sounds.py`; gewählt ist ein kurzer absteigender Doppelton
+(880 → 740 Hz, je 0,12 s) bei **−18 dBFS**, also dem Pegel des Freizeichens.
+Fehlt die Datei, wird `SetTone` **nicht** gerufen und das SDK-Verhalten bleibt,
+wie es war — mit einer Protokollzeile, denn ein stiller Rückfall auf genau das
+Verhalten, das hier abgestellt werden soll, wäre die unangenehme Sorte.
+
+**Ausdrücklich nicht gewählt: `CallToneIndicationsEnabled = false`.** Das nähme
+auch den Besetztton und den Ton bei abgerissener Verbindung mit, und beide sind
+nützlich.
+
+### Was gemessen ist und was nicht
+
+**Gemessen:** der Ton des SDK, seine Amplitude, sein Intervall, seine Dauer,
+sein Weg in das laufende Gespräch, und die zweite Ausgabekette.
+
+**Nicht gemessen, und das ist beim Lesen dieses ADR das Wichtigste:**
+
+- **Dass der erste Strom verstummt.** Im Protokoll lief er weiter — `receiving
+  RTCP SR` kam während der ganzen elf Sekunden im Fünf-Sekunden-Takt, und im
+  Fenster steht **kein** Verwurf und **kein** Pufferfehler. Was belegt ist, ist
+  ein zweiter, voll ausgesteuerter Schreiber über einem weiterlaufenden
+  Gespräch. Ob das in der Wahrnehmung «ich höre nichts mehr» ergibt, entscheidet
+  ein Hörtest.
+- **Ob das SDK eine eigene Datei ebenfalls alle zwei Sekunden wiederholt.** Der
+  Wrapper sagt zu `SetTone` nur «a wav file to be played or null to use the
+  default (generated) one»; der `ToneManager` liegt nur als DLL vor. Die
+  Wiederholung ist damit **ungemessen**.
+- **Ob −18 dBFS der richtige Pegel ist.** Die Zahlen im Skript sind plausibel
+  gewählt und tragen dort den Vermerk, dass sie niemand gehört hat.
+
+### Konsequenz
+
+- **T341 ist die Messung dazu, und sie wird gehört, nicht gelesen.** Sie hat
+  zwei Hälften: die Gegenseite muss verständlich bleiben, **und** der wartende
+  Anruf muss weiterhin auffallen — ein Anklopfen, das niemand bemerkt, ist kein
+  Fortschritt.
+- **Die zweite Hälfte ist die unsichere:** bleibt die zweite
+  `MSWASAPIWrite`-Kette trotz ersetztem Ton bestehen, war der Ton nur das
+  Hörbare an einem Problem, das darunter liegt — dann ist T341 **nicht**
+  bestanden, auch wenn es besser klingt, und der Rest gehört zu A7
+  (`AUDIOQUALITAET-PLAN.md`, Nachtrag vom 30.10.2026).
+- Es gibt **keinen Test**, der Pegel, Wiederholung oder Hörbarkeit festschreibt.
+  ADR-075 hat gezeigt, was ein solcher Test tut: er macht eine Annahme nicht
+  wahr, er schützt sie.
+
+---
+
 ## ADR-080 — Ein verworfener Puffer ist noch keine hörbare Störung
 
 **Datum:** 12.10.2026 · **Status:** angenommen · **Bezug:** ADR-077, ADR-078, `SdkStoerung`, `GespraechsBericht`, A7
