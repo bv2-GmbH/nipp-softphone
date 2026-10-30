@@ -13,6 +13,51 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**30.10.2026 — Vierzehn Tage Protokoll ausgewertet: zwölf Befunde, ein Plan,
+sieben neue Prüfzeilen.** Gelesen wurden die Protokolle vom 17. bis 30.10.
+(224 MB), `crash.txt` und `settings.json` des laufenden Arbeitsplatzes. Alles
+steht in **`docs/plans/LOGBEFUNDE-PLAN.md`**, die Prüfzeilen sind **T335 bis
+T341**.
+
+**Der schwerste Befund kam nicht aus den Protokollen, sondern von Dominic**
+(L12): während eines Gesprächs übertönt ein zweiter eingehender Anruf das
+laufende. Nachvollzogen — der `ToneManager` des SDK spielt den Anklopfton mit
+`amplitude=1.000000` alle zwei Sekunden unbegrenzt **in den Audioweg des
+laufenden Gesprächs** (`using audio from current call`), dazu eine **zweite
+`MSWASAPIWrite`-Kette** auf demselben Gerät, am 23.10. elf Sekunden lang.
+**nipp steuert diesen Ton nirgends** — `SetTone`, `ToneID` und
+`CallToneIndicationsEnabled` kommen im ganzen Code nicht vor; es ist
+unverändertes SDK-Verhalten, das nie jemand entschieden hat. **Und er erzeugt
+keine einzige Fehlerzeile.** Das ist die Lehre dieser Auswertung: *was am
+meisten stört, muss sich nicht beschweren* — eine Fehlerstatistik hätte L12
+nie gefunden.
+
+**Was sonst gefunden wurde, in der Reihenfolge der Wirkung:**
+
+| | Befund | Beleg |
+|---|---|---|
+| **L1** | Ein Konto, das nur noch das SDK kennt — das Testkonto steht in `linphonerc` mit `reg_sendregister=1`, nicht in `settings.json` | 211 Fehlerzeilen, 132 Registrierungsversuche. `RemoveAccountAsync` räumt richtig auf, **wird aber nur von der Einstellungsseite gerufen** |
+| **L2** | Absturz beim Audiogerät-Wechsel über das Infobereich-Menü | `crash.txt` 20.10. 11:51:47, `COMException 0x80070580` — das Menü von H.NotifyIcon läuft nicht im UI-Thread, `OnSettingsChanged` greift von dort auf `AppWindow` |
+| **L3** | **ADR-080 ist gebaut und nie ausgeliefert** | 60 von 60 Gesprächen melden `Hoerbar = ?`; installiert ist 0.9.15, der Commit ist vom 12.10. Die Erklärung in CLAUDE.md («Protokoll von vor dem 12.10.») ist für diese Protokolle **falsch** |
+| **L4** | `SdkStoerung` zählt zwei Störungstexte nicht | `cannot write output buffer … not enough space` (149×) und `MSTicker: late wakeup by N ms` (8×), beide auf `[ERR]`, beide in keinem Muster |
+| **L5** | Netzwerkwechsel in Salven | 2 126 erkannt, 979 ans SDK gemeldet, bei 2 s Entprellung. **Ungemessen ist, worauf es ankommt:** wie lange nipp danach abgemeldet war |
+| **L6** | Die Audiokette wird je Gespräch mehrfach aufgebaut | 304 `output initialized` auf 60 Gespräche. Ohne Deutung — gehört zu A7 |
+| **L7–L11** | Toasts unpackaged nicht verfügbar (3×, §8.6/T110); `RecordingDirectory` zeigt noch ins Velopack-Verzeichnis (gegen ADR-079); `ProvisioningUri` zeigt auf eine Kontaktsuch-Adresse und liefert bei jedem Start 404; Debug dauerhaft an (16 MB/Tag); `Ctrl+Shift+A` dauerhaft belegt, ohne dass es die Oberfläche zeigt | |
+
+**Was ausdrücklich kein Befund ist:** die rund 5 000 Fehlerzeilen vom 22. und
+23.10. An beiden Tagen war das Netz weg, und nipp hat sich jedes Mal selbst
+wieder angemeldet. Zu kritisieren ist die Lautstärke des Protokolls, nicht das
+Verhalten.
+
+**Umsetzung in vier Runden**, siehe Plan: R1.0 ist der Anklopfton (vor allem
+anderen, er braucht die Anlage und ein Ohr), dann die Schreibtisch-Reparaturen,
+dann das Release 0.9.16 — **nach** den Reparaturen, damit eine Fassung alles
+trägt —, dann die Messung zu L5 und drei Fragen, die eine Entscheidung
+brauchen.
+
+---
+
+
 **Befund 12.10.2026 — `tel:`-Links erreichen nipp auf diesem Arbeitsplatz
 nicht (T21, T22 nicht bestanden) — und die erste Erklärung dafür war falsch.**
 
