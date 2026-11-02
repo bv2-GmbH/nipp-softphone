@@ -13,6 +13,46 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**02.11.2026 — der Anklopfton ist gehört, und drei Prüfzeilen sind durch.**
+Erster Arbeitstag auf 0.9.16, fünf Gespräche. Dominic hat während eines
+ausgehenden Gesprächs zweimal anklopfen lassen (6 und 17 Sekunden).
+
+**T341, die Zeile, die gehört und nicht gelesen wird:** «der erste Call blieb
+dran» und «anklopfen gehört und im nipp den zweiten Anruf gesehen». Damit
+stimmen **beide** hörbaren Hälften — das Gespräch überlebt den Anklopfer, und
+der Anklopfer fällt trotzdem auf. Im Protokoll zweimal `playFile …
+nipp-callwaiting.wav`; `amplitude=1.000000` kommt im ganzen Tag nicht mehr
+vor. Der Bericht des Gesprächs: 10 Verwürfe, **`Hoerbar 0`**, kein
+Paketverlust.
+
+**Die zweite `MSWASAPIWrite`-Kette ist geblieben** — 1 687 Durchläufe, exakt
+die 16,9 Sekunden des Anklopfens. Nach dem Wortlaut von T341 ist die Zeile
+damit nicht bestanden. **Aber die Messung sagt mehr als das Kriterium:** die
+Annahme dahinter — bleibt die Kette, liegt darunter ein Problem — wird von
+diesem Gespräch nicht gestützt. Die Kette war da und hat **null** hörbare
+Störungen, **null** volle Ausgabepuffer und **null** Tickerverspätungen
+gekostet. Der Ton war das Problem. Die Kette gehört ab jetzt zu L6 und A7,
+nicht mehr zu L12 (ADR-081, Nachtrag).
+
+**T337 bestanden, und es ist die deutlichste Bestätigung von ADR-080 bisher:**
+in allen fünf Gesprächen trägt `Hoerbar` eine Zahl, und zwar **null** — auch
+im schlechtesten, das 32 Minuten lief, 147 Verwürfe hatte und bei 4,59 je
+Minute stand. Nach der alten Skala wäre das «hörbar gestört» gewesen; hörbar
+war nichts.
+
+**T338 bestanden, mit Gegenprobe und gezählt statt geschätzt:** der Bericht
+meldet `Ausgabepuffer voll 25` und `Ticker spaet 2`, im Protokoll desselben
+Zeitraums stehen 25 und 2 — deckungsgleich, ebenso 1 und 2 im nächsten
+Gespräch, und null, wo der Bericht null sagt. `late wakeup by` kam an diesem
+Tag nicht vor und bleibt ungeprüft.
+
+**T336 ist nicht abgenommen, und zwar an mir gescheitert:** das
+Infobereich-Menü liess sich in vier Anläufen nicht per UI Automation öffnen
+(dreimal «Menü kam nicht», einmal `E_UNEXPECTED` in der UIA-Suche), während
+`Beende-Nipp.ps1` denselben Rechtsklick zuverlässig schafft. Der Unterschied
+ist ungeklärt. nipp blieb dabei unbeschädigt, kein `crash.txt`. Die Zeile
+braucht jetzt drei Klicks von Hand.
+
 **30.10.2026, abends — Runde 1 und 2 des Logbefunde-Plans gebaut, 0.9.16 ist
 draussen.** Sechs Reparaturen in einem Zug, zentral getestet (1 492 Tests),
 als Release ausgeliefert und auf dem Arbeitsplatz installiert. Umgesetzt mit

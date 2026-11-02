@@ -19,13 +19,13 @@ Arbeitsplatz installiert.
 
 | Schritt | Stand |
 |---|---|
-| **R1.0** Anklopfton (L12) | **gebaut** — `Core.SetTone(ToneID.CallWaiting, …)` mit eigener Datei, ADR-081. **Der Hörtest T341 steht aus**, und mit ihm die eigentliche Frage: bleibt die zweite Ausgabekette? |
+| **R1.0** Anklopfton (L12) | **gebaut und am 02.11.2026 gehört** — der Ton ist ersetzt, die Gegenseite blieb verständlich, der wartende Anruf fiel auf. **Die zweite Ausgabekette bleibt** (1 687 Durchläufe) und hat in diesem Gespräch **nichts gekostet**: `Hoerbar 0`, `PufVoll 0`. Sie gehört ab jetzt zu L6, nicht mehr zu L12 (ADR-081, Nachtrag) |
 | **R1.1** Kontenabgleich (L1) | **gebaut und gemessen** — T335 am Schreibtisch bestanden: das Geisterkonto ist weg, `No listening point matching` von 108 auf null, das echte Konto angemeldet |
 | **R1.2** Thread-Wechsel (L2) | **gebaut** — zwölf Empfänger über `Threading/UiDispatch.cs`. T336 braucht das Gerät |
-| **R1.3** Zwei Störungsarten (L4) | **gebaut** — neue Arten, Tests im Wortlaut, zwei Spalten im Werkzeug. T338 braucht ein Gespräch |
+| **R1.3** Zwei Störungsarten (L4) | **gebaut, und T338 ist am 02.11.2026 bestanden** — die Berichtszahlen stimmen auf die Zeile mit dem Protokoll überein (25 = 25, 2 = 2, 1 = 1), die Gegenprobe steht bei null. `late wakeup by` kam an diesem Tag nicht vor und bleibt ungeprüft |
 | **R1.4** Aufnahmepfad (L8) | **gebaut, T340 halb** — der Pfad steht jetzt auf `bv2\`; dass eine **Aufnahme** dort landet, ist ungeprüft |
 | **R1.5** Tastenkürzel (L11) | **gebaut** — die Anzeige gab es längst, es fehlte die Bindung im XAML |
-| **R2.1–R2.3** Release (L3) | **0.9.16 ist draussen und installiert.** `Hoerbar` liefert erst das nächste Gespräch — **T337 steht aus** |
+| **R2.1–R2.3** Release (L3) | **erledigt.** 0.9.16 ist draussen, installiert, und **T337 ist am 02.11.2026 bestanden**: `Hoerbar` trägt in fünf Gesprächen eine Zahl, und zwar null |
 | **R3.1/R3.2** Anmeldelücken (L5) | **gemessen**, siehe unten |
 | **R3.3** Entprellung | **nicht geändert** — die Messung spricht dagegen, siehe unten |
 | **R3.4** L6 in den Audioplan | **eingetragen**, ohne Deutung |

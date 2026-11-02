@@ -88,6 +88,42 @@ sein Weg in das laufende Gespräch, und die zweite Ausgabekette.
   ADR-075 hat gezeigt, was ein solcher Test tut: er macht eine Annahme nicht
   wahr, er schützt sie.
 
+### Nachtrag vom 02.11.2026 — gehört und gemessen
+
+Zwei Anklopfer während eines ausgehenden Gesprächs (`1e23a8fe`, 8:40), 6 und
+17 Sekunden lang.
+
+**Gehört, von Dominic:** die Gegenseite blieb durchgehend verständlich, **und**
+der wartende Anruf fiel auf. Beides war verlangt; ein Anklopfen, das niemand
+bemerkt, wäre kein Fortschritt gewesen.
+
+**Im Protokoll belegt:** beide Male `playFile … nipp-callwaiting.wav`.
+`amplitude=1.000000` kommt im ganzen Tagesprotokoll **nicht mehr vor**. Der
+Gesprächsbericht: 10 Verwürfe, **`Hoerbar 0`**, `Ausgabepuffer voll 0`,
+`Ticker spaet 0`, kein Paketverlust.
+
+**Die zweite `MSWASAPIWrite`-Kette ist geblieben** — 1 687 Durchläufe, exakt
+die 16,9 Sekunden vom `playFile` bis zum Ende des Anrufers; am 23.10.2026
+waren es 1 091 bei elf Sekunden, also dasselbe Verhältnis. Nach dem Wortlaut
+von T341 ist die Zeile damit **nicht bestanden**.
+
+**Und genau hier sagt die Messung mehr als das Kriterium.** Die Bedingung
+«bleibt die Kette, liegt darunter ein Problem» war selbst eine Annahme —
+aufgeschrieben, als niemand die beiden Dinge trennen konnte. Jetzt sind sie
+getrennt: **die Kette war da und hat nichts gekostet.** Null hörbare
+Störungen, null volle Ausgabepuffer, null Tickerverspätungen. Der Ton war das
+Problem, die Kette ist es nicht — jedenfalls nicht in diesem einen Gespräch,
+und mehr als ein Gespräch ist es nicht.
+
+**Konsequenz:** Die zweite Ausgabekette gehört ab jetzt zu **L6** und damit zu
+A7 (`AUDIOQUALITAET-PLAN.md`), nicht mehr zu L12. Sie bleibt eine offene
+Beobachtung, aber sie blockiert diesen ADR nicht mehr.
+
+**Ungemessen bleibt eine Frage, die oben schon offen war:** ob das SDK die
+eigene Datei wiederholt. Das Protokoll zeigt **einen** `playFile`-Aufruf über
+17 Sekunden, `MSFilePlayer` lief durchgehend — ob dabei Ton kam, sagt keine
+Zeile, und gehört wurde nur, **dass** es anklopfte, nicht wie oft.
+
 ---
 
 ## ADR-080 — Ein verworfener Puffer ist noch keine hörbare Störung
