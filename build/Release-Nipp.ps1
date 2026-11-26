@@ -3,7 +3,7 @@
     Baut ein Velopack-Setup von nipp und laedt es optional zu GitHub (ADR-038).
 
 .DESCRIPTION
-    Der Auslieferungsweg seit dem 07.09.2026. Vier Schritte:
+    Der Auslieferungsweg seit dem 07.09.2026. Fuenf Schritte:
 
       1. publish, self-contained und unpackaged — die App bringt .NET und das
          Windows App SDK mit, der Zielrechner braucht keine Voraussetzungen.
@@ -12,8 +12,10 @@
          auf dem Zielrechner auf, mit einer Meldung, die nicht sagt, welche.
          Beim ersten Lauf am 07.09.2026 fehlte die GANZE Kette — das
          publish-Ziel kannte sie nicht (siehe build\Linphone.Sdk.targets).
-      3. vpk pack: Setup.exe, Voll- und Delta-Paket, releases.<kanal>.json.
-      4. Optional vpk upload github.
+      3. Das vorherige Release aus GitHub holen — nur dann kann vpk ein Delta
+         bilden (scheitert der Abruf, geht es ohne Delta weiter).
+      4. vpk pack: Setup.exe, Voll- und Delta-Paket, releases.<kanal>.json.
+      5. Optional vpk upload github.
 
     MSIX bleibt daneben bestehen (Pack-Nipp.ps1) und wartet auf T110 und ein
     Zertifikat. Ausgeliefert wird, was hier herauskommt.
@@ -188,6 +190,51 @@ $size = (Get-ChildItem $publishDirectory -Recurse -File | Measure-Object -Proper
 Write-Note ('{0} DLLs, {1} Grammatiken, {2:N0} MB' -f `
     (Get-ChildItem $publishDirectory -Filter '*.dll').Count, $grammarCount, ($size / 1MB))
 Write-Host '  Die native Kette ist vollstaendig.' -ForegroundColor Green
+
+# ── Vorheriges Release holen (Delta-Pakete) ──────────────────────────────────
+
+# <b>Ein Delta entsteht nur, wenn das Vorgaenger-Paket im Ausgabeordner liegt.</b>
+# vpk pack bildet das Delta aus dem juengsten Voll-Paket, das es dort findet.
+# Auf der Entwicklungsmaschine blieb dist\releases von Lauf zu Lauf stehen — da
+# gab es bis 0.9.16 immer ein Delta. In GitHub Actions beginnt jeder Lauf mit
+# einem leeren Ordner, und 0.9.17 erschien als erstes Release ohne Delta
+# (26.11.2026). Deshalb wird der Vorgaenger aus demselben Repo geholt, in das
+# auch hochgeladen wird ($UploadRepo — keine zweite Adresse).
+#
+# Scheitert das (erstes Release eines Kanals, kein Netz), wird ohne Delta
+# weitergebaut: ein fehlendes Delta kostet Download-Volumen, kein Update.
+Write-Step "Vorheriges Release holen ($velopackChannel)"
+
+New-Item -ItemType Directory -Force -Path $releaseDirectory | Out-Null
+
+$downloadArgs = @(
+    'vpk', 'download', 'github',
+    '--repoUrl', $UploadRepo,
+    '--channel', $velopackChannel,
+    '--outputDir', $releaseDirectory
+)
+
+# Das Repo ist oeffentlich, zum Lesen braucht es kein Token. Ist eines da,
+# hilft es gegen das Abruflimit fuer anonyme Anfragen.
+$downloadToken = if ($Token) { $Token } else { $env:GITHUB_TOKEN }
+if ($downloadToken) { $downloadArgs += @('--token', $downloadToken) }
+
+# Der Beta-Kanal liegt auf GitHub als Vorabversion (siehe Upload unten).
+if ($Channel -eq 'beta') { $downloadArgs += '--pre' }
+
+$downloadFailed = $false
+try {
+    & $dotnet @downloadArgs
+    if ($LASTEXITCODE -ne 0) { $downloadFailed = $true }
+} catch {
+    $downloadFailed = $true
+    Write-Note $_.Exception.Message
+}
+
+if ($downloadFailed) {
+    Write-Host '  Das vorherige Release liess sich nicht holen — es wird ohne Delta-Paket gebaut.' -ForegroundColor Yellow
+    Write-Host '  (Bei dem ersten Release eines Kanals ist das erwartet.)' -ForegroundColor Yellow
+}
 
 # ── Paketieren ───────────────────────────────────────────────────────────────
 
