@@ -11,14 +11,11 @@ lesbar bleiben.
 | Was | Wo |
 |---|---|
 | Was nipp tun soll | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-082. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen»), **ADR-075** warum nipp das Freizeichen beim Rauswählen selbst spielt (25.09.2026), **ADR-076** warum der Echo-Canceller `MSSpeexEC` heisst und **ADR-077** warum jedes Gespräch eine Auswertungszeile hinterlässt (08.10.2026), **ADR-078** warum die Echounterdrückung hier trotzdem aus ist und **ADR-079** warum die Daten unter `bv2\` liegen (09.10.2026), **ADR-080** warum ein verworfener Puffer noch keine hörbare Störung ist (12.10.2026) **ADR-081** warum der Anklopfton nipp gehört und nicht dem SDK (30.10.2026) und **ADR-082** warum nipp sich bei Windows als Anwendung anmeldet, aber nie selbst die Standard-App wählt (26.11.2026) |
+| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-083, neueste oben. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen») |
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
-| **Was noch offen ist** | **`docs/plans/BEWEIS-PLAN.md`** — der Gerätetag (W2.8) und die Tests für die SDK-Schicht (W2.1), in Runden nach Rüstzeug. **Die Schreibtisch-Runde A1 ist am 23.09.2026 durch**: fünfzehn Messrunden, 79 Zeilen abgenommen, **24 Befunde — 22 repariert und nachgemessen**, einer ein falscher Alarm (A1-15), einer bewusst offen (A1-19, zweite Hälfte: die Prüflücke bei zehn `async void`). Die sechs Befunde, die eine Entscheidung brauchten, stehen in **ADR-072**. **Nach dem Tag an der Anlage tragen zwei Zeilen «nicht bestanden»:** T310 (der Rufton, A7 — jetzt mit einer Spur) und **T143**, dessen Eintrag am selben Tag zurückgenommen werden musste, weil er aus dem Protokoll allein entstanden war und die Zeile ausdrücklich verlangt, **zu hören**. Gezählt: **133 offen von 332**, 199 mit Ergebnis, 7 gestrichen — nachgerechnet am 02.11.2026 mit `Zaehle-Matrix.ps1`, nachdem T337 und T338 bestanden und T341 teilweise abgenommen war. (Am 08.10. stand hier 321; die Zahl war schon vor T332 bis T334 um zwei zu niedrig.) Davon nur noch **fünf am Schreibtisch** — T25, T93, T95, T128, T273 (T33 ist mit ADR-078 beantwortet; **T21 und T22 sind am 12.10.2026 durchgefallen** und gehören jetzt zu «frischer Rechner», siehe `docs/stand.md`). **Bei jeder dieser fünf steht im Plan, was ihr fehlt**, und es ist nie Zeit: ein Windows-Neustart, Ohren, ein neues Logo oder eine Beta-Fassung. Die übrigen **125 brauchen die Anlage, ein Headset, einen frischen Rechner, Windows 10 oder x64-Hardware** — nachgesehen am 24.09.2026: Windows Sandbox ist hier nicht installiert, Hyper-V auch nicht, die Konsole läuft ohne Adminrechte, und ein x64-Gast wäre auf ARM64 ohnehin keiner. **Die Zahl ist nachrechenbar**: `Zaehle-Matrix.ps1` in den Testaufbauten trägt die Zählregel — sie zählt **geprüft gegen ungeprüft**, nicht bestanden gegen durchgefallen, und die bisher fortgeschriebenen 190 von 303 liessen sich aus der Matrix nicht herstellen. **Repariert wird gesammelt, nicht mitten in einer Messrunde** — sonst prüft die halbe Runde gegen einen anderen Build als die andere |
-| **Was als Naechstes zu pruefen ist** | **`docs/plans/LOGBEFUNDE-PLAN.md`** (30.10.2026) — zwoelf Befunde aus vierzehn Tagen Protokoll, Pruefzeilen **T335 bis T342**. **Runde 1 und 2 sind gebaut und als 0.9.16 ausgeliefert, Runde 3 zur Haelfte**; der Umsetzungsstand steht vorn im Plan. **Abgenommen am 02.11.2026: T337** (die Spalte `Hoerbar` traegt Zahlen), **T338** (die zwei neuen Stoerungsarten, gegen die Protokollzeilen gezaehlt) und die beiden hoerbaren Haelften von **T341** — der Anklopfton stoert das Gespraech nicht mehr und faellt trotzdem auf. **Was offen ist, braucht keine Entscheidung, sondern Handgriffe:** **T336** (Audiogeraet ueber das Infobereich-Menue wechseln, auch im Gespraech — **per UI Automation nicht hinzubekommen**, siehe `docs/stand.md` zum 02.11.), die zweite Haelfte von **T340** (wo eine Aufnahme wirklich landet — der Pfad in den Einstellungen ist nicht dasselbe) und **T342** (Toasts, seit dem 30.10. ein eigener Befund und nicht mehr ein Anhaengsel von T110). **Gebaut am 26.11.2026, ungeprueft am Geraet (T343):** dass nipp bei einer Provisionierungsadresse mit 404 oder 410 deutlicher wird (L9 — die Adresse selbst ist geleert); Netz-, 5xx- und Timeout-Fehler behalten die alte Meldung. **Und eine Beobachtung ist umgezogen:** die zweite `MSWASAPIWrite`-Kette beim Anklopfen bleibt bestehen, hat aber nichts gekostet (`Hoerbar 0`); sie gehoert seit ADR-081 zu **L6 und A7**, nicht mehr zu L12 |
-| Was am 14.09.2026 gebaut wurde | `docs/plans/ZIEHVORSCHAU-PLAN.md` (ADR-066) und `docs/plans/HEADSET-FREMDBELEGUNG-PLAN.md` (ADR-068) — beide mit ihren Messungen im Protokoll; **offen ist dort H5**, der Notausgang als Einstellung |
-| Pläne und Reviews | `docs/plans/` — vierundzwanzig Stück, von `IMPLEMENTATION-PLAN.md` bis `LOGBEFUNDE-PLAN.md`. **Laufend sind acht:** `LOGBEFUNDE-PLAN.md` (30.10.2026, **Runde 1 und 2 gebaut und als 0.9.16 ausgeliefert, Runde 3 zur Haelfte** — der Umsetzungsstand steht vorn im Plan, die offenen Pruefzeilen in der eigenen Zeile oben), `BEWEIS-PLAN.md` (**A1 ist durch, Teil B angefangen** — B0 bis B8 sind am 24./25.09.2026 gebaut, siehe ADR-074), `ALLEINGANG-PLAN.md` (was ohne Dominic zu holen war; Runden 1 bis 4 durch, offen ist nur noch der Entscheid zu einem Befund aus B8), `ZIEHVORSCHAU-PLAN.md` (V8: **der Zug auf einen Gruppenkopf trägt**, offen bleibt nur «hell bei 150 %», eine Augenprüfung), `HEADSET-FREMDBELEGUNG-PLAN.md` (**H5 ist gebaut** — die Einstellung «Meldungen ans Headset senden», am Gerät abzunehmen mit T330; offen bleibt T300), `AUDIOQUALITAET-PLAN.md` (**A7 hat seit dem 23.09.2026 eine Spur**: jedem `Could not get buffer`-Burst geht ein Jitterpuffer-Reset voraus, über vier Messungen — und der Fremdton ist **hörbar, jedes Mal**. Nächster Schritt: T307. **Am 08.10.2026 ist eine Woche Alltag nachgemessen**: das Rauschen ist weg, die Aussetzer nicht — und sie stehen bei **null Prozent Paketverlust**, die Ursache sitzt also lokal. **Am 09.10.2026 kam ein falscher Verdächtiger dazu und wieder weg:** der Echo-Canceller aus ADR-076 verstärkte sie auf 5,4 je Minute und ist seither aus (ADR-078). **Die Gegenprobe läuft** — installiert ist seit dem 30.10.2026 **0.9.16**, kein Canceller; auszuwerten mit `Zeige-Gespraeche.ps1`, sobald ein paar längere Gespräche vorliegen. Offen bleiben die Senderichtung und T38) und `SHELL-IM-GESPRAECH-PLAN.md` (T313 und T317 sind bestanden; T314 ist nach der Reparatur vom 23.09.2026 abgenommen; **offen: T315 und T316**), `VERMITTELN-PLAN.md` (**gebaut und am Gerät abgenommen**, ADR-073 — T321–T323 bestanden; offen: externe Ziele und die Vorschlagsliste). **`ALLTAG-PLAN-3.md`** ist seit dem 23.09.2026 **abgeschlossen** (alle drei Meldungen gebaut, T324–T329 bestanden); der Rest ebenso |
+| **Was offen ist und was als Nächstes zu prüfen ist** | **`docs/stand.md`**, ganz oben (Stand 26.11.2026), und **`docs/test-matrix.md`** — die Pläne dazu unter `docs/plans/`, der laufende ist **`LOGBEFUNDE-PLAN.md`** |
 | Der Einstieg für einen Tag am Gerät | `ABNAHME-ALLTAG.md` |
 
 ## Grenzen
@@ -476,10 +473,11 @@ lesbar bleiben.
 ## Wo gearbeitet wird (seit 14.09.2026)
 
 Das Repo ist **öffentlich**: `github.com/bv2-GmbH/nipp-softphone`, Zweig
-`main`, lokal als `origin`. Das alte, private Repo ist **archiviert** und
-liegt lokal als `archiv` — dort steht die volle Historie der ersten 181
-Commits, und dort liegt die Brücke 0.9.5, die installierte Arbeitsplätze auf
-das neue Repo führt.
+`main`, lokal als `origin`. Das alte, private Repo `bv2-GmbH/nipp` ist
+**archiviert** (nur noch lesbar) — dort steht die volle Historie der ersten 181
+Commits und die Brücke 0.9.5. Auf der ARM64-Maschine ist es als Remote
+`archiv` eingetragen; ein frischer Klon hat es nicht und braucht es auch nicht.
+Seit 0.9.18 hängt kein Arbeitsplatz mehr daran (ADR-083).
 
 **Der öffentliche Zweig hat eine eigene, frische Historie** (erster Commit
 `c4da665`): in 60 der alten Commits standen zwei firmeneigene Systemnamen und
@@ -517,7 +515,13 @@ Der Test hat am 14.09.2026 den Plan erwischt, der genau das erklärt.
   Projektmappe zieht in `SipService.cs` einen `using`-Alias über den
   Kommentar, der ihn erklärt, und entfernt BOMs in sechzig unbeteiligten
   Dateien.
-- Setup bauen: `.\build\Release-Nipp.ps1 -Version <x.y.z> -Channel stable`
+- **Ein Release veröffentlichen geht über den Workflow** (seit 0.9.17):
+  `VersionPrefix` in `Directory.Build.props` ziehen, committen, pushen, dann
+  `gh workflow run release.yml -R bv2-GmbH/nipp-softphone -f version=<x.y.z>
+  -f channel=stable` und mit `gh run watch` verfolgen. Der Workflow testet,
+  baut, holt den Vorgänger fürs Delta, taggt und lädt hoch — mit seinem eigenen
+  `GITHUB_TOKEN`, ohne PAT.
+- Setup lokal bauen: `.\build\Release-Nipp.ps1 -Version <x.y.z> -Channel stable`
   — **die Nummer wird gesetzt, nicht abgeschrieben**: hier stand bis zum
   08.10.2026 `0.9.0` als Beispiel, und das war zu dem Zeitpunkt dreizehn
   Releases alt (`git tag` sagt, was zuletzt draussen ist)
@@ -844,11 +848,14 @@ damit logisch 1920 × 1200 — und XAML rechnet in **logischen** Pixeln. Wer ein
 Fenstergrösse misst oder setzt, rechnet um; 830 physische Pixel sind logisch
 553. Jede Zahl in `docs/test-matrix.md` ist logisch gemeint.
 
-Die Entwicklungsmaschine ist ARM64, das x64-SDK liegt deshalb unter
-`C:\Program Files\dotnet\x64` und ist vom `dotnet` im PATH **nicht**
-sichtbar. Immer `.\build.ps1 <args>` benutzen, nie ein blankes `dotnet` —
-das Skript löst den richtigen Host auf und funktioniert auf echter
-x64-Hardware unverändert.
+Auf der ARM64-Maschine liegt das x64-SDK unter `C:\Program Files\dotnet\x64`
+und ist vom `dotnet` im PATH **nicht** sichtbar; auf der x64-Maschine liegt es
+unter `C:\Program Files\dotnet`. Immer `.\build.ps1 <args>` benutzen, nie ein
+blankes `dotnet` — das Skript löst auf beiden den richtigen Host auf.
+
+**Auf der x64-Maschine fehlen im PATH der Bash-Shell `dotnet` und `gh`.** Die
+GitHub CLI liegt unter `C:\Program Files\GitHub CLI\gh.exe` (aus Bash:
+`"/c/Program Files/GitHub CLI/gh.exe"`); Python ist dort nicht installiert.
 
 **Argumente mit `-p:` oder `-t:` brauchen den Stopp-Parser `--%`:**
 
@@ -923,20 +930,22 @@ solange nipp intern läuft") ist durch ADR-018 ersetzt, weil sie eine Annahme
 enthielt, die nicht mehr trägt.
 
 ## Umgebungsvorbehalt
-Die Entwicklungsmaschine ist **ARM64**, das Produkt ist **x64 only**.
-x64 läuft hier nur emuliert.
+Das Produkt ist **x64 only**. Entwickelt wird auf **zwei Maschinen**:
 
-**Entschieden am 07.09.2026 (ADR-001): es gibt auf unbestimmte Zeit keine
-x64-Maschine.** Damit gilt Option 3 — alles hier, einschliesslich der
-Verifikation —, und das ist ein **bewusst getragenes Risiko**, keine Lösung.
-Ungemessen bleiben damit: die vier nichtfunktionalen Ziele aus §2 (AP7.8),
-das M1-Gate in seiner Beweiskraft, der Jitter-Befund aus ADR-006 Punkt 3
-(T38) und AP9.5. **Fällig vor der ersten Kundenabgabe.**
+- **Die ARM64-Maschine** (bis 26.11.2026 die einzige): x64 läuft dort nur
+  emuliert. ADR-001 hat das am 07.09.2026 als bewusst getragenes Risiko
+  entschieden.
+- **Eine echte x64-Maschine seit dem 26.11.2026** — frisch aufgesetzt, mit
+  Microsoft Teams, **ohne SIP-Konto**. Gebaut und getestet wird dort genauso
+  (`build.ps1` findet den Host unter `C:\Program Files\dotnet`); T38-artige
+  Messungen brauchen dort erst ein Konto. Auf ihr sind am 26.11.2026 L7, T21/T22
+  und T344 gemessen worden — **ein frischer Rechner sieht, was ein
+  eingerichteter verdeckt.**
 
-Es braucht dafür kein eigenes Gerät: T38 und AP7.8 sind an einem Nachmittag
-auf einer geliehenen Maschine abzuarbeiten. Wer einmal Zugang zu einer hat —
-ein Kundengerät bei einer Installation, ein Testrechner —, sollte ihn dafür
-benutzen.
+**Ungemessen bleiben bis zu einem Gespräch auf x64:** die vier
+nichtfunktionalen Ziele aus §2 (AP7.8), das M1-Gate in seiner Beweiskraft, der
+Jitter-Befund aus ADR-006 Punkt 3 (T38) und AP9.5. **Fällig vor der ersten
+Kundenabgabe** — die Maschine ist jetzt da, es fehlt nur das Konto.
 
 **Und seit dem 16.09.2026 gibt es dafür eine konkrete Zeile.** Ein Gespräch
 führen, im Protokoll die Tabelle `FILTER USAGE STATISTICS` suchen und den Wert
@@ -958,7 +967,7 @@ erfüllt. Details: docs/environment.md.
 | Frage | Dokument |
 |---|---|
 | Was soll nipp tun? | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-082 |
+| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-083 |
 | Wo steht das Projekt insgesamt? | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmenplan in Wellen. **`docs/plans/WELLE-0-PLAN.md`** — die fünf Schritte davor, alle umgesetzt |
 | Wo hakt die Bedienung? | **`docs/plans/UX-REVIEW-2.md`** — 20 Befunde (12.09.2026), davor **`docs/plans/UX-REVIEW.md`** — 25 Befunde. Umsetzungsstand jeweils ganz vorn |
 | Was passiert auf einem breiten Fenster? | **`docs/plans/BREITBILD-PLAN.md`** — zwei Spalten, Kacheln, der Detailbereich in der Zeile |
@@ -968,11 +977,11 @@ erfüllt. Details: docs/environment.md.
 | Welcher Feldname bedeutet was? | `docs/integrations/feldnamen.md` (aus dem `FieldCatalog` erzeugt) |
 | Was hat uns schon einmal Tage gekostet? | **`docs/lehren.md`** — Telefonie, Audio, WinUI, Windows-Integration, Konfiguration, Bauen, packaged |
 | Was ist am Gerät zu prüfen? | `docs/test-matrix.md` — was davon ohne Anlage geht, nimmt `tools/Test-Ui.ps1` ab |
-| Wie liefere ich aus und verteile Updates? | **`docs/updates.md`** — Setup, Kanäle, Token, kaputtes Release. Wie es dazu kam: `docs/plans/RELEASE-PLAN.md` |
+| Wie liefere ich aus und verteile Updates? | **`docs/updates.md`** — Setup, Kanäle, Delta-Pakete, kaputtes Release. Wie es dazu kam: `docs/plans/RELEASE-PLAN.md` |
 | Warum ist das Repo öffentlich, und was hing daran? | `docs/plans/OEFFENTLICH-PLAN.md` — die sechs Schritte, alle erledigt |
 | Wie baue und paketiere ich? | `docs/packaging.md` (MSIX), `docs/environment.md` |
 | Wo weicht die SDK-API von der Spezifikation ab? | `docs/sdk-api-notes.md` |
-| Unter welcher Lizenz steht nipp? | `LICENSE` (AGPLv3), `NOTICE`, `docs/licensing.md` — und was bis zum öffentlichen Repo fehlt |
+| Unter welcher Lizenz steht nipp? | `LICENSE` (AGPLv3), `NOTICE`, `docs/licensing.md` |
 | Überblick für einen Menschen | `README.md` |
 
 Ältere Prüfungen, auf die einzelne Befunde verweisen: `docs/review-oberflaeche.md`
