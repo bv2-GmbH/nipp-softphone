@@ -37,6 +37,14 @@
     -->
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
 
+    <!--
+      Die Version des Windows App SDK steht EINMAL hier: die PackageReference
+      unten und der Pfad der Zusatzdatei im Target NippInsightsResource lesen
+      sie beide. Zwei Zahlen, die auseinanderlaufen, wuerden eine Insights-DLL
+      aus einer anderen Fassung ausliefern.
+    -->
+    <NippWinAppSdkVersion>2.4.0</NippWinAppSdkVersion>
+
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>true</EnableMsixTooling>
@@ -75,7 +83,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="$(NippWinAppSdkVersion)" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.6.1" />
 
@@ -187,5 +195,79 @@
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">true</PublishReadyToRun>
     <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
+
+  <!--
+    Microsoft.WindowsAppRuntime.Insights.Resource.dll (L7, T342).
+
+    Gemessen am 26.11.2026 auf einem frischen x64-Rechner: mit
+    WindowsAppSDKSelfContained=true legt der Publish die Framework-DLLs neben
+    die EXE, diese eine aber nicht - sie liegt nur im MSIX des
+    Windows-App-SDK-Runtime-Pakets. Fehlt sie, scheitert
+    AppNotificationManager.Register() mit 0x8007007E ("Unable to load resource
+    dll. Microsoft.WindowsAppRuntime.Insights.Resource.dll"), und nipp laeuft
+    ohne Toast. Dieselbe Fassung auf derselben Maschine, nur diese Datei
+    daneben: "Benachrichtigungen angemeldet".
+
+    Das Target holt sie aus dem MSIX des NuGet-Pakets
+    microsoft.windowsappsdk.runtime. Es tut nichts, wenn das Paket fehlt
+    (Restore noch nicht gelaufen) oder wenn gepackt gebaut wird - dann liefert
+    das installierte Framework-Paket die Datei.
+  -->
+  <PropertyGroup>
+    <NippRuntimeMsix>$(NuGetPackageRoot)microsoft.windowsappsdk.runtime\$(NippWinAppSdkVersion)\tools\MSIX\win10-x64\Microsoft.WindowsAppRuntime.2.msix</NippRuntimeMsix>
+  </PropertyGroup>
+
+  <!--
+    Eine einzelne Datei aus dem MSIX. Die eingebaute Unzip-Aufgabe filtert in
+    dieser SDK-Fassung mit Include=... gar nichts heraus (gemessen: auch
+    Include="Insights" lieferte null Dateien) und entpackte sonst alle 300
+    Dateien, 111 MB, nach obj.
+  -->
+  <UsingTask TaskName="NippExtractZipEntry"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Archive ParameterType="System.String" Required="true" />
+      <Entry ParameterType="System.String" Required="true" />
+      <DestinationFolder ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.IO.Compression" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Directory.CreateDirectory(DestinationFolder);
+        string target = Path.Combine(DestinationFolder, Entry);
+        using (ZipArchive zip = ZipFile.OpenRead(Archive))
+        {
+            ZipArchiveEntry entry = zip.GetEntry(Entry);
+            if (entry == null)
+            {
+                Log.LogError("Im Archiv " + Archive + " fehlt der Eintrag " + Entry + ".");
+                return false;
+            }
+            if (!File.Exists(target) || new FileInfo(target).Length != entry.Length)
+            {
+                entry.ExtractToFile(target, true);
+            }
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="NippInsightsResource"
+          BeforeTargets="AssignTargetPaths"
+          Condition="'$(WindowsPackageType)' == 'None' and Exists('$(NippRuntimeMsix)')">
+    <PropertyGroup>
+      <NippInsightsDirectory>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)insights\</NippInsightsDirectory>
+    </PropertyGroup>
+    <NippExtractZipEntry Archive="$(NippRuntimeMsix)"
+                         Entry="Microsoft.WindowsAppRuntime.Insights.Resource.dll"
+                         DestinationFolder="$(NippInsightsDirectory)" />
+    <ItemGroup>
+      <Content Include="$(NippInsightsDirectory)Microsoft.WindowsAppRuntime.Insights.Resource.dll"
+               Link="Microsoft.WindowsAppRuntime.Insights.Resource.dll"
+               CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
 
 </Project>

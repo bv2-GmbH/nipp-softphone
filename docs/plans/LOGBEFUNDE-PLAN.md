@@ -30,7 +30,7 @@ Arbeitsplatz installiert.
 | **R3.3** Entprellung | **nicht geändert** — die Messung spricht dagegen, siehe unten |
 | **R3.4** L6 in den Audioplan | **eingetragen**, ohne Deutung |
 | **L9** Provisionierungsadresse | **geleert** auf diesem Arbeitsplatz (Entscheid vom 30.10.2026). Die zweite Hälfte — dass nipp bei 404 deutlicher wird — ist **nicht** gebaut |
-| **L7** Toasts | **eigener Befund**, neue Prüfzeile **T342**. Nicht untersucht |
+| **L7** Toasts | **eigener Befund**, Prüfzeile **T342**. **Ursache gemessen am 26.11.2026:** `Microsoft.WindowsAppRuntime.Insights.Resource.dll` fehlt im self-contained Publish — **repariert** im Projekt (Target `NippInsightsResource`), am Publish nachgemessen (`Benachrichtigungen angemeldet`). **Ausgeliefert ist es noch nicht** (0.9.16 hat die Datei nicht), und **dass ein Toast erscheint, ist nicht gesehen** — T342 bleibt offen. Siehe unten und `docs/stand.md` vom 26.11.2026 |
 | **L10** Debug | **bleibt** — die A7-Jagd läuft (Entscheid vom 30.10.2026) |
 
 ### Was R3.1 ergeben hat, und warum R3.3 damit vorerst erledigt ist
@@ -401,6 +401,41 @@ der Frage, ob die abgelehnten Raten ein zusätzliches Resampling erzwingen.
 29.10., jeweils beim Start. §8.6 verlangt Toasts; ausgeliefert wird unpackaged,
 **weil** packaged keine bekommt (T110). Dass sie unpackaged auch nicht kommen,
 ist der eigentliche Befund. Gehört zu T110 und ist dort zu notieren.
+
+**L7, Messung vom 26.11.2026 (frischer x64-Rechner, Release 0.9.16).** Der
+Fehler kehrt beim ersten Start wieder — er liegt **nicht** am alten
+Arbeitsplatz. Die Meldung trägt in ihrer **zweiten Zeile** das Modul, das der
+Plan nicht zitiert hatte:
+
+    ToastService Benachrichtigungen nicht verfuegbar: COMException 0x8007007E
+    (Das angegebene Modul wurde nicht gefunden.
+    Unable to load resource dll. Microsoft.WindowsAppRuntime.Insights.Resource.dll)
+
+**Ursache, belegt:** der self-contained Publish
+(`WindowsAppSDKSelfContained=true`) legt die Framework-DLLs neben die EXE,
+**diese nicht** — sie liegt nur im MSIX des Pakets
+`microsoft.windowsappsdk.runtime`. Im Installationsordner stehen 487 Dateien,
+keine «Insights»-DLL. **Der Gegenversuch hat genau diese eine Datei als
+Unterschied:** Publish ohne sie → `0x8007007E`; dieselbe Fassung mit der Datei
+daneben → `Benachrichtigungen angemeldet`. Beantwortet ist damit auch die
+Frage aus dem Plan: **das fehlende Modul ist eine Ausliefer-Lücke, kein
+«geht unpackaged nicht»** — `Register()` gelingt unpackaged.
+
+**Repariert:** `Nipp.App.csproj`, Target `NippInsightsResource` (zieht die
+Datei bei `WindowsPackageType=None` aus dem MSIX; eingebaute `Unzip`-Aufgabe
+unbrauchbar, weil `Include` hier nichts filtert — daher eine kleine
+Inline-Aufgabe), und eine Zeile in der Vollständigkeitsprüfung von
+`build\Release-Nipp.ps1`. Nachgemessen am Publish mit den Argumenten des
+Release-Skripts: `Benachrichtigungen angemeldet`. Build 0 Warnungen/0 Fehler,
+Tests 37 + 1 455 grün.
+
+**Offen, und nicht behauptet:** (1) ein **sichtbarer** Toast — es gab keinen
+Anruf; dass `Register()` gelingt, heisst nicht, dass Windows einem unpackaged
+Prozess ohne eigene `AppUserModelID` einen Toast zustellt. (2) Ausgeliefert
+wird die Reparatur erst mit dem nächsten Release. (3) Der lokale
+**Debug**-Build (unpackaged, nicht self-contained) scheitert an anderer
+Stelle, `0x80040154 (Klasse nicht registriert)`, mit und ohne die Datei —
+nicht die ausgelieferte Form und nicht weiter verfolgt.
 
 **L8, der Aufnahmepfad.** `"RecordingDirectory":
 "C:\Users\…\AppData\Local\nipp\recordings"` — **ohne `bv2\`**. Der Ordner liegt

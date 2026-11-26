@@ -167,6 +167,13 @@ if (-not (Test-Path (Join-Path $publishDirectory 'lib\mediastreamer\plugins\libm
     $missing += 'lib\mediastreamer\plugins\libmswasapi.dll'
 }
 
+# Ohne diese Datei scheitert AppNotificationManager.Register() mit 0x8007007E
+# und nipp laeuft ohne Toast (L7, T342). Sie liegt nur im MSIX des Runtime-
+# Pakets; das Target NippInsightsResource in Nipp.App.csproj holt sie.
+if (-not (Test-Path (Join-Path $publishDirectory 'Microsoft.WindowsAppRuntime.Insights.Resource.dll'))) {
+    $missing += 'Microsoft.WindowsAppRuntime.Insights.Resource.dll'
+}
+
 if ($missing.Count -gt 0) {
     Write-Problem 'Im Ergebnis fehlen:'
     $missing | ForEach-Object { Write-Problem "  - $_" }

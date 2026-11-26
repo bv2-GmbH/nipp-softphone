@@ -13,6 +13,130 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**26.11.2026 — erste Installation auf einem frischen x64-Rechner: ShellExecute erreicht nipp auch hier nicht (T21/T22 nur Teilbefund), und das Toast-Modul ist gefunden (L7).**
+
+Erstmals läuft nipp auf **echter x64-Hardware** (Windows 11, Build 26300 / 26H2),
+und zwar die **öffentliche** Fassung: `nipp-win-stable-Setup.exe` aus dem
+Release **v0.9.16** von GitHub, Benutzerinstallation. SHA256
+`46AB3EA02B25C5ECE8DBFA68EC32487540425DF318FA25FBAEB4992737E9EFA9`,
+nicht signiert. Auf dem Rechner gab es vorher weder `%APPDATA%\nipp` noch
+`%LOCALAPPDATA%\bv2\nipp` noch Bria. **Frisch ist er nur für nipp:** Microsoft
+Teams (Store-Fassung `MSTeams_26288…`) ist installiert und angemeldet — und
+das ist, wie sich zeigt, der Kern von Teil 1. Kein Konto, keine Anrufe.
+
+### Teil 1 — T21/T22: der Weg über Windows ist auch hier zu
+
+**Die Registrierung ist vollständig, und sie ist nicht das Problem.** nipp
+schreibt beim ersten Start `tel`, `sip`, `sips` und `callto` nach
+`HKCU\Software\Classes` (`URL:…`, `URL Protocol`,
+`shell\open\command` = `"C:\Users\…\AppData\Local\nipp\Nipp.App.exe" "%1"`);
+im Protokoll `18:01:37.171 Protokolle registriert: tel, sip, sips, callto`.
+In **HKLM** gibt es keinen der vier Schlüssel (`telnet` ausgenommen), und eine
+**`UserChoice` gibt es für keines der vier** — weder in HKCU noch in HKLM.
+
+**Aber ein anderes Programm beansprucht dieselben Protokolle:** das
+Paketmanifest von Teams (`AppxManifest.xml`, `windows.protocol`) führt
+`callto`, `im`, `sip`, `sips`, `tel`, `action-sip`. Was Windows daraus für
+`open` macht, sagt `AssocQueryString` (nur lesen, nichts verändert):
+
+| Protokoll | Windows löst auf zu |
+|---|---|
+| `tel` | `C:\WINDOWS\system32\OpenWith.exe "%1"` — «App auswählen» |
+| `sip`, `sips`, `callto` | **Microsoft Teams** (kein Befehl, nur der Anzeigename) |
+
+**Die Proben** (`Start-Process '…'`, Prozessliste alle 0,5 s, mindestens 17 s,
+Protokoll durchsucht nach `URI` und `xyztest`):
+
+| Uhrzeit | nipp | Aufruf | Was geschah | «Anruf-URI empfangen» |
+|---|---|---|---|---|
+| 18:02:12 | läuft | `tel:xyztest` | nach 1,2 s `OpenWith.exe -Embedding`, danach nichts; **kein** Nipp-Prozess, kein sichtbarer Dialog (Bildschirm nach 4 s angesehen) | **nein** |
+| 18:03:12 | läuft | `sips:xyztest` | nach 2,8 s `ms-teams.exe sips:xyztest` — **Teams startete**, dazu seine WebView- und Update-Prozesse | **nein** |
+| 18:04:03 | läuft | `tel:xyztest` (Teams lief inzwischen) | kein neuer Prozess, kein Fenster, kein Dialog | **nein** |
+| 18:04:45 | läuft | `tel:xyztest` | dasselbe, nach 8 s kein neues Fenster | **nein** |
+| 18:05:13 | **aus** | `tel:xyztest` | nach 0,9 s `OpenWith.exe -Embedding`, danach nichts; nach 17 s **kein** Nipp-Prozess | **nein** |
+| 18:05:34 | **aus** | `sips:xyztest` | nach 0,8 s `ms-teams.exe sips:xyztest`; nach 17 s **kein** Nipp-Prozess | **nein** |
+| 18:06:09 | **aus** | **Kontrolle:** `…\nipp\Nipp.App.exe "tel:xyztest"` von Hand | Kindprozess `"…\nipp\current\Nipp.App.exe" tel:xyztest` | **ja** — `18:06:16.595 nipp startet`, `18:06:17.533 Anruf-URI empfangen: …` (Rufnummer maskiert), 7,8 s nach dem Aufruf, der Kaltstart mit eingerechnet |
+
+**Ergebnis: ShellExecute erreicht nipp auf diesem Rechner nicht — mit
+laufendem und mit nicht laufendem nipp, für `tel:` wie für `sips:`.** Das
+Muster vom 12.10.2026 (stummes Nichts bei `tel:`) kehrt auf einer frischen
+Maschine wieder; es lag **nicht** an der alten. nipps eigene Kette ist
+dagegen wieder in Ordnung (Kontrolle, 7,8 s). **Ohne Konto wird die URI
+trotzdem protokolliert** — `WaehleAusAktivierung` schreibt die Zeile, bevor es
+den `DialCommand` fragt (`App.xaml.cs`); fehlt sie, ist die URI nicht
+angekommen, nicht «ohne Konto verschluckt».
+
+**Was das stützt und was nicht:** gemessen ist, dass Windows **ohne
+`UserChoice`** für `sip`/`sips`/`callto` die Teams-Anmeldung vorzieht und für
+`tel` bei «App auswählen» landet, ohne dass ein Dialog zu sehen ist. nipps
+HKCU-Eintrag allein wird nicht als Standard gewählt. Das passt zu dem, was am
+12.10. auf dem alten Arbeitsplatz zu sehen war (kein Dialog, kein Ereignis,
+kein Prozessstart) — **ob dort ebenfalls Teams oder etwas anderes die
+Protokolle hielt, ist dort nie nachgesehen worden** und gehört zur Prüfung.
+**Nicht gemessen:** Process Monitor (braucht Administratorrechte, die diese
+Sitzung nicht hat), und **was passiert, wenn der Benutzer nipp unter
+Einstellungen → Standard-Apps zum Standard für `tel` macht** — das setzt eine
+`UserChoice` und wäre eine Systemeinstellung. Offen bleibt auch, ob nipp sich
+über `RegisteredApplications` und `Capabilities\UrlAssociations` so eintragen
+sollte, dass es in dieser Liste überhaupt erscheint — **das wäre eine
+Entscheidung und eine eigene Messung, keine Folgerung aus diesem Abend.**
+
+**T21 und T22 sind nicht bestanden und bleiben es:** sie verlangen Outlook
+bzw. einen Browser-Klick und eine Wahl. Dazu kommt die Warnung für jeden, der
+sie wiederholt: **Teams ist hier kein Zuschauer.** Der `sips:`-Aufruf hat es
+gestartet (es war nicht gestartet), und ein `tel:`-Link aus Outlook wird auf
+diesem Rechner voraussichtlich bei Teams landen, nicht bei nipp.
+
+### Teil 2 — L7/T342: das fehlende Modul ist benannt
+
+**Derselbe Fehler, auf einem frischen Rechner, bei jedem Start:**
+
+    18:02:04.731 [WRN] ToastService Benachrichtigungen nicht verfuegbar: COMException 0x8007007E
+                 (Das angegebene Modul wurde nicht gefunden.
+                 Unable to load resource dll. Microsoft.WindowsAppRuntime.Insights.Resource.dll)
+
+Der Plan (L7) und T342 zitieren nur die erste Zeile; **die zweite nennt das
+Modul.** Es ist nicht der Rechner und keine Paketidentität:
+`Microsoft.WindowsAppRuntime.Insights.Resource.dll` fehlt im Installationsordner
+(`…\nipp\current`, 487 Dateien, keine mit «Insights»). Der self-contained
+Publish (`WindowsAppSDKSelfContained=true`, `build\Release-Nipp.ps1`) legt die
+übrigen Framework-DLLs neben die EXE, **diese nicht** — sie liegt nur im MSIX
+des NuGet-Pakets `microsoft.windowsappsdk.runtime` (nicht in `…foundation`,
+dort nur die Kopfdatei).
+
+**Gemessen, mit nur dieser einen Datei als Unterschied** (derselbe Rechner,
+derselbe Build, `publish` mit den Argumenten des Release-Skripts in einen
+eigenen Ordner):
+
+| Fassung | Protokoll |
+|---|---|
+| Publish ohne die Datei (Kontrolle, 18:11:21) | `Benachrichtigungen nicht verfuegbar: COMException 0x8007007E` |
+| dieselbe, Datei aus dem MSIX daneben gelegt (18:11:32) | `Benachrichtigungen angemeldet` |
+| Publish **nach der Reparatur** (18:18:53) | `Benachrichtigungen angemeldet` |
+
+**Repariert** in `src/Nipp.App/Nipp.App.csproj`: das Target
+`NippInsightsResource` holt die Datei bei `WindowsPackageType=None` aus dem
+MSIX und legt sie ins Ausgabe- und Publish-Verzeichnis; die Version des
+Windows App SDK steht dafür einmal (`NippWinAppSdkVersion`). `build\Release-Nipp.ps1`
+prüft sie in der Vollständigkeitsprüfung. **Die ausgelieferte 0.9.16 hat den
+Fehler weiter**; die Reparatur wirkt erst mit dem nächsten Release.
+
+**Was offen bleibt, ausdrücklich:** **ob ein Toast sichtbar erscheint, ist
+nicht gesehen** — es gab keinen eingehenden Anruf (kein Konto), und der
+Erfolg ist hier nur die Zeile «angemeldet». T342 bleibt offen. **Nicht
+gemessen** ist auch, ob Windows einem unpackaged Prozess ohne eigene
+`AppUserModelID` einen Toast zustellt; `Register()` gelingt, mehr sagt das
+nicht. Und: der **lokale Debug-Build** (unpackaged, nicht self-contained)
+scheitert an **anderer** Stelle — `COMException 0x80040154 (Klasse nicht
+registriert)` — **mit und ohne die Datei**; das ist die Framework-abhängige
+Form, nicht die ausgelieferte, und wurde hier nicht weiter verfolgt.
+
+**Build und Tests nach der Änderung:** `build Nipp.sln -c Debug` 0 Warnungen,
+0 Fehler; `test Nipp.sln` 37 (Architektur) + 1 455 (Kern), alle grün.
+
+---
+
+
 **02.11.2026 — der Anklopfton ist gehört, und drei Prüfzeilen sind durch.**
 Erster Arbeitstag auf 0.9.16, fünf Gespräche. Dominic hat während eines
 ausgehenden Gesprächs zweimal anklopfen lassen (6 und 17 Sekunden).
