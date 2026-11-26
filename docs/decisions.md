@@ -8,6 +8,98 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-083 — Das Update-Token entfällt: nipp sendet nie mehr eines, und ein altes wird weggeräumt
+
+**Datum:** 26.11.2026 · **Status:** angenommen · **Entscheid:** Dominic, 26.11.2026 · **Löst ab:** den Abschnitt «Das Token, solange das Repo privat ist» aus ADR-039 · **Bezug:** `docs/plans/OEFFENTLICH-PLAN.md` (OE6), ADR-012, T133, T345
+
+**Kontext.** Das Update-Token (ein GitHub-PAT) stammt aus der Zeit des privaten
+Repos: ein Release-Asset war ohne Anmeldung nicht abrufbar, also kam das Token
+über die Provisionierung (`update.token`) an den Arbeitsplatz und lag über DPAPI
+im `SecretStore` unter `update:github-token` (ADR-039). Seit dem 14.09.2026 ist
+`bv2-GmbH/nipp-softphone` öffentlich, die Release-Assets sind ohne Anmeldung
+abrufbar. Die Bedingung, unter der das Token weg darf, lautete: **kein
+Arbeitsplatz steht mehr vor 0.9.6.** **Dominic hat am 26.11.2026 bestätigt, dass
+sie erfüllt ist.**
+
+**Das Risiko, das die Entscheidung formt.** Schickt ein Client ein Token mit,
+das auf GitHub **widerrufen** wurde, antwortet GitHub auch für **öffentliche**
+Ressourcen mit 401 «Bad credentials». Hätte nipp nach dem Widerruf noch ein
+Token im `SecretStore` und sendete es, bräche die Update-Prüfung auf jedem
+solchen Arbeitsplatz **still** — und niemand würde es merken, denn ein
+gescheiterter Abruf ist bei nipp ein Zustand und keine Meldung (ADR-039,
+Entscheidung «Ein Fehler ist ein Zustand»). Ein Token wegzulassen, das nichts
+mehr nützt, genügt also nicht: es darf **nie gesendet** werden, auch wenn es
+noch auf der Platte liegt.
+
+**Entscheidung.**
+
+1. **Das Gateway sendet nie ein Token.** `VelopackUpdateGateway.CreateSource`
+   baut die `GithubSource` mit `accessToken: null`, immer. Das Gateway kennt den
+   `SecretStore` nicht mehr (kein Konstruktorparameter) und kann also keinen
+   Eintrag lesen, auch nicht aus Versehen. Die Repo-Adresse bleibt unverändert.
+2. **Ein vorhandener Eintrag wird beim Start weggeräumt**
+   (`ObsoleteUpdateToken.Remove`, gerufen aus `App.StartUpdateCheck`, vor der
+   Prüfung und unabhängig davon, ob sie eingeschaltet ist). Eine Zeile auf
+   `Information` (Ereignis 4010), **ohne den Wert**. Einmalig wirksam: danach ist
+   nichts mehr da, und der Aufruf bleibt still. Er wirft nie — ein Aufräumen darf
+   den Start nicht kosten; scheitert das Löschen, steht eine Warnung (4011), und
+   das Token wird trotzdem nie gesendet.
+3. **`update.token` in einem Profil wird angenommen und ignoriert.** Alte
+   `nipp-factory.xml` auf den Arbeitsplätzen tragen den Schlüssel noch; ein Fehler
+   oder Abbruch wäre schlimmer als das, was er verhindert. Der Katalog führt ihn
+   nicht mehr als Eintrag (`ProvisioningCatalog.ObsoletePaths`); er steht nicht
+   in `AllPaths` und damit nicht in `nippprov schema`, `Knows` kennt ihn aber, und
+   `ProvisioningService` schreibt eine Zeile auf `Information` (Ereignis 3522:
+   «wird nicht mehr gebraucht»), ebenfalls ohne den Wert. **Gespeichert wird
+   nichts, nirgends.**
+4. **Die Regel aus ADR-039 «ein Token aus dem Netz wird abgelehnt» ist
+   gegenstandslos.** Sie schützte davor, dass ein Profil aus der Ferne bestimmt,
+   aus welchem Repo der Arbeitsplatz seine nächste Fassung bezieht. Das Token
+   bestimmte das nie — die Repo-Adresse ist eine Konstante im Code (ADR-012-
+   Überlegung) —, und jetzt gibt es keinen Pfad mehr, über den ein Profilwert
+   in `SecretStore`, `settings.json` oder das `GithubSource` gelangen könnte. Es
+   entsteht keine Lücke: ein Wert, der nirgends gespeichert und nie gelesen wird,
+   kann nichts umbiegen. Geprüft von `ProvisioningServiceTests`, vertrauenswürdig
+   wie nicht vertrauenswürdig.
+5. **`nippprov`** erzeugt und verlangte nie ein `update.token` (die «Pflichtfelder»
+   im Schema betreffen Konten: Benutzername und Domain). Neu: `schema` bietet den
+   Pfad nicht mehr an und nennt ihn als nicht mehr gebraucht; `pruefen` zeigt ihn
+   mit dem Hinweis «wird nicht mehr gebraucht und ignoriert — bitte entfernen»
+   und **ohne seinen Wert**. Kein Abbruch, Rückgabewert unverändert.
+6. **Die Einstellungsseite hatte keine Token-Anzeige und keine Eingabe** für das
+   Update-Token (nachgesehen in `SettingsPage.xaml`). Die Integrations-Tokens
+   (Kontaktsuche usw.) sind etwas ganz anderes und bleiben unberührt. Die
+   Maskierung in Protokoll und Diagnosepaket bleibt — sie schadet nicht, und
+   alte Protokolle tragen noch, was sie getragen haben.
+
+**Reihenfolge — sie ist der eigentliche Entscheid, und sie ist nicht
+vertauschbar:**
+
+1. **Erst diese Fassung ausliefern** und auf den Arbeitsplätzen ankommen lassen
+   (Update-Prüfung, dann Anwenden — nie während eines Gesprächs).
+2. **Dann** das PAT auf GitHub **widerrufen**.
+3. **Dann** `update.token` aus den Factory-Dateien und den Provisionierungsprofilen
+   entfernen (das ist kein Muss mehr, nur Ordnung — es wird ignoriert).
+
+Wer 2 vor 1 tut, lässt jeden Arbeitsplatz zurück, der noch eine ältere Fassung
+mit gespeichertem Token hat: sie sendet ein widerrufenes Token, bekommt 401,
+und **kann sich nicht mehr selbst aktualisieren** — ohne Meldung. Das ist
+dieselbe Falle wie bei der Brücke zum neuen Repo (`OEFFENTLICH-PLAN.md`).
+
+**Konsequenz.**
+- T133 (Token übers Provisioning) ist gestrichen. Neu ist **T345**: nach dem
+  Update auf diese Fassung findet ein Arbeitsplatz mit gespeichertem Token weiter
+  Updates, und das Protokoll meldet das Aufräumen.
+- `docs/updates.md`, `README.md` und `build/nipp-factory.xml` sprechen noch vom
+  Token; sie sind **nicht Teil dieser Änderung** und nachzuziehen
+  (`build/Release-Nipp.ps1` verlangt ausserdem ein Token zum **Hochladen** —
+  `-Token` oder `GITHUB_TOKEN` —, das ein anderes Ding ist: **wer dafür dasselbe
+  PAT benutzt, muss vor dem Widerruf ein neues bereithalten.**)
+- Ein Arbeitsplatz **ohne** Netz zu GitHub verhält sich wie vorher: die Prüfung
+  scheitert als Zustand, nicht als Fehler.
+
+---
+
 ## ADR-082 — nipp meldet sich bei Windows als Anwendung an, wählt sich aber nie selbst zum Standard
 
 **Datum:** 26.11.2026 · **Status:** angenommen · **Entscheid:** Dominic, 26.11.2026 · **Bezug:** §10, ADR-038, ADR-079, `ProtocolRegistry`, `WindowsIntegration`, T21, T22, T344
@@ -4040,7 +4132,7 @@ Klick auf den Kollegen wählt weiterhin intern und nicht aufs Handy.
 
 ## ADR-039 — Updates über GitHub, zwei Kanäle, und gefragt wird vorher
 
-**Datum:** 07.09.2026 · **Status:** **angenommen** · **Beantwortet §16 Punkt 4** · **Bezug:** §9.6, §12 (M8), ADR-038
+**Datum:** 07.09.2026 · **Status:** **angenommen** — **der Abschnitt «Das Token, solange das Repo privat ist» ist abgelöst durch ADR-083** (26.11.2026); Kanäle, Ablauf und die Gesprächssperre gelten unverändert · **Beantwortet §16 Punkt 4** · **Bezug:** §9.6, §12 (M8), ADR-038
 
 **Kontext.** §16.4 („Update-Mechanismus") stand seit dem 04.09.2026 als offene
 Entscheidung — App-Installer-URL, eigener Check oder Intune. §9.6 verlangt in

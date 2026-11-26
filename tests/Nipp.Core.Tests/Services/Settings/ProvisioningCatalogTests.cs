@@ -69,13 +69,25 @@ public sealed class ProvisioningCatalogTests
     [InlineData("audio.ringtone")]
     [InlineData("update.channel")]
     [InlineData("update.check-on-start")]
-    [InlineData("update.token")]
-    public void Die_vier_vergessenen_Pfade_sind_bekannt(string pfad)
+    public void Die_vergessenen_Pfade_sind_bekannt(string pfad)
     {
-        // Namentlich, weil genau diese vier auseinandergelaufen waren. Ein
+        // Namentlich, weil genau diese auseinandergelaufen waren (damals vier;
+        // update.token ist seit ADR-083 abgeschafft und steht unten). Ein
         // Test über die blosse Anzahl hätte den nächsten Fall wieder
         // durchgelassen.
         Assert.True(ProvisioningCatalog.Knows(pfad), $"«{pfad}» fehlt im Katalog.");
+    }
+
+    [Fact]
+    public void Update_token_wird_noch_angenommen_aber_nicht_mehr_angeboten()
+    {
+        // ADR-083: alte nipp-factory.xml tragen den Schluessel noch — er darf
+        // kein «unbekannt» ausloesen, aber nippprov schema und neu bieten ihn
+        // nicht mehr an, und es gibt keinen Eintrag, der ihn je anwenden koennte.
+        Assert.True(ProvisioningCatalog.Knows("update.token"));
+        Assert.True(ProvisioningCatalog.IsObsolete("UPDATE.TOKEN"));
+        Assert.DoesNotContain("update.token", ProvisioningCatalog.AllPaths);
+        Assert.Null(ProvisioningCatalog.Find("update.token"));
     }
 
     [Fact]
@@ -93,7 +105,7 @@ public sealed class ProvisioningCatalogTests
     }
 
     [Fact]
-    public void Nur_die_Bezugsquelle_und_das_Token_sind_der_Auslieferung_vorbehalten()
+    public void Nur_die_Bezugsquelle_ist_der_Auslieferung_vorbehalten()
     {
         // ADR-012: wer aus der Ferne bestimmen kann, woher nipp seine
         // Konfiguration nimmt, braucht danach niemanden mehr zu fragen. Die
@@ -105,7 +117,7 @@ public sealed class ProvisioningCatalogTests
             .ToList();
 
         Assert.Equal(
-            ["advanced.allow-insecure-provisioning", "advanced.provisioning-uri", "update.token"],
+            ["advanced.allow-insecure-provisioning", "advanced.provisioning-uri"],
             nurFactory);
     }
 }

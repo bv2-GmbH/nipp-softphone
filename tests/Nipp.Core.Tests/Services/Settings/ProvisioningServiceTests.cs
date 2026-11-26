@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging.Abstractions;
 using Nipp.Core.Services.Settings;
 using Nipp.Core.Services.Telephony;
+using Nipp.Core.Services.Updates;
 
 namespace Nipp.Core.Tests.Services.Settings;
 
@@ -271,6 +272,45 @@ public sealed class ProvisioningServiceTests : IDisposable
         _provisioning.ApplyProfile(profile, trusted: true);
 
         Assert.Equal(@"C:\bv2\klingelton.wav", _settings.Current.Audio.RingtonePath);
+    }
+
+    /// <summary>
+    /// ADR-083: das Update-Token ist abgeschafft. Alte nipp-factory.xml tragen
+    /// den Schlüssel noch — er wird angenommen, ohne Fehler, und nirgends
+    /// gespeichert. Das gilt für die mitgelieferte Konfiguration wie für ein
+    /// Profil aus dem Netz: ein Wert, der nichts bewirkt, kann nichts umbiegen,
+    /// und die frühere Ablehnung aus dem Netz ist gegenstandslos.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Update_token_im_Profil_wird_angenommen_aber_nicht_gespeichert(bool trusted)
+    {
+        var vorher = _settings.Current;
+
+        var profile = Parse("""
+            <nipp-provisioning version="1" profile="test">
+              <settings>
+                <set path="update.token" value="github_pat_geheim" />
+                <set path="update.channel" value="Beta" />
+              </settings>
+            </nipp-provisioning>
+            """);
+
+        var ex = Record.Exception(() => _provisioning.ApplyProfile(profile, trusted));
+
+        Assert.Null(ex);
+
+        // Gespeichert wird nichts: weder im SecretStore noch in den Einstellungen.
+        Assert.Null(_secrets.Get(ObsoleteUpdateToken.Key));
+        Assert.False(File.Exists(_secrets.StorePath), "Es darf keine Geheimnisdatei entstehen.");
+        Assert.DoesNotContain(
+            "github_pat_geheim",
+            System.Text.Json.JsonSerializer.Serialize(_settings.Current));
+
+        // Und der Rest des Profils laeuft durch, wo er gelten darf. Der Kanal
+        // ist nicht FactoryOnly, gilt also auch aus dem Netz.
+        Assert.NotEqual(vorher.Update.Channel, _settings.Current.Update.Channel);
     }
 
     private static ProvisioningProfile Parse(string xml)

@@ -100,7 +100,25 @@ public static class ProvisioningCatalog
     public static bool Knows(string? path) =>
         path is { Length: > 0 }
         && (ByPath.ContainsKey(path)
-            || ListPaths.Contains(path, StringComparer.OrdinalIgnoreCase));
+            || ListPaths.Contains(path, StringComparer.OrdinalIgnoreCase)
+            || IsObsolete(path));
+
+    /// <summary>
+    /// Pfade, die frühere Fassungen kannten und die nichts mehr bewirken
+    /// (ADR-083). Ein Profil, das sie nennt, ist nicht fehlerhaft — alte
+    /// <c>nipp-factory.xml</c> tragen sie noch —, es wird nur nichts damit
+    /// getan. Sie stehen <b>nicht</b> in <see cref="AllPaths"/>: der Generator
+    /// bietet sie nicht mehr an.
+    ///
+    /// <para><c>update.token</c>: das GitHub-Token des privaten Repos
+    /// (ADR-039). Das Repo ist öffentlich, ein Token wird nie mehr gesendet.</para>
+    /// </summary>
+    public static IReadOnlyList<string> ObsoletePaths { get; } = ["update.token"];
+
+    /// <summary>Ob dieser Pfad früher etwas bewirkte und jetzt nur noch angenommen wird.</summary>
+    public static bool IsObsolete(string? path) =>
+        path is { Length: > 0 }
+        && ObsoletePaths.Contains(path, StringComparer.OrdinalIgnoreCase);
 
     private static List<ProvisioningEntry> Build() =>
     [
@@ -282,16 +300,6 @@ public static class ProvisioningCatalog
             static (s, v) => Enum.TryParse<UpdateChannel>(v, true, out var ch)
                 ? s with { Update = s.Update with { Channel = ch } }
                 : null),
-
-        // Das Token ist ein Geheimnis und landet über DPAPI im SecretStore,
-        // nicht in settings.json (ADR-039). Der Katalog kennt es, damit
-        // «nippprov pruefen» es nicht als unbekannt meldet; angewendet wird es
-        // im Dienst, vor dem Katalog — hier fällt ein Seiteneffekt an, und der
-        // gehört nicht in eine reine Abbildung.
-        new("update.token",
-            static _ => null,
-            static (s, _) => s,
-            FactoryOnly: true),
     ];
 
     private static string Text(int value) =>

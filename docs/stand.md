@@ -13,6 +13,31 @@ die Tabelle hier fasst nur die Gruppen zusammen.
 ---
 
 
+**26.11.2026 — das Update-Token entfällt (ADR-083): nipp sendet nie mehr eines, und ein altes wird weggeräumt.**
+
+Dominic hat heute bestätigt, dass kein Arbeitsplatz mehr vor 0.9.6 steht — damit
+ist die Bedingung aus `OEFFENTLICH-PLAN.md` (OE6) erfüllt, unter der das
+GitHub-PAT aus der Zeit des privaten Repos wegfallen darf. **Gebaut:** das
+Gateway baut die `GithubSource` immer ohne Token; beim Start räumt
+`ObsoleteUpdateToken` einen Eintrag `update:github-token` aus dem `SecretStore`
+(eine Zeile, ohne Wert, einmalig); `update.token` in einem Profil oder einer
+`nipp-factory.xml` wird angenommen, ignoriert und nirgends gespeichert; `nippprov`
+bietet den Pfad nicht mehr an und nennt ihn beim Prüfen als überflüssig. Eine
+Token-Anzeige in den Einstellungen gab es nie. **Gebaut, nicht am Gerät
+geprüft:** T345 (ein Arbeitsplatz mit gespeichertem Token findet nach dem Update
+weiter Updates, das Protokoll meldet das Aufräumen); T133 ist gestrichen.
+
+**Warum die Reihenfolge der eigentliche Entscheid ist:** schickt ein Client ein
+**widerrufenes** Token, antwortet GitHub auch für öffentliche Ressourcen mit 401
+«Bad credentials» — die Prüfung bräche still. **Erst diese Fassung ausliefern und
+auf den Arbeitsplätzen ankommen lassen, dann das PAT widerrufen, dann
+`update.token` aus Factory-Dateien und Profilen nehmen.** Wer das PAT vorher
+widerruft, sperrt jeden Arbeitsplatz mit älterer Fassung und gespeichertem Token
+aus der Selbstaktualisierung aus. **Offen:** `docs/updates.md`, `README.md` und
+`build/Release-Nipp.ps1` sprechen noch vom Token (bearbeitet ein anderer
+Zweig); das Hochlade-Token des Release-Skripts ist ein eigenes Ding, aber wenn es
+dasselbe PAT ist, wird es mit widerrufen.
+
 **26.11.2026 — erste Installation auf einem frischen x64-Rechner: ShellExecute erreicht nipp auch hier nicht (T21/T22 nur Teilbefund), und das Toast-Modul ist gefunden (L7).**
 
 Erstmals läuft nipp auf **echter x64-Hardware** (Windows 11, Build 26300 / 26H2),

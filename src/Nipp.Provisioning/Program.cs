@@ -194,13 +194,19 @@ namespace Nipp.Provisioning
 
             foreach (var (key, value) in profile.Values.OrderBy(static v => v.Key, StringComparer.Ordinal))
             {
-                var known = KnownPaths.Contains(key)
-                    ? FactoryOnlyPaths.Contains(key)
-                        ? "   ← nur in nipp-factory.xml wirksam (ADR-012)"
-                        : string.Empty
-                    : "   ← unbekannt, wird übergangen";
+                var known = ProvisioningCatalog.IsObsolete(key)
+                    ? "   ← wird nicht mehr gebraucht und ignoriert (ADR-083) — bitte entfernen"
+                    : KnownPaths.Contains(key)
+                        ? FactoryOnlyPaths.Contains(key)
+                            ? "   ← nur in nipp-factory.xml wirksam (ADR-012)"
+                            : string.Empty
+                        : "   ← unbekannt, wird übergangen";
 
-                Console.WriteLine($"  {key} = {value}{known}");
+                // Ein Geheimnis gehört nicht auf den Bildschirm — und das
+                // Update-Token war eines, auch wenn es jetzt nichts mehr tut.
+                var shown = ProvisioningCatalog.IsObsolete(key) ? "…" : value;
+
+                Console.WriteLine($"  {key} = {shown}{known}");
             }
 
             Console.WriteLine();
@@ -271,6 +277,10 @@ namespace Nipp.Provisioning
                 dauerhaft bestimmen, woher dieser Arbeitsplatz seine Konten
                 bezieht.
 
+                Nicht mehr gebraucht: update.token. Alte nipp-factory.xml tragen
+                den Schlüssel noch; nipp nimmt ihn an, speichert und sendet aber
+                nichts (ADR-083). Neue Profile sollen ihn nicht mehr nennen.
+
                 Ein Profil wird nur über https geholt. Steht die Anlage ohne
                 TLS da, muss in den Einstellungen unter „Erweitert"
                 ausdrücklich erlaubt werden, unverschlüsselt zu provisionieren.
@@ -286,7 +296,8 @@ namespace Nipp.Provisioning
         /// <para><b>Hier stand bis zum 13.09.2026 eine eigene Liste</b>, mit
         /// dem Kommentar «beide können auseinanderlaufen». Sie waren es
         /// bereits: <c>audio.ringtone</c>, <c>update.channel</c>,
-        /// <c>update.check-on-start</c> und <c>update.token</c> fehlten. Ein
+        /// <c>update.check-on-start</c> und <c>update.token</c> fehlten (das
+        /// Token ist seit ADR-083 abgeschafft). Ein
         /// gültiges Update-Profil meldete <c>pruefen</c> als unbekannt, und
         /// <c>neu</c> erzeugte kein Vollprofil.</para>
         /// </summary>

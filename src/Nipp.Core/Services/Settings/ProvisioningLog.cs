@@ -86,6 +86,12 @@ internal static partial class ProvisioningLog
             + "mitgelieferten Klang setzen (Paragraph 9.4).")]
     public static partial void RingtoneNotAllowedRemotely(ILogger logger);
 
+    // ADR-083. Ohne den Wert: bei update.token war er ein Geheimnis.
+    [LoggerMessage(EventId = 3522, Level = LogLevel.Information,
+        Message = "Das Profil nennt '{Path}'. Das wird nicht mehr gebraucht und ist ohne Wirkung "
+            + "— der Schluessel kann aus dem Profil entfernt werden (ADR-083).")]
+    public static partial void ObsoleteSetting(ILogger logger, string path);
+
     // ADR-054: der Benutzer gewinnt. Die Zeile ist die einzige Spur dafuer,
     // dass ein Profilwert bewusst nicht angewendet wurde — ohne sie waere
     // "das Profil wirkt nicht" nicht von "das Profil kam nicht an" zu

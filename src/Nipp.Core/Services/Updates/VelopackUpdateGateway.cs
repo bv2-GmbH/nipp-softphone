@@ -6,30 +6,20 @@ using Velopack.Sources;
 namespace Nipp.Core.Services.Updates;
 
 /// <summary>
-/// Der Zugang zu den Releases auf GitHub (ADR-039).
+/// Der Zugang zu den Releases auf GitHub (ADR-039, Token abgelöst durch
+/// ADR-083).
 ///
-/// <para><b>Das Repo ist privat</b>, solange die Lizenzfrage nicht entschieden
-/// ist (`docs/licensing.md`). Ein Release-Asset dort ist ohne Anmeldung nicht
-/// abrufbar, deshalb das Token. Es steht <b>nicht</b> im Quelltext: es kommt
-/// über die Provisionierung an den Arbeitsplatz und liegt über DPAPI im
-/// <see cref="SecretStore"/> — derselbe Weg wie das SIP-Passwort. Fehlt es,
-/// ist die Update-Prüfung schlicht aus.</para>
-///
-/// <para>Nach dem Öffentlichmachen (docs/plans/RELEASE-PLAN.md R10) fällt das Token
-/// ersatzlos weg; <c>GithubSource</c> nimmt dann <c>null</c>. Sonst ändert
-/// sich nichts.</para>
+/// <para><b>Das Repo ist öffentlich, und es gibt kein Token mehr.</b>
+/// <c>GithubSource</c> bekommt immer <c>null</c> — auch dann, wenn auf dem
+/// Arbeitsplatz noch ein alter Eintrag im <c>SecretStore</c> liegt. Der Grund
+/// ist kein Stil, sondern ein Ausfall: ein <i>widerrufenes</i> Token, das
+/// mitgeschickt wird, lässt GitHub auch öffentliche Ressourcen mit 401
+/// «Bad credentials» ablehnen. Aufgeräumt wird der alte Eintrag in
+/// <see cref="ObsoleteUpdateToken"/>.</para>
 /// </summary>
 public sealed class VelopackUpdateGateway(
-    ILogger<VelopackUpdateGateway> logger,
-    SecretStore secrets) : IUpdateGateway
+    ILogger<VelopackUpdateGateway> logger) : IUpdateGateway
 {
-    /// <summary>
-    /// Der Schlüssel im <see cref="SecretStore"/>. Das Präfix trennt ihn von
-    /// den SIP-Passwörtern (<c>sip:</c>) und den Integrationen
-    /// (<c>integration:</c>).
-    /// </summary>
-    public const string TokenKey = "update:github-token";
-
     /// <summary>
     /// Wohin geschaut wird. Eine Konstante und keine Einstellung: wer die
     /// Update-Quelle aus der Ferne ändern kann, kann beliebigen Code auf den
@@ -48,7 +38,6 @@ public sealed class VelopackUpdateGateway(
     public const string RepositoryUrl = "https://github.com/bv2-GmbH/nipp-softphone";
 
     private readonly ILogger<VelopackUpdateGateway> _logger = logger;
-    private readonly SecretStore _secrets = secrets;
     private UpdateManager? _manager;
     private UpdateChannel? _managerChannel;
 
@@ -147,6 +136,15 @@ public sealed class VelopackUpdateGateway(
     }
 
     /// <summary>
+    /// Die Quelle für einen Kanal — <b>ohne Zugriffstoken, immer</b>. Eigene
+    /// Methode, damit ein Test es prüfen kann: dass hier <c>null</c> steht,
+    /// ist die Zusage aus ADR-083, und ein Token in der Quelle wäre der
+    /// Ausfall, den sie verhindert.
+    /// </summary>
+    public static GithubSource CreateSource(UpdateChannel channel) =>
+        new(RepositoryUrl, accessToken: null, prerelease: channel == UpdateChannel.Beta);
+
+    /// <summary>
     /// Ein <see cref="UpdateManager"/> für den gewünschten Kanal, gemerkt,
     /// solange der Kanal derselbe bleibt.
     ///
@@ -169,11 +167,7 @@ public sealed class VelopackUpdateGateway(
             return _manager;
         }
 
-        var token = _secrets.Get(TokenKey);
-        var source = new GithubSource(
-            RepositoryUrl,
-            string.IsNullOrWhiteSpace(token) ? null : token,
-            prerelease: channel == UpdateChannel.Beta);
+        var source = CreateSource(channel);
 
         var options = new UpdateOptions
         {

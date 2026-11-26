@@ -177,6 +177,13 @@ public partial class App : Application, IDisposable
     /// </summary>
     private void StartUpdateCheck(UpdateSettings settings)
     {
+        // ADR-083: ein altes Update-Token aus der Zeit des privaten Repos
+        // wird weggeraeumt. Gesendet wird es ohnehin nie mehr — aber ein
+        // Geheimnis, das niemand mehr braucht, soll nicht liegen bleiben.
+        // Vor der Pruefung und unabhaengig davon, ob sie eingeschaltet ist.
+        ObsoleteUpdateToken.Remove(
+            Services.GetRequiredService<SecretStore>(), _logger);
+
         var updates = Services.GetRequiredService<UpdateService>();
 
         _ = Task.Run(async () =>
@@ -206,8 +213,7 @@ public partial class App : Application, IDisposable
     /// verteilt, ist das die Hälfte der Zusage.</para>
     ///
     /// <para><b>Täglich, nicht stündlich.</b> Ein Release kommt nicht öfter,
-    /// und jede Prüfung ist eine Anfrage an GitHub mit dem Token aus der
-    /// Provisionierung. Geladen wird weiterhin nichts von selbst
+    /// und jede Prüfung ist eine Anfrage an GitHub. Geladen wird weiterhin nichts von selbst
     /// (ADR-039).</para>
     /// </summary>
     private void StarteTaeglichePruefung(UpdateSettings settings)

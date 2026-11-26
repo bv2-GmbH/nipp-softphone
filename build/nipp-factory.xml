@@ -88,23 +88,10 @@
     <set path="update.channel" value="stable" />
 
     <!--
-      Das Token für das private Repo (docs/updates.md).
-
-      ES STEHT HIER NICHT, und zwar mit Absicht: diese Datei geht bei der
-      Verteilung mit und liegt dann auf jedem Arbeitsplatz unter
-      %PROGRAMDATA%, für jeden lesbar. Wer sie ins Repo eincheckt, hat das
-      Token in der Versionsgeschichte.
-
-      Der Weg: den Wert bei der Installation eintragen — nipp legt ihn dann
-      über DPAPI im SecretStore ab und liest ihn nie wieder aus dieser Datei.
-      Fein granuliert, "Contents: read", nur dieses eine Repo.
-
-          <set path="update.token" value="github_pat_..." />
-
-      Nur aus DIESER Datei oder einem lokalen Profil wird das Token
-      übernommen. Ein Profil aus dem Netz darf es nicht setzen: wer es aus der
-      Ferne bestimmen könnte, bestimmte damit, woher dieser Arbeitsplatz seine
-      nächste Fassung bezieht.
+      Ein Update-Token gibt es nicht mehr (ADR-083). Das Repo ist öffentlich,
+      und nipp sendet nie ein Token. Ein "update.token" in einer älteren
+      nipp-factory.xml wird angenommen und ignoriert — es schadet nicht, es
+      kann nur raus.
     -->
 
   </settings>

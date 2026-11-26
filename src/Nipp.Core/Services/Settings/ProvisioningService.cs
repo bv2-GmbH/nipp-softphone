@@ -473,27 +473,15 @@ public sealed class ProvisioningService : IDisposable
                 continue;
             }
 
-            // ADR-039: das Update-Token ist ein Geheimnis und gehoert nicht in
-            // settings.json, sondern ueber DPAPI in den SecretStore — derselbe
-            // Weg wie das SIP-Passwort weiter oben. Deshalb steht es vor dem
-            // switch: der arbeitet mit Werten, hier faellt ein Seiteneffekt an.
-            //
-            // Nur aus einer vertrauenswuerdigen Quelle. Ein Profil aus dem Netz,
-            // das das Token setzen koennte, bestimmte damit, aus welchem Repo
-            // dieser Arbeitsplatz seine naechste Fassung bezieht.
-            if (string.Equals(key, "update.token", StringComparison.Ordinal))
+            // ADR-083: das Update-Token ist abgeschafft (das Repo ist
+            // oeffentlich). Alte nipp-factory.xml tragen den Schluessel noch,
+            // deshalb wird er angenommen — aber nirgends gespeichert und nie
+            // gelesen. Damit ist auch die Regel aus ADR-039 («aus dem Netz
+            // abgelehnt») gegenstandslos: ein Wert, der nichts bewirkt, kann
+            // auch nichts umbiegen. Der Wert selbst steht nicht im Protokoll.
+            if (ProvisioningCatalog.IsObsolete(key))
             {
-                if (!trusted)
-                {
-                    ProvisioningLog.SettingNotAllowedRemotely(_logger, path);
-                    continue;
-                }
-
-                if (!string.IsNullOrWhiteSpace(raw))
-                {
-                    _secrets.Set(Updates.VelopackUpdateGateway.TokenKey, raw);
-                }
-
+                ProvisioningLog.ObsoleteSetting(_logger, path);
                 continue;
             }
 
