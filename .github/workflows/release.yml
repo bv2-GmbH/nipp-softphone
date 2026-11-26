@@ -42,15 +42,15 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
       - name: SDK aus dem Cache
         id: sdk-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: sdk/extracted
           key: linphone-sdk-${{ env.LINPHONE_SDK_VERSION }}
@@ -89,7 +89,7 @@ jobs:
             -Publish
 
       # Auch bei einem gescheiterten Upload bleibt greifbar, was gebaut wurde.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: nipp-${{ inputs.version }}-${{ inputs.channel }}
