@@ -102,9 +102,9 @@ dieselbe Falle wie bei der Brücke zum neuen Repo (`OEFFENTLICH-PLAN.md`).
 19:27 UTC als stable erschienen; Dominic hat bestätigt, dass **alle
 Arbeitsplätze auf 0.9.18** stehen und die Gegenprobe T345 passt (die
 Aufräumzeile steht im Protokoll, die Update-Prüfung läuft ohne 401). **Danach
-ist das PAT auf GitHub widerrufen worden** (Dominic, 26.11.2026). Offen bleibt
-nur, `update.token` bei Gelegenheit aus den Factory-Dateien zu streichen — es
-wird ignoriert, eilt also nicht.
+ist das PAT auf GitHub widerrufen worden** (Dominic, 26.11.2026). **Am selben
+Tag ist `update.token` auch aus den Factory-Dateien gestrichen** (Dominic) —
+ADR-083 hat damit keinen offenen Schritt mehr.
 
 ---
 
