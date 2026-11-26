@@ -12,9 +12,9 @@ namespace Nipp.Core.Services.Updates;
 /// eine konkrete Klasse mit Dateisystem- und HTTP-Zugriff. Also eine schmale
 /// Naht: vier Aufrufe, kein Zustand.</para>
 ///
-/// <para><b>Und ein zweiter Grund:</b> die Update-Quelle wandert. Heute ein
-/// privates GitHub-Repo mit Token, nach dem Öffentlichmachen dasselbe Repo
-/// ohne, und für eine Kundenverteilung womöglich ein Webserver bei bv2
+/// <para><b>Und ein zweiter Grund:</b> die Update-Quelle wandert. Zuerst ein
+/// privates GitHub-Repo mit Token, seit dem 14.09.2026 das öffentliche Repo
+/// ohne (ADR-083), und für eine Kundenverteilung womöglich ein Webserver bei bv2
 /// (docs/plans/RELEASE-PLAN.md R7, R10). Steht der Zugriff an einer Stelle, ist das
 /// jeweils eine Zeile.</para>
 /// </summary>

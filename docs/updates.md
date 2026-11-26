@@ -140,29 +140,30 @@ Token nicht still aus.
   vorherigen Releases trotzdem durch (siehe «Delta-Pakete»), weil es gegen das
   Abruflimit für anonyme Anfragen hilft — nötig ist es dafür nicht.
 
-**Der Code liest `update.token` weiterhin.** Ein Arbeitsplatz, der es in seiner
-Provisionierung trägt, legt es wie bisher über DPAPI im `SecretStore` ab
-(derselbe Weg wie das SIP-Passwort):
+**Ab 0.9.18 gibt es kein Update-Token mehr (ADR-083, 26.11.2026).** Dominic
+hat am 26.11.2026 bestätigt, dass kein Arbeitsplatz mehr vor 0.9.6 steht;
+damit zieht niemand mehr die Brücke 0.9.5 aus dem archivierten, privaten Repo
+`bv2-GmbH/nipp` (`docs/plans/OEFFENTLICH-PLAN.md`, Ö6). Seither:
+
+- **nipp sendet nie ein Token** an GitHub, auch wenn noch eines gespeichert ist.
+- **Ein gespeichertes Token wird beim Start gelöscht**, einmalig, mit einer
+  Protokollzeile ohne den Wert.
+- **`update.token` in einer `nipp-factory.xml` oder einem Profil wird
+  angenommen und ignoriert** — kein Fehler, eine Protokollzeile «wird nicht mehr
+  gebraucht». `nippprov pruefen` weist darauf hin; der Eintrag kann bei
+  Gelegenheit aus den Dateien raus.
 
 ```xml
-<!-- in nipp-factory.xml oder im Kundenprofil — nur noch, wo es gebraucht wird -->
-<set path="update.token" value="github_pat_…" />
+<!-- was in der Provisionierung zu Updates bleibt -->
 <set path="update.channel" value="stable" />
 <set path="update.check-on-start" value="true" />
 ```
 
-`update.token` wird **nur aus einer vertrauenswürdigen Quelle** übernommen —
-also aus der mitgelieferten Datei, nicht aus einem Profil, das über das Netz
-kommt. Wer das Token aus der Ferne setzen könnte, bestimmte damit, aus welchem
-Repo dieser Arbeitsplatz seine nächste Fassung bezieht.
-
-**Bedingung für das Entfernen erfüllt:** Dominic hat am 26.11.2026 bestätigt,
-dass kein Arbeitsplatz mehr vor 0.9.6 steht. Damit zieht niemand mehr die
-Brücke 0.9.5 aus dem archivierten, privaten Repo `bv2-GmbH/nipp` (abrufbar war
-sie nur über die API, siehe `docs/plans/OEFFENTLICH-PLAN.md`, Ö6), und das
-Token wird für keinen Abruf mehr gebraucht. **Das Entfernen selbst** — aus der
-Provisionierung und dem Code, dazu der Widerruf auf GitHub — **ist ein eigener
-Schritt und noch nicht getan**; bis dahin liest der Code `update.token` weiter.
+**Die Reihenfolge ist zwingend:** erst muss 0.9.18 auf den Arbeitsplätzen
+angekommen sein, **dann** wird das Token auf GitHub widerrufen. Fassungen bis
+0.9.17 schicken ein gespeichertes Token noch mit — ist es widerrufen,
+antwortet GitHub auch für ein öffentliches Repo mit 401, und die
+Update-Prüfung bleibt still stehen. Prüfzeile T345.
 
 **Keine Abkürzung gilt weiter:** Code privat und ein zweites Repo für die
 Pakete öffentlich wäre die Binärdatei an jeden und der Quelltext an niemanden —
