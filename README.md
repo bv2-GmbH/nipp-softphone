@@ -1350,7 +1350,7 @@ Mehr davon: [docs/sdk-api-notes.md](docs/sdk-api-notes.md) und der Fortschrittst
 | [docs/sdk-setup.md](docs/sdk-setup.md) | SDK beschaffen, Prüfsummen, Layout |
 | [docs/sdk-api-notes.md](docs/sdk-api-notes.md) | Wo die API anders ist als die Spezifikation annimmt |
 | [docs/provisioning.md](docs/provisioning.md) | Profile erstellen und ausliefern |
-| [docs/updates.md](docs/updates.md) | **Der Auslieferungsweg**: Setup bauen, Kanäle stable/beta, das Token fürs private Repo, und was bei einem kaputten Release zu tun ist |
+| [docs/updates.md](docs/updates.md) | **Der Auslieferungsweg**: Setup bauen, Kanäle stable/beta, Delta-Pakete, das Token (zum Abruf nicht mehr nötig), und was bei einem kaputten Release zu tun ist |
 | [docs/packaging.md](docs/packaging.md) | MSIX bauen, signieren, verteilen — **nicht der Auslieferungsweg**, sondern der Anhang für Intune, sobald T110 und das Zertifikat da sind |
 | [docs/test-matrix.md](docs/test-matrix.md) | Was von Hand zu prüfen ist |
 | [docs/abnahme-m2-m3.md](docs/abnahme-m2-m3.md) | Abnahmeleitfaden |
@@ -1389,7 +1389,13 @@ Die Fremdbestandteile mit ihren Lizenzen stehen in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md); Einzelheiten und der Stand in
 [docs/licensing.md](docs/licensing.md).
 
-**Der Schritt, der noch fehlt:** das Repo ist noch privat. Was bis zum
-Öffentlichmachen zu tun ist — Scan über alle Commits, SDK-Spiegel,
-Repo-Wechsel —, steht als **R10** in [RELEASE-PLAN.md](docs/plans/RELEASE-PLAN.md) und
-zusammengefasst in [docs/licensing.md](docs/licensing.md).
+**Das Repo ist seit dem 14.09.2026 öffentlich**
+(`github.com/bv2-GmbH/nipp-softphone`); das alte, private Repo ist archiviert.
+Releases lassen sich ohne Anmeldung abrufen, auch von der installierten App.
+Wie es dazu kam — Scan über alle Commits, SDK-Quelltext, Repo-Wechsel samt
+Brücke für die Arbeitsplätze —, steht in
+[OEFFENTLICH-PLAN.md](docs/plans/OEFFENTLICH-PLAN.md) (der Plan dazu als **R10**
+in [RELEASE-PLAN.md](docs/plans/RELEASE-PLAN.md)) und zusammengefasst in
+[docs/licensing.md](docs/licensing.md). **Offen** ist, das Update-Token zu entfernen:
+die Bedingung (kein Arbeitsplatz mehr vor 0.9.6) ist am 26.11.2026 bestätigt,
+das Entfernen selbst steht aus ([docs/updates.md](docs/updates.md)).

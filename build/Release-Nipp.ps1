@@ -297,7 +297,7 @@ if (-not $Publish) {
 $effectiveToken = if ($Token) { $Token } else { $env:GITHUB_TOKEN }
 
 if (-not $effectiveToken) {
-    throw 'Kein Token. Entweder -Token angeben oder GITHUB_TOKEN setzen. Das Repo ist privat (docs/licensing.md), ohne Token geht kein Upload und kein Abruf.'
+    throw 'Kein Token. Entweder -Token angeben oder GITHUB_TOKEN setzen. Das Hochladen braucht ein Token mit Schreibrecht auf Releases (der Abruf nicht: das Repo ist oeffentlich, docs/updates.md).'
 }
 
 Write-Step "Nach GitHub laden ($velopackChannel)"

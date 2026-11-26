@@ -20,7 +20,8 @@ GitHub, Kanäle, Prüfung beim Start). Der Plan dahinter: `docs/plans/RELEASE-PL
 
 Das Ergebnis liegt unter `dist\releases\`: `nipp-win-<kanal>-Setup.exe`, das
 Voll-Paket, ein Delta-Paket und `releases.win-<kanal>.json` — der Feed, den die
-installierten Arbeitsplätze lesen.
+installierten Arbeitsplätze lesen. Das Delta entsteht nur, wenn das vorherige
+Release vorher aus GitHub geholt werden konnte (siehe «Delta-Pakete»).
 
 Derselbe Weg läuft in GitHub Actions (`.github/workflows/release.yml`, von Hand
 angestossen mit Version und Kanal). Zwei Wege zum Release wären zwei
@@ -120,17 +121,31 @@ selbst — der Knopf „Jetzt prüfen" fragt trotzdem.
 
 ---
 
-## Das Token, solange das Repo privat ist
+## Das Token — und wann es nicht mehr gebraucht wird
 
-Das Repo ist privat (`docs/licensing.md`), und ein Release-Asset dort ist ohne
-Anmeldung nicht abrufbar. Die installierte App braucht deshalb ein Token.
+**Seit dem 14.09.2026 ist das Repo öffentlich**
+(`github.com/bv2-GmbH/nipp-softphone`), und ein Release-Asset dort ist ohne
+Anmeldung abrufbar (HTTP 200, am selben Tag geprüft). **Die installierte App
+braucht für den Abruf kein Token mehr** — ab 0.9.6 nicht, und eine frisch
+installierte Fassung kommt ohne eines aus. Die Update-Prüfung ist auch ohne
+Token nicht still aus.
 
-**Es steht nicht im Quelltext.** Es kommt über die Provisionierung an den
-Arbeitsplatz und liegt über DPAPI im `SecretStore` — derselbe Weg wie das
-SIP-Passwort:
+**Was ein Token weiterhin tut:**
+
+- **Hochladen** braucht Schreibrecht auf Releases. Im Workflow
+  (`.github/workflows/release.yml`) ist das das `GITHUB_TOKEN` des Laufs, von
+  Hand `GITHUB_TOKEN` oder `-Token` bei `Release-Nipp.ps1 -Publish`. Es gehört
+  nicht in den Quelltext und nicht an einen Arbeitsplatz.
+- **Lesen** geht ohne. Das Skript reicht ein vorhandenes Token beim Holen des
+  vorherigen Releases trotzdem durch (siehe «Delta-Pakete»), weil es gegen das
+  Abruflimit für anonyme Anfragen hilft — nötig ist es dafür nicht.
+
+**Der Code liest `update.token` weiterhin.** Ein Arbeitsplatz, der es in seiner
+Provisionierung trägt, legt es wie bisher über DPAPI im `SecretStore` ab
+(derselbe Weg wie das SIP-Passwort):
 
 ```xml
-<!-- in nipp-factory.xml oder im Kundenprofil -->
+<!-- in nipp-factory.xml oder im Kundenprofil — nur noch, wo es gebraucht wird -->
 <set path="update.token" value="github_pat_…" />
 <set path="update.channel" value="stable" />
 <set path="update.check-on-start" value="true" />
@@ -141,20 +156,36 @@ also aus der mitgelieferten Datei, nicht aus einem Profil, das über das Netz
 kommt. Wer das Token aus der Ferne setzen könnte, bestimmte damit, aus welchem
 Repo dieser Arbeitsplatz seine nächste Fassung bezieht.
 
-**Anforderungen an das Token:** fein granuliert, `Contents: read`, **nur dieses
-eine Repo**. Fehlt es, ist die Update-Prüfung still aus.
+**Bedingung für das Entfernen erfüllt:** Dominic hat am 26.11.2026 bestätigt,
+dass kein Arbeitsplatz mehr vor 0.9.6 steht. Damit zieht niemand mehr die
+Brücke 0.9.5 aus dem archivierten, privaten Repo `bv2-GmbH/nipp` (abrufbar war
+sie nur über die API, siehe `docs/plans/OEFFENTLICH-PLAN.md`, Ö6), und das
+Token wird für keinen Abruf mehr gebraucht. **Das Entfernen selbst** — aus der
+Provisionierung und dem Code, dazu der Widerruf auf GitHub — **ist ein eigener
+Schritt und noch nicht getan**; bis dahin liest der Code `update.token` weiter.
 
-**Für zehn interne Arbeitsplätze ist das tragbar. Für eine Kundenverteilung
-nicht** — ein Token, das auf jedem Rechner liegt, ist ein Token, das jeder
-auslesen kann. Bis dahin ist entweder das Repo öffentlich (`docs/plans/RELEASE-PLAN.md`
-R10, dann fällt das Token ersatzlos weg) oder der Feed liegt auf einem
-bv2-Webserver.
-
-**Keine Abkürzung:** Code privat und ein zweites Repo `nipp-releases` öffentlich
-für die Pakete wäre die Binärdatei an jeden und der Quelltext an niemanden —
-genau der Fall, für den es die AGPL gibt. Entweder beides zu oder beides offen.
+**Keine Abkürzung gilt weiter:** Code privat und ein zweites Repo für die
+Pakete öffentlich wäre die Binärdatei an jeden und der Quelltext an niemanden —
+genau der Fall, für den es die AGPL gibt. Deshalb liegt beides offen am selben
+Ort (`docs/licensing.md`).
 
 ---
+
+## Delta-Pakete
+
+Ein Release trägt neben dem Voll-Paket ein Delta-Paket (rund 1,7 MB statt
+148 MB), und die installierten Arbeitsplätze laden bevorzugt dieses.
+
+**Velopack bildet ein Delta nur, wenn das vorherige Release beim Paketieren im
+Ausgabeordner liegt.** Auf der Entwicklungsmaschine blieb `dist\releases` von
+Lauf zu Lauf stehen; 0.9.15 und 0.9.16 hatten deshalb ein Delta. In GitHub
+Actions beginnt jeder Lauf mit einem leeren Ordner, und 0.9.17 — das erste
+Release aus dem Workflow — erschien ohne. Seither holt `Release-Nipp.ps1`
+**vor** `vpk pack` das vorherige Release mit `vpk download github` — aus
+demselben Repo, in das auch hochgeladen wird (`-UploadRepo`), im selben Kanal.
+Scheitert der Abruf (erstes Release eines Kanals, kein Netz), baut das Skript
+mit einer Warnung ohne Delta weiter: ein fehlendes Delta kostet Download-
+Volumen, kein Update.
 
 ## Ein Release veröffentlichen
 
@@ -166,8 +197,9 @@ genau der Fall, für den es die AGPL gibt. Entweder beides zu oder beides offen.
 3. **Dann stable**, mit derselben Versionsnummer ohne Suffix oder der nächsten.
 4. **Der Release-Text nennt den Tag** und was sich geändert hat.
 
-Solange die Lizenzfrage nicht entschieden ist, ist **jeder Release ausdrücklich
-als intern zu markieren** (§12, M8). Der Satz gehört in den Release-Text.
+Die Lizenzfrage ist entschieden (AGPLv3, `docs/licensing.md`); ein Release
+muss deshalb nicht mehr als intern markiert werden. Er ist öffentlich, sobald
+er veröffentlicht ist — der Release-Text ist entsprechend zu schreiben.
 
 ---
 

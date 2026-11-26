@@ -4,10 +4,12 @@
 **ADR-040**; die Lizenz liegt als `LICENSE` im Repo, die Kurzfassung als
 `NOTICE`.
 
-**Vollzogen ist damit die Wahl, nicht der Schritt.** Der Quelltext liegt noch in
-einem privaten Repo; öffentlich wird er mit dem Repo-Wechsel (`docs/plans/RELEASE-PLAN.md`
-R10). Bis dahin gilt: die Lizenz steht, das Repo ist vorbereitet, und was noch
-fehlt, steht unten unter „Was bis zum Öffentlichmachen noch zu tun ist".
+**Vollzogen ist damit die Wahl, und seit dem 14.09.2026 auch der Schritt.** Der
+Quelltext liegt öffentlich unter `github.com/bv2-GmbH/nipp-softphone`; das alte,
+private Repo `bv2-GmbH/nipp` ist archiviert. Der Hergang steht in
+`docs/plans/OEFFENTLICH-PLAN.md`, die Folgen für den Auslieferungsweg in
+`docs/updates.md`. Der Abschnitt „Was bis zum Öffentlichmachen zu tun war"
+unten ist damit ein Protokoll, keine Aufgabenliste mehr.
 
 ---
 
@@ -39,7 +41,7 @@ prüfen.
 
 ---
 
-## Was bis zum Öffentlichmachen noch zu tun ist
+## Was bis zum Öffentlichmachen zu tun war
 
 Die vollständige Liste steht in `docs/plans/RELEASE-PLAN.md` (R10). Kurz:
 
@@ -110,7 +112,7 @@ Ausserdem bleibt **G.729** (bcg729) deaktiviert — §3 und §9.5. Die Kernpaten
 - [x] **Entscheidung getroffen am 04.09.2026: vorerst nur intern.** Abgelöst.
 - [x] **Entscheidung getroffen am 11.09.2026: AGPLv3, Quelltext offengelegt**
   (ADR-040). `LICENSE` und `NOTICE` liegen im Repo.
-- [ ] Repo öffentlich gemacht am: _______ (`docs/plans/RELEASE-PLAN.md` R10)
+- [x] **Repo öffentlich gemacht am 14.09.2026** (`bv2-GmbH/nipp-softphone`; Hergang in `docs/plans/OEFFENTLICH-PLAN.md`, Plan in `docs/plans/RELEASE-PLAN.md` R10)
 - [x] **SDK-Quelltext: kein Spiegel nötig** — Verweis auf Belledonne in `NOTICE`, entschieden am 14.09.2026 (unverändertes SDK, GPLv3 §6(d))
 
 **Eine Anfrage an Belledonne ist damit nicht mehr nötig.** Der Kontaktweg unten
