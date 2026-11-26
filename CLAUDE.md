@@ -11,7 +11,7 @@ lesbar bleiben.
 | Was | Wo |
 |---|---|
 | Was nipp tun soll | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-081. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen»), **ADR-075** warum nipp das Freizeichen beim Rauswählen selbst spielt (25.09.2026), **ADR-076** warum der Echo-Canceller `MSSpeexEC` heisst und **ADR-077** warum jedes Gespräch eine Auswertungszeile hinterlässt (08.10.2026), **ADR-078** warum die Echounterdrückung hier trotzdem aus ist und **ADR-079** warum die Daten unter `bv2\` liegen (09.10.2026), **ADR-080** warum ein verworfener Puffer noch keine hörbare Störung ist (12.10.2026) und **ADR-081** warum der Anklopfton nipp gehört und nicht dem SDK (30.10.2026) |
+| Warum etwas davon abweicht | **`docs/decisions.md`** — ADR-001 bis ADR-082. **ADR-074** sagt, was «testbar» in der SDK-Schicht heisst (die Regel steht unten unter «Grenzen»), **ADR-075** warum nipp das Freizeichen beim Rauswählen selbst spielt (25.09.2026), **ADR-076** warum der Echo-Canceller `MSSpeexEC` heisst und **ADR-077** warum jedes Gespräch eine Auswertungszeile hinterlässt (08.10.2026), **ADR-078** warum die Echounterdrückung hier trotzdem aus ist und **ADR-079** warum die Daten unter `bv2\` liegen (09.10.2026), **ADR-080** warum ein verworfener Puffer noch keine hörbare Störung ist (12.10.2026) **ADR-081** warum der Anklopfton nipp gehört und nicht dem SDK (30.10.2026) und **ADR-082** warum nipp sich bei Windows als Anwendung anmeldet, aber nie selbst die Standard-App wählt (26.11.2026) |
 | **Was zuletzt passiert ist** | **`docs/stand.md`** — Meilenstein, was am Gerät aussteht, Chronologie |
 | **Was Erfahrung ist, nicht Regel** | **`docs/lehren.md`** — die teuren Stellen, gruppiert |
 | Wo das Projekt insgesamt steht | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmen in Wellen |
@@ -958,7 +958,7 @@ erfüllt. Details: docs/environment.md.
 | Frage | Dokument |
 |---|---|
 | Was soll nipp tun? | **`NIPP-BUILD.md`** — die Spezifikation. Im Zweifel dort nachlesen |
-| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-081 |
+| Warum weicht etwas davon ab? | **`docs/decisions.md`** — ADR-001 bis ADR-082 |
 | Wo steht das Projekt insgesamt? | **`docs/plans/REVIEW-2026-09-12.md`** — 83 Befunde auf fünf Achsen, Massnahmenplan in Wellen. **`docs/plans/WELLE-0-PLAN.md`** — die fünf Schritte davor, alle umgesetzt |
 | Wo hakt die Bedienung? | **`docs/plans/UX-REVIEW-2.md`** — 20 Befunde (12.09.2026), davor **`docs/plans/UX-REVIEW.md`** — 25 Befunde. Umsetzungsstand jeweils ganz vorn |
 | Was passiert auf einem breiten Fenster? | **`docs/plans/BREITBILD-PLAN.md`** — zwei Spalten, Kacheln, der Detailbereich in der Zeile |

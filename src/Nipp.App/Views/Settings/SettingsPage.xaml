@@ -836,6 +836,17 @@
                         <ToggleSwitch Header="Mit Windows starten" IsOn="{x:Bind ViewModel.StartWithWindows, Mode=TwoWay}" OffContent="Aus" OnContent="Ein" />
                         <ToggleSwitch Header="Minimiert starten" IsOn="{x:Bind ViewModel.StartMinimized, Mode=TwoWay}" OffContent="Aus" OnContent="Ein" />
                         <!--
+                            ADR-082: nipp meldet sich bei Windows fuer tel:, sip:,
+                            sips: und callto: an, waehlt sich aber nicht selbst
+                            zum Standard — das ist die Entscheidung des Benutzers.
+                            Dieser Knopf fuehrt dorthin.
+                        -->
+                        <controls:SettingCard
+                            Description="Damit Links wie tel: und sip: in nipp ankommen, nipp dort als Standard für diese Links wählen. Windows entscheidet das nicht von allein, wenn schon ein anderes Programm (etwa Teams) dafür zuständig ist."
+                            Header="Telefonlinks öffnen mit nipp">
+                            <Button Click="OnOpenDefaultAppsClick" Content="Standard-Apps öffnen" />
+                        </controls:SettingCard>
+                        <!--
                             W1.3 (C11): ein blanker Schalter ohne ein Wort
                             dazu. Ein Fehlgriff laesst jeden Anruf auf offenem
                             Mikrofon durchgehen — das gehoert dazugesagt, und

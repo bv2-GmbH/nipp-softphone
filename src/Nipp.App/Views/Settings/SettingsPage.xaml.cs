@@ -686,6 +686,28 @@ public sealed partial class SettingsPage : Page
     }
 
     /// <summary>§9.6: „Log-Ordner öffnen".</summary>
+    /// <summary>
+    /// ADR-082: öffnet «Standard-Apps» in den Windows-Einstellungen. nipp
+    /// schreibt die Wahl nie selbst (<c>UserChoice</c> ist von Windows
+    /// geschützt und gehört dem Benutzer).
+    /// </summary>
+    private void OnOpenDefaultAppsClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("ms-settings:defaultapps") { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            FeedbackBar.Severity = InfoBarSeverity.Error;
+            FeedbackBar.Message = UserMessage.WithCause(
+                "Die Windows-Einstellungen liessen sich nicht öffnen. Sie finden sich unter "
+                    + "«Einstellungen», «Apps», «Standard-Apps».",
+                ex);
+            FeedbackBar.IsOpen = true;
+        }
+    }
+
     private void OnOpenLogsClick(object sender, RoutedEventArgs e)
     {
         var directory = NippPfade.Logs;

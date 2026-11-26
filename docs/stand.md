@@ -133,6 +133,44 @@ Form, nicht die ausgelieferte, und wurde hier nicht weiter verfolgt.
 
 **Build und Tests nach der Änderung:** `build Nipp.sln -c Debug` 0 Warnungen,
 0 Fehler; `test Nipp.sln` 37 (Architektur) + 1 455 (Kern), alle grün.
+### Nachtrag am selben Tag — nipp meldet sich als Anwendung an (ADR-082)
+
+**Entschieden von Dominic am 26.11.2026:** nipp meldet sich bei Windows so an,
+dass es unter «Standard-Apps» für `tel`, `sip`, `sips` und `callto` **wählbar**
+ist und in «App auswählen» erscheint — `RegisteredApplications` +
+`Capabilities\URLAssociations` + eine eigene ProgID, alles in HKCU. **`UserChoice`
+schreibt nipp nicht** (Hash-geschützt, und die Wahl gehört dem Benutzer).
+
+**Gemessen** mit `SHAssocEnumHandlersForProtocolByApplication` (die Liste, die
+«App auswählen» speist; nur gelesen, nie `MakeDefault`):
+
+| Zustand | `tel` | `sip`, `sips`, `callto` |
+|---|---|---|
+| nur nackte Schlüssel (0.9.16) | Teams, Smartphone-Link, Edge — **kein nipp** | Teams — **kein nipp** |
+| mit Anmeldung (lokaler Debug-Build) | Teams, Smartphone-Link, **nipp**, Edge | Teams, **nipp** |
+
+Gebaut: `ProtocolRegistry` (Naht `IRegistryStore`), von `WindowsIntegration`
+gerufen; Knopf «Standard-Apps öffnen» auf der Einstellungsseite. Aufräumen beim
+Deinstallieren: der vorhandene Velopack-Haken `OnBeforeUninstallFastCallback`
+(`Program.RaeumeAuf`) ruft dieselbe Methode und zieht die neuen Schlüssel mit.
+
+**Nicht gemessen:** dass ein `tel:`-Klick nach der Wahl von nipp in
+Standard-Apps wirklich in nipp ankommt (T344, T21, T22) — das setzt eine
+`UserChoice`, und die setzt der Benutzer. Die ausgelieferte 0.9.16 trägt die
+Anmeldung nicht; sie wirkt erst mit dem nächsten Release. Auf diesem Rechner
+stehen die neuen Schlüssel von Hand auf den installierten Stub
+(`%LOCALAPPDATA%\nipp\Nipp.App.exe`), damit der Zustand zur Installation passt.
+
+**Build und Tests:** `build Nipp.sln -c Debug` 0 Warnungen, 0 Fehler;
+`test Nipp.sln` 37 (Architektur) + 1 470 (Kern), alle grün.
+
+**Und der alte Arbeitsplatz vom 12.10.2026:** dort ist dieselbe Teams-Fassung
+installiert (`MSTeams 26288.2004.5269.3420`, von Dominic am 26.11.2026
+nachgesehen). Damit ist die offene Ursache aus dem Befund vom 12.10. **sehr
+wahrscheinlich dieselbe** — Teams hielt die Protokolle, nipp war kein Kandidat.
+**Belegt ist es nicht:** die Zuordnung (`AssocQueryString`) wurde dort nicht
+gemessen. Nachzumessen lohnt sich nicht mehr; nach dem Update auf die Fassung
+mit ADR-082 wird T21 dort ohnehin neu geprüft.
 
 ---
 

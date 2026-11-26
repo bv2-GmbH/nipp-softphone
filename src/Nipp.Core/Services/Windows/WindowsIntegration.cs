@@ -17,13 +17,15 @@ namespace Nipp.Core.Services.Windows;
 /// bei der Deinstallation sauber zurückgebaut. Diese Klasse ist die
 /// Rückfallebene, die §10 ausdrücklich vorsieht.
 /// </summary>
-public sealed class WindowsIntegration(ILogger<WindowsIntegration> logger)
+public sealed class WindowsIntegration(ILogger<WindowsIntegration> logger, IRegistryStore? store = null)
 {
+    private readonly IRegistryStore _store = store ?? new CurrentUserRegistry();
+
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string AppName = "nipp";
 
     /// <summary>Die Protokolle aus §10.</summary>
-    private static readonly string[] Protocols = ["tel", "sip", "sips", "callto"];
+    private static IReadOnlyList<string> Protocols => ProtocolRegistry.Protocols;
 
     /// <summary>
     /// Ob nipp mit Paketidentität läuft — also als installiertes MSIX.
@@ -127,76 +129,26 @@ public sealed class WindowsIntegration(ILogger<WindowsIntegration> logger)
             return;
         }
 
-        foreach (var protocol in Protocols)
+        try
         {
-            try
+            var registry = new ProtocolRegistry(_store, ExecutablePath);
+
+            if (register)
             {
-                if (register)
-                {
-                    RegisterOne(protocol);
-                }
-                else
-                {
-                    RemoveOne(protocol);
-                }
+                registry.Register();
+                WindowsIntegrationLog.ProtocolsRegistered(logger, string.Join(", ", Protocols));
+                WindowsIntegrationLog.ApplicationRegistered(logger);
             }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
+            else
             {
-                WindowsIntegrationLog.RegistryDenied(logger, protocol, ex.Message);
+                registry.Remove();
+                WindowsIntegrationLog.ProtocolsRemoved(logger);
             }
         }
-
-        if (register)
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
         {
-            WindowsIntegrationLog.ProtocolsRegistered(logger, string.Join(", ", Protocols));
+            WindowsIntegrationLog.RegistryDenied(logger, "Protokolle", ex.Message);
         }
-        else
-        {
-            WindowsIntegrationLog.ProtocolsRemoved(logger);
-        }
-    }
-
-    private static void RegisterOne(string protocol)
-    {
-        using var key = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{protocol}");
-        key.SetValue(string.Empty, $"URL:{protocol}");
-
-        // Dieser Wert macht den Schlüssel überhaupt erst zu einem
-        // Protokoll-Handler. Ohne ihn ignoriert Windows den Eintrag.
-        key.SetValue("URL Protocol", string.Empty);
-
-        using var icon = key.CreateSubKey("DefaultIcon");
-        icon.SetValue(string.Empty, $"\"{ExecutablePath}\",0");
-
-        using var command = key.CreateSubKey(@"shell\open\command");
-
-        // §10: „Aktivierung mit URI → direkt wählen, keine Rückfrage."
-        command.SetValue(string.Empty, $"\"{ExecutablePath}\" \"%1\"");
-    }
-
-    /// <summary>
-    /// Entfernt die eigene Protokollregistrierung — und nur die eigene.
-    ///
-    /// Vorher stand hier ein <c>DeleteSubKeyTree</c> auf
-    /// <c>Software\Classes\tel</c>. Das löscht den Schlüssel samt Inhalt,
-    /// auch wenn ihn ein anderes Programm angelegt hatte: wer nipp als
-    /// Standard abwählt, hätte damit auch die Registrierung von Teams oder
-    /// Skype mitgenommen.
-    /// </summary>
-    private static void RemoveOne(string protocol)
-    {
-        using var key = Registry.CurrentUser.OpenSubKey(
-            $@"Software\Classes\{protocol}\shell\open\command",
-            writable: false);
-
-        if (key?.GetValue(string.Empty) as string is not { } command
-            || !command.Contains("Nipp.App", StringComparison.OrdinalIgnoreCase))
-        {
-            // Fremd oder nicht vorhanden — nicht anfassen.
-            return;
-        }
-
-        Registry.CurrentUser.DeleteSubKeyTree($@"Software\Classes\{protocol}", throwOnMissingSubKey: false);
     }
 
     /// <summary>
@@ -328,6 +280,11 @@ internal static partial class WindowsIntegrationLog
     [LoggerMessage(EventId = 3002, Level = LogLevel.Information,
         Message = "Protokolle registriert: {Protocols}")]
     public static partial void ProtocolsRegistered(ILogger logger, string protocols);
+
+    [LoggerMessage(EventId = 3007, Level = LogLevel.Information,
+        Message = "Als Anwendung fuer die Protokolle angemeldet (Standard-Apps, ADR-082) — "
+            + "die Wahl trifft der Benutzer")]
+    public static partial void ApplicationRegistered(ILogger logger);
 
     [LoggerMessage(EventId = 3003, Level = LogLevel.Information,
         Message = "Protokoll-Registrierungen entfernt")]

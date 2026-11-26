@@ -8,6 +8,62 @@ Format: neueste zuoberst. Status ist `angenommen`, `offen`, `abgelöst durch ADR
 
 ---
 
+## ADR-082 — nipp meldet sich bei Windows als Anwendung an, wählt sich aber nie selbst zum Standard
+
+**Datum:** 26.11.2026 · **Status:** angenommen · **Entscheid:** Dominic, 26.11.2026 · **Bezug:** §10, ADR-038, ADR-079, `ProtocolRegistry`, `WindowsIntegration`, T21, T22, T344
+
+**Kontext.** Auf dem ersten frischen x64-Rechner (Windows 11, Build 26300,
+nipp 0.9.16 frisch installiert, Microsoft Teams aus dem Store angemeldet)
+erreichte ein `tel:`- oder `sips:`-Aufruf über ShellExecute nipp **nicht**
+(`docs/stand.md`, 26.11.2026). nipp schrieb `tel`, `sip`, `sips` und `callto`
+als **nackte Protokollschlüssel** nach `HKCU\Software\Classes` — vollständig und
+richtig, aber ohne `UserChoice`. Teams beansprucht dieselben Protokolle per
+Paketmanifest, und ohne `UserChoice` löste Windows `sip`, `sips` und `callto` zu
+Teams auf und `tel` zum stummen «App auswählen» (`OpenWith.exe`). **Gemessen am
+selben Tag mit `SHAssocEnumHandlersForProtocolByApplication`** (derselben Liste,
+die «App auswählen» und «Standard-Apps» zeigen): mit den nackten Schlüsseln
+allein stand nipp bei **keinem** der vier Protokolle darin — bei `tel` nur
+Teams, «Smartphone-Link» und Edge, bei den anderen nur Teams. Wählbar war nipp
+also gar nicht.
+
+**Entscheidung.**
+
+1. **nipp meldet sich als Anwendung mit Fähigkeiten an**, alles in HKCU, ohne
+   Administratorrechte, im Standardmuster:
+   - ProgID `HKCU\Software\Classes\nipp.Url` (eine für alle vier Protokolle)
+     mit `URL Protocol`, `Application\ApplicationName`, `DefaultIcon` und
+     `shell\open\command` — derselbe Befehl wie bei den nackten Schlüsseln;
+   - `HKCU\Software\bv2\nipp\Capabilities` mit `ApplicationName`,
+     `ApplicationDescription` und `URLAssociations` (`tel`, `sip`, `sips`,
+     `callto` → `nipp.Url`) — unter `bv2\` wie die Daten (ADR-079);
+   - `HKCU\Software\RegisteredApplications`, Wert `nipp` →
+     `Software\bv2\nipp\Capabilities`.
+2. **Die nackten Schlüssel bleiben**, unverändert, als Rückfallweg.
+3. **nipp schreibt nie `UserChoice`.** Windows schützt den Schlüssel per Hash,
+   und die Wahl der Standard-App gehört dem Benutzer oder der IT — nicht dem
+   Programm, das davon profitiert. Wer nipp als Standard will, wählt es unter
+   «Einstellungen → Apps → Standard-Apps» (oder im Dialog «App auswählen»); die
+   Einstellungsseite hat dafür den Knopf «Standard-Apps öffnen»
+   (`ms-settings:defaultapps`).
+4. **Aufräumen:** der Velopack-Haken `OnBeforeUninstallFastCallback`
+   (`Program.RaeumeAuf`) ruft schon `RegisterProtocolHandlers(false)`; die neuen
+   Schlüssel hängen an derselben Stelle. Entfernt wird nur, was nipp gehört: die
+   ProgID, `Capabilities` und der Wert `nipp` in `RegisteredApplications` — und
+   dieser nur, wenn er auf unsere Fähigkeiten zeigt.
+5. **Die Pfade sind die des Stubs** (`ExecutablePath`, ADR-038), nicht
+   `current\`; sie werden bei jedem Start neu geschrieben, wie bisher.
+6. **Die Registrierung steht hinter einer Naht** (`IRegistryStore`,
+   `ProtocolRegistry`), damit Tests prüfen können, was eingetragen wird, ohne
+   die Registrierung des Entwicklers anzufassen.
+
+**Konsequenz.** nipp ist für die vier Protokolle wählbar; **dass es dann auch
+ankommt, ist damit noch nicht gezeigt** — das ist T344 (nach dem Release in
+Standard-Apps wählen, dann T21 und T22 erneut). Auf einem Rechner mit Teams
+bleibt es ohne diese Wahl bei Teams: die Anmeldung macht nipp wählbar, nicht
+bevorzugt. Das ist gewollt. Die ausgelieferte 0.9.16 hat die Anmeldung nicht;
+sie wirkt erst mit dem nächsten Release.
+
+---
 ## ADR-081 — Der Anklopfton gehört nipp, nicht dem SDK
 
 **Datum:** 30.10.2026 · **Status:** angenommen · **Bezug:** §8.2, §9.4, ADR-075, `NippSounds`, `SettingsApplier`, Befund L12 in `docs/plans/LOGBEFUNDE-PLAN.md`, T341
