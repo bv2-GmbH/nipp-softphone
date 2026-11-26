@@ -98,6 +98,14 @@ dieselbe Falle wie bei der Brücke zum neuen Repo (`OEFFENTLICH-PLAN.md`).
 - Ein Arbeitsplatz **ohne** Netz zu GitHub verhält sich wie vorher: die Prüfung
   scheitert als Zustand, nicht als Fehler.
 
+**Umgesetzt, in der verlangten Reihenfolge (26.11.2026).** 0.9.18 ist um
+19:27 UTC als stable erschienen; Dominic hat bestätigt, dass **alle
+Arbeitsplätze auf 0.9.18** stehen und die Gegenprobe T345 passt (die
+Aufräumzeile steht im Protokoll, die Update-Prüfung läuft ohne 401). **Danach
+ist das PAT auf GitHub widerrufen worden** (Dominic, 26.11.2026). Offen bleibt
+nur, `update.token` bei Gelegenheit aus den Factory-Dateien zu streichen — es
+wird ignoriert, eilt also nicht.
+
 ---
 
 ## ADR-082 — nipp meldet sich bei Windows als Anwendung an, wählt sich aber nie selbst zum Standard

@@ -165,6 +165,11 @@ angekommen sein, **dann** wird das Token auf GitHub widerrufen. Fassungen bis
 antwortet GitHub auch für ein öffentliches Repo mit 401, und die
 Update-Prüfung bleibt still stehen. Prüfzeile T345.
 
+**So ist es gelaufen (26.11.2026):** 0.9.18 erschienen, alle Arbeitsplätze
+aktualisiert, T345 bestanden — **danach das PAT widerrufen.** Ein Update-Token
+gibt es seither nicht mehr. `update.token` in alten Factory-Dateien schadet
+nicht und kann bei Gelegenheit raus.
+
 **Keine Abkürzung gilt weiter:** Code privat und ein zweites Repo für die
 Pakete öffentlich wäre die Binärdatei an jeden und der Quelltext an niemanden —
 genau der Fall, für den es die AGPL gibt. Deshalb liegt beides offen am selben
