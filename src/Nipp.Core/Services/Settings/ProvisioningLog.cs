@@ -35,6 +35,16 @@ internal static partial class ProvisioningLog
         Message = "Profil von {Host} nicht abrufbar: {Reason}. Die lokalen Einstellungen gelten weiter.")]
     public static partial void FetchFailed(ILogger logger, string host, string reason);
 
+    // L9 (LOGBEFUNDE-PLAN): ein Arbeitsplatz hatte die Adresse einer Kontaktsuche
+    // eingetragen und las bei jedem Start nur "404 (Not Found)". Bei 404 und 410
+    // liegt unter der Adresse vermutlich gar kein Profil — das sagt diese Zeile.
+    // Bei allem anderen (Netz, 5xx) kann eines existieren, dort bleibt FetchFailed.
+    [LoggerMessage(EventId = 3521, Level = LogLevel.Warning,
+        Message = "Unter der Adresse von {Host} antwortet der Server mit {Status} — dort liegt "
+            + "vermutlich gar kein Provisionierungsprofil. Die Adresse in den Einstellungen "
+            + "pruefen. Die lokalen Einstellungen gelten weiter.")]
+    public static partial void ProfileNotFound(ILogger logger, string host, int status);
+
     [LoggerMessage(EventId = 3513, Level = LogLevel.Warning,
         Message = "Provisioning-Server {Host} antwortet nicht. Die lokalen Einstellungen gelten weiter.")]
     public static partial void FetchTimedOut(ILogger logger, string host);

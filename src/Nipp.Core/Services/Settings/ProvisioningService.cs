@@ -48,14 +48,17 @@ public sealed class ProvisioningService : IDisposable
         SettingsService settings,
         PolicyService policy,
         SecretStore secrets,
-        ILogger<ProvisioningService> logger)
+        ILogger<ProvisioningService> logger,
+        HttpMessageHandler? httpHandler = null)
     {
         _settings = settings;
         _policy = policy;
         _secrets = secrets;
         _logger = logger;
 
-        _http = new HttpClient { Timeout = Timeout };
+        _http = httpHandler is null
+            ? new HttpClient { Timeout = Timeout }
+            : new HttpClient(httpHandler, disposeHandler: true) { Timeout = Timeout };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("nipp/1.0");
     }
 
@@ -236,6 +239,21 @@ public sealed class ProvisioningService : IDisposable
         {
             // §17: „Fehler beim Abruf dürfen den Start nicht verhindern —
             // dann gilt die lokale Config, mit Hinweis im UI."
+            //
+            // L9: bei 404 und 410 liegt dort vermutlich gar kein Profil — die
+            // Adresse ist dann das Problem, nicht der Server. Alles andere
+            // (Netz, 5xx, 401) bleibt bei der bisherigen Meldung.
+            if (ex.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Gone)
+            {
+                var status = (int)ex.StatusCode;
+                LastError = $"Unter der Adresse von {parsed.Host} antwortet der Server mit "
+                    + $"{status} — dort liegt vermutlich gar kein Provisionierungsprofil. "
+                    + "Bitte die Adresse in den Einstellungen prüfen. "
+                    + "nipp arbeitet mit den zuletzt gespeicherten Einstellungen weiter.";
+                ProvisioningLog.ProfileNotFound(_logger, parsed.Host, status);
+                return null;
+            }
+
             LastError = $"Das Provisioning-Profil ist nicht erreichbar ({ex.Message}). "
                 + "nipp arbeitet mit den zuletzt gespeicherten Einstellungen weiter.";
             ProvisioningLog.FetchFailed(_logger, parsed.Host, ex.Message);

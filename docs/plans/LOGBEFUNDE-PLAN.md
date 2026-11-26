@@ -29,7 +29,7 @@ Arbeitsplatz installiert.
 | **R3.1/R3.2** Anmeldelücken (L5) | **gemessen**, siehe unten |
 | **R3.3** Entprellung | **nicht geändert** — die Messung spricht dagegen, siehe unten |
 | **R3.4** L6 in den Audioplan | **eingetragen**, ohne Deutung |
-| **L9** Provisionierungsadresse | **geleert** auf diesem Arbeitsplatz (Entscheid vom 30.10.2026). Die zweite Hälfte — dass nipp bei 404 deutlicher wird — ist **nicht** gebaut |
+| **L9** Provisionierungsadresse | **geleert** auf diesem Arbeitsplatz (Entscheid vom 30.10.2026). Die zweite Hälfte — dass nipp bei 404 deutlicher wird — ist **gebaut am 26.11.2026, ungeprüft am Gerät** (Prüfzeile **T343**): bei 404 und 410 sagen Protokoll (Ereignis 3521) und Fehlertext der Einstellungsseite, dass unter der Adresse vermutlich gar kein Profil liegt; Netz-, 5xx- und Timeout-Fehler behalten die alte Meldung. Vier Komponententests |
 | **L7** Toasts | **eigener Befund**, Prüfzeile **T342**. **Ursache gemessen am 26.11.2026:** `Microsoft.WindowsAppRuntime.Insights.Resource.dll` fehlt im self-contained Publish — **repariert** im Projekt (Target `NippInsightsResource`), am Publish nachgemessen (`Benachrichtigungen angemeldet`). **Ausgeliefert ist es noch nicht** (0.9.16 hat die Datei nicht), und **dass ein Toast erscheint, ist nicht gesehen** — T342 bleibt offen. Siehe unten und `docs/stand.md` vom 26.11.2026 |
 | **L10** Debug | **bleibt** — die A7-Jagd läuft (Entscheid vom 30.10.2026) |
 
